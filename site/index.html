@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Northing</title>
+<meta name="description" content="A place under long observation.">
+
+<!--
+  NORTHING — SITE v3
+
+  This is not a site about Northing.
+  It is a site that exists because Northing exists.
+
+  The visitor moves through time: dark → light → dark.
+  Questions are genuine inquiries, not rhetorical devices.
+  Fragments are drawn from actual observations, presented without context.
+  Nothing is explained.
+
+  Contact email: replace [contact] in the threshold link with the real address.
+-->
+
+<style>
+
+/* ── Reset ──────────────────────────────────── */
+*, *::before, *::after {
+  margin: 0; padding: 0; box-sizing: border-box;
+}
+
+/* ── Properties ─────────────────────────────── */
+:root {
+  --dark:        #0c0d11;
+  --dark-mid:    #111520;
+  --light:       #eae6db;
+  --light-warm:  #ede8de;
+
+  --dark-text:        rgba(220, 216, 208, 0.84);
+  --dark-text-dim:    rgba(178, 174, 165, 0.50);
+  --dark-text-faint:  rgba(148, 144, 136, 0.28);
+
+  --light-text:       #1c1a18;
+  --light-text-mid:   rgba(44, 42, 38, 0.72);
+  --light-text-dim:   rgba(58, 55, 50, 0.50);
+
+  --serif: Georgia, 'Times New Roman', 'Noto Serif', serif;
+  --sans:  -apple-system, 'Helvetica Neue', Arial, sans-serif;
+
+  --reveal-duration: 0.95s;
+  --reveal-ease: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* ── Base ───────────────────────────────────── */
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--serif);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* ── Zone backgrounds ───────────────────────── */
+.zone-dark,
+.zone-threshold {
+  background-color: var(--dark);
+  color: var(--dark-text);
+}
+
+.zone-light {
+  background-color: var(--light);
+  color: var(--light-text);
+}
+
+/* ── Entry ──────────────────────────────────── */
+
+.entry {
+  position: relative;
+  height: 100svh;
+  min-height: 520px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Subtle radial depth on the entry background */
+.entry-sky {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 80% 70% at 50% 50%, transparent 30%, rgba(6, 7, 9, 0.55) 100%);
+  pointer-events: none;
+}
+
+/* SVG landscape — positions from the bottom half of the entry */
+.entry-landscape {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 58vh;
+  pointer-events: none;
+}
+
+.entry-landscape svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Logo + question — centered in viewport */
+.entry-caption {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  padding: 0 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.wordmark {
+  display: block;
+  font-family: var(--sans);
+  font-size: 0.60rem;
+  font-weight: 300;
+  letter-spacing: 0.60em;
+  text-indent: 0.60em;
+  text-transform: uppercase;
+  color: rgba(208, 204, 196, 0.72);
+  margin-bottom: 2.8rem;
+}
+
+.entry-question {
+  font-family: var(--serif);
+  font-size: 0.92rem;
+  font-style: italic;
+  color: var(--dark-text-dim);
+  line-height: 1.72;
+  max-width: 34ch;
+  margin: 0 auto;
+}
+
+/* Thin descending line — implies "below" without labeling it */
+.descent-line {
+  display: block;
+  width: 1px;
+  height: 38px;
+  margin: 2.4rem auto 0;
+  background: linear-gradient(to bottom, rgba(178,174,165,0.22), transparent);
+}
+
+/* ── Questions ──────────────────────────────── */
+
+.question {
+  display: flex;
+  align-items: center;
+  min-height: 72vh;
+  padding: 7rem 2rem;
+}
+
+.question-inner {
+  max-width: 580px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.q-text {
+  font-family: var(--serif);
+  font-size: clamp(1.12rem, 2.7vw, 1.58rem);
+  font-weight: normal;
+  line-height: 1.62;
+  letter-spacing: -0.01em;
+}
+
+.zone-dark  .q-text { color: var(--dark-text); }
+.zone-light .q-text { color: var(--light-text); }
+
+/* ── Fragments ──────────────────────────────── */
+
+.fragments {
+  padding: 3.5rem 2rem 5.5rem;
+}
+
+.fragments-inner {
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.frag {
+  padding: 2.8rem 0;
+}
+
+.zone-dark  .frag { border-top: 1px solid rgba(255,255,255,0.055); }
+.zone-light .frag { border-top: 1px solid rgba(0,0,0,0.07); }
+
+.frag:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.frag-text {
+  font-family: var(--serif);
+  font-size: 0.92rem;
+  font-style: italic;
+  line-height: 1.80;
+}
+
+.zone-dark  .frag-text { color: rgba(188, 184, 175, 0.60); }
+.zone-light .frag-text { color: rgba(48,  45,  41,  0.65); }
+
+/* ── Reflection ─────────────────────────────── */
+
+.reflection {
+  padding: 5rem 2rem 7.5rem;
+}
+
+.reflection-inner {
+  max-width: 540px;
+  margin: 0 auto;
+}
+
+.ref-q {
+  font-family: var(--serif);
+  font-size: clamp(0.98rem, 2.1vw, 1.22rem);
+  font-weight: normal;
+  line-height: 1.68;
+  color: var(--light-text-mid);
+  padding: 4rem 0;
+  border-bottom: 1px solid rgba(0,0,0,0.065);
+}
+
+.ref-q:first-child { padding-top: 0; }
+.ref-q:last-child  { border-bottom: none; padding-bottom: 0; }
+
+/* ── Zone transitions ───────────────────────── */
+
+/* The fog lifts — dark yields to light */
+.fade-to-light {
+  height: 24vh;
+  background: linear-gradient(to bottom, var(--dark), var(--light));
+}
+
+/* The light fails — day yields to night */
+.fade-to-dark {
+  height: 24vh;
+  background: linear-gradient(to bottom, var(--light), var(--dark));
+}
+
+/* ── Threshold ──────────────────────────────── */
+
+.threshold {
+  min-height: 82vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8rem 2rem;
+  text-align: center;
+}
+
+.threshold-ascent {
+  display: block;
+  width: 1px;
+  height: 52px;
+  margin: 0 auto 3.8rem;
+  background: linear-gradient(to bottom, rgba(192,188,180,0.20), transparent);
+}
+
+.threshold-text {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 0.88rem;
+  line-height: 2.1;
+  color: var(--dark-text-dim);
+  max-width: 32ch;
+  margin-bottom: 4.5rem;
+}
+
+.threshold-text p { margin-bottom: 1.1rem; }
+.threshold-text p:last-child { margin-bottom: 0; }
+
+/* "Threshold" link — minimal, not a call to action */
+.threshold-link {
+  font-family: var(--sans);
+  font-size: 0.56rem;
+  letter-spacing: 0.30em;
+  text-indent: 0.30em;
+  text-transform: uppercase;
+  color: var(--dark-text-faint);
+  text-decoration: none;
+  transition: color 0.4s ease;
+  display: inline-block;
+  padding: 0.4rem 0;
+}
+
+.threshold-link:hover {
+  color: rgba(195, 191, 183, 0.60);
+}
+
+/* ── Reveal animation ───────────────────────── */
+
+.reveal {
+  opacity: 0;
+  transform: translateY(14px);
+  transition:
+    opacity  var(--reveal-duration) var(--reveal-ease),
+    transform var(--reveal-duration) var(--reveal-ease);
+}
+
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+/* ── Responsive ─────────────────────────────── */
+
+@media (max-width: 620px) {
+  .entry-caption   { padding-bottom: 11svh; }
+  .question        { min-height: 62vh; padding: 5rem 1.5rem; }
+  .fragments       { padding: 2.5rem 1.5rem 4rem; }
+  .reflection      { padding: 3.5rem 1.5rem 5.5rem; }
+  .threshold       { padding: 6rem 1.5rem;  }
+  .fade-to-light,
+  .fade-to-dark    { height: 16vh; }
+}
+
+@media print {
+  .entry { display: none; }
+}
+
+/* ── Logo ───────────────────────────────────────── */
+
+.logo {
+  display: block;
+  width: min(340px, 72vw);
+  height: auto;
+  margin: 0 0 3rem;
+  opacity: 0.92;
+}
+
+/* ── Featured illustration ──────────────────────── */
+
+.illustration {
+  padding: 0.5rem 2rem 3.5rem;
+}
+
+.illustration-inner {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.illustration img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.illus-label {
+  font-family: var(--sans);
+  font-size: 0.52rem;
+  letter-spacing: 0.26em;
+  text-indent: 0.26em;
+  text-transform: uppercase;
+  color: var(--light-text-dim);
+  margin-top: 1.1rem;
+  text-align: right;
+}
+
+/* ── Observation record ─────────────────────────── */
+
+.obs-record {
+  padding: 3.5rem 2rem 5.5rem;
+  border-top: 1px solid rgba(0,0,0,0.065);
+}
+
+.obs-record-inner {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.obs-record-heading {
+  font-family: var(--sans);
+  font-size: 0.52rem;
+  letter-spacing: 0.44em;
+  text-indent: 0.44em;
+  text-transform: uppercase;
+  color: var(--light-text-dim);
+  margin-bottom: 2.4rem;
+}
+
+.obs-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem 2.2rem;
+}
+
+.obs-thumb img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+@media (max-width: 480px) {
+  .obs-grid      { grid-template-columns: 1fr; }
+  .illustration  { padding: 0.5rem 1.5rem 2.5rem; }
+  .obs-record    { padding: 2.5rem 1.5rem 4.5rem; }
+}
+
+</style>
+</head>
+<body>
+
+
+<!-- ============================================================
+     DARK ZONE — Pre-dawn, Dawn, Early Morning
+     The visitor enters at night and moves toward light.
+     ============================================================ -->
+<div class="zone-dark">
+
+
+  <!-- ENTRY ─────────────────────────────────────────────────── -->
+
+  <section class="entry" aria-label="Northing">
+
+    <!-- Sky: subtle pre-dawn glow at the top of the viewport -->
+    <div class="entry-sky" aria-hidden="true"></div>
+
+    <!-- Landscape: replaced by background image on .entry -->
+    <div class="entry-landscape" aria-hidden="true">
+      <svg
+        viewBox="0 0 1440 420"
+        xmlns="http://www.w3.org/2000/svg"
+        preserveAspectRatio="xMidYMax slice"
+        role="img"
+        aria-hidden="true"
+        style="display:none">
+
+        <defs>
+          <!-- Sky gradient: slightly blue at top, darkens to page color -->
+          <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"   stop-color="#10192c"/>
+            <stop offset="60%"  stop-color="#0d1019"/>
+            <stop offset="100%" stop-color="#0c0d11"/>
+          </linearGradient>
+          <!-- Water: very thin suggestion of a river in the valley -->
+          <linearGradient id="water" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%"   stop-color="#0c0d11"  stop-opacity="0"/>
+            <stop offset="20%"  stop-color="#111f38"  stop-opacity="0.7"/>
+            <stop offset="50%"  stop-color="#121f36"  stop-opacity="0.6"/>
+            <stop offset="80%"  stop-color="#0f1a2e"  stop-opacity="0.5"/>
+            <stop offset="100%" stop-color="#0c0d11"  stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+
+        <!-- Sky fill -->
+        <rect width="1440" height="420" fill="url(#sky)"/>
+
+        <!-- River — thin gleam in the lower valley, left-center -->
+        <ellipse cx="480" cy="404" rx="340" ry="5"
+                 fill="url(#water)"/>
+
+        <!-- Distant ridge — right and center-right, higher elevation -->
+        <path d="
+          M 640 205
+          C 720 196  810 180  900 172
+          C 990 164  1080 172  1160 167
+          C 1240 162  1330 170  1440 175
+          L 1440 420 L 640 420 Z
+        " fill="#090a0e"/>
+
+        <!-- Main land mass — left and center, lower elevation -->
+        <path d="
+          M 0 248
+          C 85  240  175  225  265  215
+          C 355  205  445  220  535  224
+          C 625  228  715  208  800  200
+          C 875  193  950  205  1020 212
+          L 1020 420 L 0 420 Z
+        " fill="#0a0b0f"/>
+
+        <!-- Treeline — left cluster, near ridge -->
+        <g fill="#07080b">
+          <!-- Group 1 -->
+          <polygon points="34,248  44,212  54,248"/>
+          <polygon points="51,250  62,214  73,250"/>
+          <polygon points="70,246  81,210  92,246"/>
+          <polygon points="88,248  98,215  108,248"/>
+          <!-- Gap -->
+          <!-- Group 2 -->
+          <polygon points="140,238  151,202  162,238"/>
+          <polygon points="158,241  169,205  180,241"/>
+          <polygon points="176,235  187,199  198,235"/>
+          <polygon points="194,238  204,204  214,238"/>
+          <polygon points="211,241  222,206  233,241"/>
+          <!-- Gap -->
+          <!-- Group 3 -->
+          <polygon points="298,228  308,192  318,228"/>
+          <polygon points="315,231  326,195  337,231"/>
+          <polygon points="333,225  344,189  355,225"/>
+          <polygon points="350,228  361,194  372,228"/>
+          <!-- Gap -->
+          <!-- Group 4 -->
+          <polygon points="424,232  434,196  444,232"/>
+          <polygon points="441,235  452,199  463,235"/>
+          <polygon points="459,228  470,192  481,228"/>
+          <polygon points="477,231  487,196  497,231"/>
+        </g>
+
+        <!-- Treeline — right cluster, on distant ridge -->
+        <g fill="#070809">
+          <!-- Group A -->
+          <polygon points="682,203  691,175  700,203"/>
+          <polygon points="697,206  706,178  715,206"/>
+          <polygon points="713,200  722,172  731,200"/>
+          <polygon points="728,203  737,176  746,203"/>
+          <!-- Gap -->
+          <!-- Group B -->
+          <polygon points="800,180  809,152  818,180"/>
+          <polygon points="816,183  825,155  834,183"/>
+          <polygon points="831,177  840,149  849,177"/>
+          <!-- Gap -->
+          <!-- Group C -->
+          <polygon points="916,172  925,144  934,172"/>
+          <polygon points="932,175  941,147  950,175"/>
+          <polygon points="948,170  957,142  966,170"/>
+          <polygon points="963,173  972,146  981,173"/>
+          <!-- Gap -->
+          <!-- Group D -->
+          <polygon points="1052,170  1060,143  1068,170"/>
+          <polygon points="1066,173  1075,146  1084,173"/>
+          <polygon points="1081,168  1090,141  1099,168"/>
+        </g>
+
+        <!-- Foreground base — grounds the silhouette at the bottom -->
+        <rect x="0" y="408" width="1440" height="12" fill="#07080a"/>
+
+      </svg>
+    </div>
+
+    <!-- Logo and entry question -->
+    <div class="entry-caption">
+      <img src="images/northing-logo-v1.png" class="logo" alt="Northing">
+      <p class="entry-question">At what distance does a place begin?</p>
+      <span class="descent-line" aria-hidden="true"></span>
+    </div>
+
+  </section>
+
+
+  <!-- INQUIRY: DARK ─────────────────────────────────────────── -->
+
+  <div class="question">
+    <div class="question-inner reveal">
+      <p class="q-text">When does evidence stop choosing between explanations?</p>
+    </div>
+  </div>
+
+  <div class="question">
+    <div class="question-inner reveal">
+      <p class="q-text">Can understanding increase while certainty does not?</p>
+    </div>
+  </div>
+
+  <div class="question">
+    <div class="question-inner reveal">
+      <p class="q-text">When does the incomplete become inexhaustible rather than insufficient?</p>
+    </div>
+  </div>
+
+
+  <!-- FRAGMENTS: DARK ───────────────────────────────────────── -->
+  <!--
+    These are drawn directly from Observation 001 (Headwater Spring)
+    and Observation 005 (Abandoned Hillside Orchard), stripped of
+    location, date, and chronological context.
+    Presented as evidence, not illustration.
+  -->
+
+  <div class="fragments">
+    <div class="fragments-inner">
+
+      <div class="frag reveal">
+        <p class="frag-text">The smell arrives before the clearing does.</p>
+      </div>
+
+      <div class="frag reveal">
+        <p class="frag-text">No approach could be made without disturbing the surface.</p>
+      </div>
+
+      <div class="frag reveal">
+        <p class="frag-text">The water was cold against the hand. Not surface cold — not the cold of rain-chilled water exposed to October air — but the specific cold of something that came from underground: steady, deep, indifferent to what the day had been doing above it.</p>
+      </div>
+
+      <div class="frag reveal">
+        <p class="frag-text">Everything else at the surface was ambiguous. The temperature was not.</p>
+      </div>
+
+    </div>
+  </div>
+
+
+</div><!-- /zone-dark -->
+
+
+<!-- Transition: fog lifting — dark yields to light ─────────── -->
+<div class="fade-to-light" aria-hidden="true"></div>
+
+
+<!-- ============================================================
+     LIGHT ZONE — Morning, Midday, Afternoon
+     The visitor moves through the brightest part of the day.
+     ============================================================ -->
+<div class="zone-light">
+
+
+  <!-- INQUIRY: LIGHT ────────────────────────────────────────── -->
+
+  <div class="question">
+    <div class="question-inner reveal">
+      <p class="q-text">When does familiarity become indistinguishable from memory?</p>
+    </div>
+  </div>
+
+  <div class="question">
+    <div class="question-inner reveal">
+      <p class="q-text">What does a place do while no one is attending to it?</p>
+    </div>
+  </div>
+
+  <div class="question">
+    <div class="question-inner reveal">
+      <p class="q-text">Does return to a familiar place confirm what was there, or change it?</p>
+    </div>
+  </div>
+
+
+  <!-- FEATURED ILLUSTRATION: 002 ────────────────────────────── -->
+
+  <div class="illustration">
+    <div class="illustration-inner reveal">
+      <img
+        src="images/002-orchard.png"
+        alt="002. Abandoned Hillside Orchard — Upper Northeast Slope">
+      <p class="illus-label">002 — Abandoned Hillside Orchard</p>
+    </div>
+  </div>
+
+
+  <!-- FRAGMENTS: LIGHT ──────────────────────────────────────── -->
+
+  <div class="fragments">
+    <div class="fragments-inner">
+
+      <div class="frag reveal">
+        <p class="frag-text">The valley was absent.</p>
+      </div>
+
+      <div class="frag reveal">
+        <p class="frag-text">Not at a line but as a progression.</p>
+      </div>
+
+      <div class="frag reveal">
+        <p class="frag-text">During pauses in the bird movement, the clearing achieved a quiet with no equivalent in the prior observation record.</p>
+      </div>
+
+      <div class="frag reveal">
+        <p class="frag-text">Something moved at ground level in the shrub layer — a brief disturbance, the sound of vegetation disturbed and then returning to stillness, moving away from the clearing interior. The margin was quiet afterward.</p>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- REFLECTION ────────────────────────────────────────────── -->
+
+  <div class="reflection">
+    <div class="reflection-inner">
+      <p class="ref-q reveal">Can consciousness be perceived in a place, or only in the evidence it leaves?</p>
+      <p class="ref-q reveal">What remains of sustained attention after the attention ends?</p>
+    </div>
+  </div>
+
+
+  <!-- OBSERVATION RECORD ─────────────────────────────────────── -->
+
+  <div class="obs-record">
+    <div class="obs-record-inner reveal">
+      <p class="obs-record-heading">Observation record</p>
+      <div class="obs-grid">
+        <div class="obs-thumb">
+          <img
+            src="images/001-ridge-overlook.png"
+            alt="001. Ridge Overlook — Northing Highlands">
+        </div>
+        <div class="obs-thumb">
+          <img
+            src="images/002-orchard.png"
+            alt="002. Abandoned Hillside Orchard — Upper Northeast Slope">
+        </div>
+        <div class="obs-thumb">
+          <img
+            src="images/003-beaver-meadow.png"
+            alt="003. Beaver Meadow — Tributary Confluence">
+        </div>
+        <div class="obs-thumb">
+          <img
+            src="images/004-stone-foundation-clearing.png"
+            alt="004. Stone Foundation Clearing — Lower East Valley">
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+</div><!-- /zone-light -->
+
+
+<!-- Transition: dusk — light yields to dark ─────────────────── -->
+<div class="fade-to-dark" aria-hidden="true"></div>
+
+
+<!-- ============================================================
+     THRESHOLD — Night
+     The public experience remains incomplete.
+     The record continues elsewhere.
+     ============================================================ -->
+<div class="zone-threshold">
+
+  <section class="threshold">
+    <div class="reveal">
+
+      <span class="threshold-ascent" aria-hidden="true"></span>
+
+      <div class="threshold-text">
+        <p>The observations continue.<br>The watershed persists.</p>
+        <p>Understanding increases.<br>Certainty does not.</p>
+      </div>
+
+      <!-- Replace [contact] with the appropriate email or URL -->
+      <a href="mailto:[contact]" class="threshold-link" aria-label="Contact Northing">
+        inquiries
+      </a>
+
+    </div>
+  </section>
+
+</div><!-- /zone-threshold -->
+
+
+<script>
+// Reveal elements as they enter the viewport.
+// Uses IntersectionObserver; no fallback needed for modern browsers.
+// Elements with class "reveal" start invisible (CSS) and gain "visible"
+// when they intersect the viewport. Once visible, they stay visible.
+
+(function () {
+  'use strict';
+
+  var elements = document.querySelectorAll('.reveal');
+  if (!elements.length) return;
+
+  // Check for IntersectionObserver support
+  if (!('IntersectionObserver' in window)) {
+    // No support: reveal everything immediately
+    elements.forEach(function (el) { el.classList.add('visible'); });
+    return;
+  }
+
+  var observer = new IntersectionObserver(function (entries) {
+    entries.forEach(function (entry) {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        // Once visible, stop observing — it won't return to hidden
+        observer.unobserve(entry.target);
+      }
+    });
+  }, {
+    // Trigger when 15% of the element is visible,
+    // with a small bottom margin so elements reveal
+    // slightly before the viewer reaches them
+    threshold: 0.15,
+    rootMargin: '0px 0px -48px 0px'
+  });
+
+  elements.forEach(function (el) { observer.observe(el); });
+
+}());
+</script>
+
+</body>
+</html>
