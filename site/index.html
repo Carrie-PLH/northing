@@ -3182,29 +3182,31 @@ function checkFrags() {
 let ac, s1ForestG, s1WindG, s2WindG, s2WaterG, s2InsectG, s2BirdG, s2DripG;
 let s3ForestG, s3WaterG, s3DripG, s3ResonanceG;
 let s4WindG, s4DripG, s4RainHissG, s4ForestG;
-let audioLive = false, nextBirdTime = 0, nextDripTime = 0, nextS3DripTime = 0, nextS4DripTime = 0;
+let nextBirdTime = 0, nextDripTime = 0, nextS3DripTime = 0, nextS4DripTime = 0;
 
-function tryResumeAudio() {
-  // Handle 'suspended' AND 'interrupted' (iOS Safari) — anything that isn't running
-  if (ac && ac.state !== 'running') ac.resume().catch(() => {});
-}
-
-let lastAutoResume = 0;
-function tickAutoResume(now) {
-  // Keep trying to resume every 2 s regardless of gesture — handles edge cases
-  // where the context was suspended mid-session (tab switch, browser throttle, etc.)
-  if (ac && ac.state !== 'running' && now - lastAutoResume > 2000) {
-    lastAutoResume = now;
-    ac.resume().catch(() => {});
+// Gesture-driven audio boot: only real user gestures can unlock AudioContext.
+// wheel/scroll do NOT count in Safari. We listen on every qualifying event type
+// and keep retrying until the context reaches 'running'.
+function gestureBootAudio() {
+  bootAudio();
+  // Once running, stop listening — no more overhead
+  if (ac && ac.state === 'running') {
+    ['mousedown', 'click', 'touchstart', 'keydown'].forEach(evt =>
+      window.removeEventListener(evt, gestureBootAudio, true)
+    );
   }
 }
+['mousedown', 'click', 'touchstart', 'keydown'].forEach(evt =>
+  window.addEventListener(evt, gestureBootAudio, true)
+);
 
 function bootAudio() {
-  if (audioLive) return;
-  audioLive = true;
+  // If we already have a running context, nothing to do
+  if (ac && ac.state === 'running') return;
+  // If we have a suspended context, just try to resume — don't rebuild
+  if (ac) { ac.resume().catch(() => {}); return; }
   try {
     ac = new (window.AudioContext || window.webkitAudioContext)();
-    ac.onstatechange = () => { if (ac.state === 'suspended') ac.resume().catch(() => {}); };
     ac.resume().catch(() => {}); // browsers often start suspended
     const master = ac.createGain();
     master.gain.value = 0.20;
@@ -3305,7 +3307,7 @@ function bootAudio() {
     sub.connect(subG); subG.connect(master); sub.start();
 
     noise.start();
-  } catch(e) { audioLive = false; }
+  } catch(e) { ac = null; }  // allow retry on next user gesture
 }
 
 function triggerBirdCall() {
@@ -3540,7 +3542,6 @@ function drawInsects(now, vis) {
 // =============================================================================
 
 function advance(delta) {
-  bootAudio();
   // Scene 2 + Scene 3 scroll resistance during close passages
   let resistance = 1.0;
   const s2Alpha = seamT * (1 - seamT2);
@@ -3565,18 +3566,14 @@ function advance(delta) {
 window.addEventListener('wheel', e => {
   e.preventDefault();
   const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
-  advance(d * 1.65);  // bootAudio() is inside advance(); tryResume must follow
-  tryResumeAudio();
+  advance(d * 1.65);
 }, { passive: false });
 
 window.addEventListener('keydown', e => {
   const step = 65;
-  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { advance(step);  tryResumeAudio(); }
-  if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   { advance(-step); tryResumeAudio(); }
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') advance(step);
+  if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   advance(-step);
 });
-
-// Any discrete user gesture unlocks audio context
-window.addEventListener('click', () => { bootAudio(); tryResumeAudio(); });
 
 let tPrev = null;
 // Touch: higher multiplier + momentum so mobile doesn't require 55 swipes
@@ -3599,7 +3596,6 @@ window.addEventListener('touchstart', e => {
   tLastTime = performance.now();
   tVelocity = 0;
   cancelAnimationFrame(momentumRAF);
-  bootAudio(); tryResumeAudio();
 }, { passive: true });
 window.addEventListener('touchmove', e => {
   e.preventDefault();
@@ -3892,7 +3888,6 @@ function render(now) {
   tickFrag(now);
 
   // ── Audio ──
-  tickAutoResume(now);
   tickAudio(now);
 
   ctx.globalAlpha = 1;
