@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>NORTHING |  a documentary about a place that doesn't exist</title>
+<title>NORTHING | a documentary about a place that doesn't exist</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html, body {
@@ -22,10 +22,12 @@ canvas {
   bottom: 17%;
   left: 50%;
   transform: translateX(-50%);
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: 'Courier New', Courier, monospace;
   font-size: clamp(11px, 1.6vw, 15px);
-  font-style: italic;
-  letter-spacing: 0.09em;
+  font-style: normal;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  text-transform: lowercase;
   color: rgba(212, 200, 178, 0);
   text-align: center;
   pointer-events: none;
@@ -38,208 +40,155 @@ canvas {
 <canvas id="c"></canvas>
 <div id="fragment"></div>
 <script>
-// ─────────────────────────────────────────────────────────────────────────────
-// NORTHING — Angle 1: 0-90° 
-// Clockwise from true north, i.e. facing roughly northwest.
-// ─────────────────────────────────────────────────────────────────────────────
+// =============================================================================
+// NORTHING — Combined Traversal
+// Scene 1: Forest approach / ridge / descent / orchard (from prototype 002)
+// Scene 2: Drainage edge passage (from prototype 004)
+// One canvas, one scroll, one audio system, one render loop.
+// =============================================================================
 
 const canvas = document.getElementById('c');
 const ctx    = canvas.getContext('2d');
 const fragEl = document.getElementById('fragment');
 
-let W = canvas.width  = window.innerWidth;
-let H = canvas.height = window.innerHeight;
-window.addEventListener('resize', () => {
-  W = canvas.width  = window.innerWidth;
-  H = canvas.height = window.innerHeight;
-});
+let W, H;
+function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+resize();
+window.addEventListener('resize', resize);
 
-// ── World ────────────────────────────────────────────────────────────────────
-const WORLD = 11000;   // total virtual width
-let scrollX  = 0;      // current camera position
-let targetX  = 0;      // easing target
+// ── World geometry ──────────────────────────────────────────────────────────
+// Scene 1 occupies global scrollX [0, S1_WORLD].
+// Scene 2 occupies global scrollX [S2_OFFSET, S2_OFFSET + S2_WORLD].
+// The seam zone [SEAM_START, SEAM_END] crossfades between them.
 
-function prog() { return scrollX / (WORLD - W); }
+const S1_WORLD    = 11000;
+const S2_WORLD    = 14000;
+const S2_OFFSET   = 10200;
+const S3_WORLD    = 16000;
+const S3_OFFSET   = 22800;
+const S4_WORLD    = 14000;
+const S4_OFFSET   = 36500;
+const WORLD_TOTAL = S4_OFFSET + S4_WORLD;   // 50500
+const SEAM_START  = 7500;
+const SEAM_END    = 12000;
+const SEAM2_START = 20500;
+const SEAM2_END   = 26000;
+const SEAM3_START = 34000;
+const SEAM3_END   = 39500;
 
-// ── Math ─────────────────────────────────────────────────────────────────────
-const lerp      = (a, b, t) => a + (b - a) * t;
-const clamp     = (v, lo, hi) => v < lo ? lo : v > hi ? hi : v;
-const smooth    = t => t * t * (3 - 2 * t);
-// fade in from lo→hi
-const fadeIn    = (lo, hi, t) => smooth(clamp((t - lo) / (hi - lo), 0, 1));
-// fade out from lo→hi  (1 before lo, 0 after hi)
-const fadeOut   = (lo, hi, t) => 1 - fadeIn(lo, hi, t);
-// window: full at mid, fading at edges
-const window01  = (lo, peak0, peak1, hi, t) => Math.min(fadeIn(lo, peak0, t), fadeOut(peak1, hi, t));
+let scrollX  = 0;
+let targetX  = 0;
 
-// Seeded deterministic pseudo-random
+// ── Frame state (recomputed each frame) ─────────────────────────────────────
+let p1 = 0, p2 = 0, p3 = 0, p4 = 0, seamT = 0, seamT2 = 0, seamT3 = 0, s2sx = 0, s3sx = 0, s4sx = 0, sceneAlpha = 1, s4pw = 0;
+
+// ── Shared math ─────────────────────────────────────────────────────────────
+const lerp     = (a, b, t) => a + (b - a) * t;
+const clamp    = (v, lo, hi) => v < lo ? lo : v > hi ? hi : v;
+const smooth   = t => t * t * (3 - 2 * t);
+const fadeIn   = (lo, hi, t) => smooth(clamp((t - lo) / (hi - lo), 0, 1));
+const fadeOut  = (lo, hi, t) => 1 - fadeIn(lo, hi, t);
+const window01 = (lo, p0, p1x, hi, t) => Math.min(fadeIn(lo, p0, t), fadeOut(p1x, hi, t));
+
 function rand(seed) {
   const x = Math.sin(seed * 9301 + 49297) * 233280;
   return x - Math.floor(x);
 }
 
-// ── Scene progression markers (as progress 0–1) ───────────────────────────
-//   0.00 – 0.05   opening dark
-//   0.05 – 0.32   forest approach
-//   0.32 – 0.50   ridge transition (thinning, opening)
-//   0.50 – 0.66   ridge overlook
-//   0.66 – 0.82   forest descent
-//   0.82 – 0.93   orchard edge
-//   0.93 – 1.00   closing dark
+// =============================================================================
+// SCENE 1 — Forest / Ridge / Orchard
+// =============================================================================
 
-// ── Text fragments ───────────────────────────────────────────────────────────
-const FRAGS = [
-  { at: 0.29, text: 'scents arrive before the clearing', done: false },
-  { at: 0.51, text: 'the valley hums', done: false },
-  { at: 0.84, text: 'not at a line but as a progression', done: false },
-];
+// ── S1: Tree data ───────────────────────────────────────────────────────────
+const S1_TREES = [];
 
-let fragPhase = 'idle';   // 'in' | 'hold' | 'out' | 'idle'
-let fragStart = 0;
-
-function triggerFrag(text) {
-  fragEl.textContent = text;
-  fragPhase = 'in';
-  fragStart = performance.now();
-}
-
-function tickFrag(now) {
-  if (fragPhase === 'idle') return;
-  const el = now - fragStart;
-  if (fragPhase === 'in') {
-    const a = Math.min(el / 1500, 1);
-    fragEl.style.color = `rgba(212,200,178,${smooth(a) * 0.80})`;
-    if (a >= 1) { fragPhase = 'hold'; fragStart = now; }
-  } else if (fragPhase === 'hold') {
-    if (el > 3000) { fragPhase = 'out'; fragStart = now; }
-  } else {
-    const a = Math.max(1 - el / 1800, 0);
-    fragEl.style.color = `rgba(212,200,178,${smooth(a) * 0.80})`;
-    if (a <= 0) { fragPhase = 'idle'; }
-  }
-}
-
-function checkFrags(p) {
-  FRAGS.forEach(f => {
-    if (!f.done && p >= f.at && p < f.at + 0.14) {
-      f.done = true;
-      triggerFrag(f.text);
-    }
-  });
-}
-
-// ── Tree data (generated once, stable) ───────────────────────────────────────
-// Each tree: { wx, layer 0–3, h(raction), w(fraction), kind }
-// Layers: 0 = far/background, 3 = near/foreground
-
-const TREES = [];
-
-(function buildTrees() {
-  // Forest approach — dense, enc
+(function buildS1Trees() {
   for (let i = 0; i < 280; i++) {
-    const wx    = 500  + rand(i * 7 + 1) * 2700;
+    const wx = 500 + rand(i * 7 + 1) * 2700;
     const layer = Math.floor(rand(i * 3 + 2) * 4);
-    TREES.push({ wx, layer,
+    S1_TREES.push({ wx, layer,
       h: 0.28 + rand(i*11+3)*0.42 + layer*0.09,
       w: 0.022 + rand(i*17+4)*0.020,
       kind: rand(i*5+5) > 0.92 ? 'dead' : 'conifer' });
   }
-
-  // Ridge transition — thinning, some dead
   for (let i = 400; i < 460; i++) {
-    const wx    = 3200 + rand(i * 7) * 1600;
+    const wx = 3200 + rand(i * 7) * 1600;
     const layer = Math.floor(rand(i * 3) * 3);
-    TREES.push({ wx, layer,
+    S1_TREES.push({ wx, layer,
       h: 0.18 + rand(i*11)*0.28 + layer*0.07,
       w: 0.016 + rand(i*17)*0.012,
       kind: rand(i*5) > 0.55 ? 'dead' : 'conifer' });
   }
-
-  // Ridge — sparse scrub only
   for (let i = 500; i < 545; i++) {
-    const wx    = 4800 + rand(i * 7) * 1600;
+    const wx = 4800 + rand(i * 7) * 1600;
     const layer = Math.floor(rand(i * 3) * 2);
-    TREES.push({ wx, layer,
+    S1_TREES.push({ wx, layer,
       h: 0.05 + rand(i*11)*0.11,
       w: 0.016 + rand(i*17)*0.010,
       kind: 'shrub' });
   }
-
-  // Forest descent — re-densifying
   for (let i = 600; i < 850; i++) {
-    const wx    = 6400 + rand(i * 7) * 1600;
+    const wx = 6400 + rand(i * 7) * 1600;
     const layer = Math.floor(rand(i * 3) * 4);
-    TREES.push({ wx, layer,
+    S1_TREES.push({ wx, layer,
       h: 0.26 + rand(i*11)*0.44 + layer*0.09,
       w: 0.020 + rand(i*17)*0.018,
       kind: 'conifer' });
   }
-
-  // Orchard edge — regular spacing, two rows
   for (let i = 0; i < 26; i++) {
     [1, 2].forEach(row => {
-      TREES.push({
-        wx:    8100 + i * 165 + rand(i*100+row)*35 - 17,
+      S1_TREES.push({
+        wx: 8100 + i * 165 + rand(i*100+row)*35 - 17,
         layer: row,
-        h:     0.13 + rand(i*13+row)*0.09,
-        w:     0.032 + rand(i*19+row)*0.014,
-        kind:  'orchard'
+        h: 0.13 + rand(i*13+row)*0.09,
+        w: 0.032 + rand(i*19+row)*0.014,
+        kind: 'orchard'
       });
     });
   }
-
-  // Sort far-to-near so farther trees paint first
-  TREES.sort((a, b) => a.layer - b.layer);
+  S1_TREES.sort((a, b) => a.layer - b.layer);
 })();
 
-// ── Terrain height ────────────────────────────────────────────────────────────
-function groundY(wx) {
+// ── S1: Ground height ───────────────────────────────────────────────────────
+function s1GroundY(wx) {
   const base = H * 0.725;
   const undulation = Math.sin(wx * 0.0016) * 16
                    + Math.sin(wx * 0.0040 + 1.2) * 9
                    + Math.sin(wx * 0.00085 + 2.5) * 24;
-  // Ridge: ground rises at ~worldX 5400
   const dist = Math.abs(wx - 5400);
-  const lift  = Math.pow(Math.max(0, 1 - dist / 2500), 2.0) * 95;
+  const lift = Math.pow(Math.max(0, 1 - dist / 2500), 2.0) * 95;
   return base + undulation - lift;
 }
 
-// ── Draw: sky ────────────────────────────────────────────────────────────────
-function drawSky(p) {
-  // Forest = dark grey-green tones; ridge = cool overcast grey-blue
-  const rf = window01(0.38, 0.52, 0.64, 0.80, p);
-
-  const topR = lerp(18,  112, rf),  topG = lerp(22,  126, rf),  topB = lerp(18,  138, rf);
-  const botR = lerp(42,  158, rf),  botG = lerp(48,  166, rf),  botB = lerp(38,  172, rf);
-
-  const g = ctx.createLinearGradient(0, 0, 0, H * 0.74);
-  g.addColorStop(0, `rgb(${topR|0},${topG|0},${topB|0})`);
-  g.addColorStop(1, `rgb(${botR|0},${botG|0},${botB|0})`);
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, W, H);
+// ── S1: Sky ─────────────────────────────────────────────────────────────────
+function s1SkyColors() {
+  const rf = window01(0.38, 0.52, 0.64, 0.80, p1);
+  return {
+    topR: lerp(18, 112, rf), topG: lerp(22, 126, rf), topB: lerp(18, 138, rf),
+    botR: lerp(42, 158, rf), botG: lerp(48, 166, rf), botB: lerp(38, 172, rf),
+    horizon: H * 0.74
+  };
 }
 
-// ── Draw: distant hill layers (ridge section) ─────────────────────────────────
-function drawHills(p) {
-  const vis = window01(0.38, 0.52, 0.64, 0.80, p);
+// ── S1: Distant hills ───────────────────────────────────────────────────────
+function s1DrawHills() {
+  const vis = window01(0.38, 0.52, 0.64, 0.80, p1);
   if (vis < 0.004) return;
-
-  // Three layers: far, mid, near — each with progressively faster parallax
   [
-    { pf: 0.05, baseY: 0.50, amp: 58, freq: 0.00042, col: [96,  108, 118] },
-    { pf: 0.09, baseY: 0.57, amp: 36, freq: 0.00071, col: [74,   85,  94] },
-    { pf: 0.14, baseY: 0.62, amp: 22, freq: 0.00112, col: [55,   65,  72] },
+    { pf: 0.05, baseY: 0.50, amp: 58, freq: 0.00042, col: [96,108,118] },
+    { pf: 0.09, baseY: 0.57, amp: 36, freq: 0.00071, col: [74,85,94] },
+    { pf: 0.14, baseY: 0.62, amp: 22, freq: 0.00112, col: [55,65,72] },
   ].forEach(({ pf, baseY, amp, freq, col }) => {
     const off = scrollX * pf;
-    ctx.fillStyle = `rgba(${col[0]},${col[1]},${col[2]},${vis * 0.90})`;
+    ctx.fillStyle = `rgba(${col[0]},${col[1]},${col[2]},${vis * 0.90 * sceneAlpha})`;
     ctx.beginPath();
     ctx.moveTo(0, H);
     for (let x = -8; x <= W + 8; x += 5) {
       const wx = x + off;
-      const y  = H * baseY
-               + Math.sin(wx * freq)          * amp
-               + Math.sin(wx * freq * 2.2 + 1.3) * amp * 0.38
-               + Math.sin(wx * freq * 0.45 + 2.8) * amp * 0.65;
+      const y = H * baseY
+              + Math.sin(wx * freq) * amp
+              + Math.sin(wx * freq * 2.2 + 1.3) * amp * 0.38
+              + Math.sin(wx * freq * 0.45 + 2.8) * amp * 0.65;
       ctx.lineTo(x, y);
     }
     ctx.lineTo(W, H);
@@ -248,127 +197,86 @@ function drawHills(p) {
   });
 }
 
-// ── Draw: distant shelter on ridge ───────────────────────────────────────────
-function drawShelter(p) {
-  const vis = window01(0.50, 0.57, 0.62, 0.70, p);
+// ── S1: Shelter ─────────────────────────────────────────────────────────────
+function s1DrawShelter() {
+  const vis = window01(0.50, 0.57, 0.62, 0.70, p1);
   if (vis < 0.01) return;
-
-  // Shelter is set in the distant hill — extremely slow parallax
-  // Tuned so it appears right-of-centre during the ridge window
   const sx = 980 - scrollX * 0.085;
   if (sx < -60 || sx > W + 60) return;
-
-  // Y sits on the nearest hill surface at sx
   const hillOff = scrollX * 0.14;
-  const hillWx  = sx + hillOff;
+  const hillWx = sx + hillOff;
   const shelterY = H * 0.62
                  + Math.sin(hillWx * 0.00112) * 22
                  + Math.sin(hillWx * 0.00246 + 1.3) * 8.4;
-
   const sw = 30, sh = 18;
-  ctx.globalAlpha = vis * 0.62;
+  ctx.globalAlpha = vis * 0.62 * sceneAlpha;
   ctx.fillStyle = '#1a1814';
   ctx.fillRect(sx - sw / 2, shelterY - sh, sw, sh);
-  // Roof pitch
   ctx.beginPath();
   ctx.moveTo(sx - sw / 2 - 5, shelterY - sh);
-  ctx.lineTo(sx,               shelterY - sh - 10);
+  ctx.lineTo(sx, shelterY - sh - 10);
   ctx.lineTo(sx + sw / 2 + 5, shelterY - sh);
   ctx.closePath();
   ctx.fill();
-  ctx.globalAlpha = 1;
+  ctx.globalAlpha = sceneAlpha;
 }
 
-// ── Draw: ground ─────────────────────────────────────────────────────────────
-function drawGround(p) {
-  const rf = window01(0.38, 0.52, 0.64, 0.80, p);
-
-  // Colour: dark forest floor → rocky ridge grey
-  const tR = lerp(38, 96,  rf), tG = lerp(43, 100, rf), tB = lerp(32, 92, rf);
-  const bR = lerp(16, 52,  rf), bG = lerp(19, 56,  rf), bB = lerp(12, 48, rf);
-
-  ctx.beginPath();
-  ctx.moveTo(0, H);
-  for (let x = 0; x <= W; x += 4) ctx.lineTo(x, groundY(x + scrollX));
-  ctx.lineTo(W, H);
-  ctx.closePath();
-
-  const midGY = groundY(scrollX + W / 2);
-  const g = ctx.createLinearGradient(0, midGY, 0, H);
-  g.addColorStop(0, `rgb(${tR|0},${tG|0},${tB|0})`);
-  g.addColorStop(1, `rgb(${bR|0},${bG|0},${bB|0})`);
-  ctx.fillStyle = g;
-  ctx.fill();
-}
-
-// ── Draw: stone suggestion at orchard boundary ────────────────────────────────
-function drawOrchardBoundary(p) {
-  const vis = window01(0.82, 0.87, 0.92, 0.97, p);
+// ── S1: Orchard boundary ────────────────────────────────────────────────────
+function s1DrawOrchardBoundary() {
+  const vis = window01(0.82, 0.87, 0.92, 0.97, p1);
   if (vis < 0.01) return;
-
   const wallWx = 8620;
   const sx = wallWx - scrollX;
   if (sx < -250 || sx > W + 250) return;
-
-  const gy = groundY(wallWx);
-  ctx.globalAlpha = vis * 0.48;
+  const gy = s1GroundY(wallWx);
+  ctx.globalAlpha = vis * 0.48 * sceneAlpha;
   ctx.fillStyle = '#585048';
   for (let i = 0; i < 16; i++) {
-    const bx  = sx - 130 + i * 17 + rand(i * 7) * 7;
-    const bw  = 12 + rand(i * 3) * 7;
-    const bh  =  5 + rand(i * 5) * 4;
-    const by  = gy - bh - rand(i * 11) * 4;
+    const bx = sx - 130 + i * 17 + rand(i * 7) * 7;
+    const bw = 12 + rand(i * 3) * 7;
+    const bh = 5 + rand(i * 5) * 4;
+    const by = gy - bh - rand(i * 11) * 4;
     ctx.fillRect(bx, by, bw, bh);
   }
-  ctx.globalAlpha = 1;
+  ctx.globalAlpha = sceneAlpha;
 }
 
-// ── Draw: a single tree ────────────────────────────────────────────────────────
-function drawOneTree(tree) {
+// ── S1: Single tree ─────────────────────────────────────────────────────────
+function s1DrawOneTree(tree) {
   const sx = tree.wx - scrollX;
   if (sx < -350 || sx > W + 350) return;
-
-  const gY   = groundY(tree.wx);
-  const th   = tree.h * H;
-  const tw   = tree.w * W;
-  const dep  = tree.layer / 3;   // 0=far, 1=near
+  const gY = s1GroundY(tree.wx);
+  const th = tree.h * H;
+  const tw = tree.w * W;
+  const dep = tree.layer / 3;
 
   if (tree.kind === 'conifer') {
-    // Far trees = lighter, slightly bluer; near = darker
     const r = lerp(65, 22, dep) | 0;
     const g = lerp(74, 28, dep) | 0;
     const b = lerp(65, 20, dep) | 0;
     ctx.fillStyle = `rgb(${r},${g},${b})`;
-
-    // Three stacked triangle tiers
     for (let lv = 0; lv < 3; lv++) {
       const lTop = gY - th + (th * 0.62 * lv / 3);
       const lBot = gY - (th * 0.10 * lv / 3);
-      const lW   = tw * (1.08 - lv * 0.16);
+      const lW = tw * (1.08 - lv * 0.16);
       ctx.beginPath();
-      ctx.moveTo(sx,          lTop);
+      ctx.moveTo(sx, lTop);
       ctx.lineTo(sx - lW / 2, lBot);
       ctx.lineTo(sx + lW / 2, lBot);
       ctx.closePath();
       ctx.fill();
     }
-    // Trunk
     ctx.fillStyle = `rgb(${(r*0.65)|0},${(g*0.55)|0},${(b*0.50)|0})`;
     ctx.fillRect(sx - tw * 0.07, gY - th * 0.17, tw * 0.14, th * 0.17);
 
   } else if (tree.kind === 'dead') {
-    ctx.strokeStyle = `rgba(42,39,34,0.72)`;
-    ctx.lineWidth   = Math.max(1, tw * 0.09);
-    ctx.beginPath();
-    ctx.moveTo(sx, gY);
-    ctx.lineTo(sx, gY - th);
-    ctx.stroke();
+    ctx.strokeStyle = 'rgba(42,39,34,0.72)';
+    ctx.lineWidth = Math.max(1, tw * 0.09);
+    ctx.beginPath(); ctx.moveTo(sx, gY); ctx.lineTo(sx, gY - th); ctx.stroke();
     ctx.lineWidth = Math.max(0.5, tw * 0.045);
     ctx.beginPath();
-    ctx.moveTo(sx,            gY - th * 0.62);
-    ctx.lineTo(sx - tw * 0.42, gY - th * 0.78);
-    ctx.moveTo(sx,            gY - th * 0.74);
-    ctx.lineTo(sx + tw * 0.38, gY - th * 0.88);
+    ctx.moveTo(sx, gY - th * 0.62); ctx.lineTo(sx - tw * 0.42, gY - th * 0.78);
+    ctx.moveTo(sx, gY - th * 0.74); ctx.lineTo(sx + tw * 0.38, gY - th * 0.88);
     ctx.stroke();
 
   } else if (tree.kind === 'shrub') {
@@ -387,70 +295,2701 @@ function drawOneTree(tree) {
   }
 }
 
-// ── Draw: canopy overhead (forest enclosure) ──────────────────────────────────
-function drawCanopy(p) {
-  const approach = window01(0.05, 0.12, 0.30, 0.44, p);
-  const descent  = window01(0.66, 0.72, 0.82, 0.92, p);
+// ── S1: Canopy ──────────────────────────────────────────────────────────────
+function s1DrawCanopy() {
+  const approach = window01(0.05, 0.12, 0.30, 0.44, p1);
+  const descent  = window01(0.66, 0.72, 0.82, 0.92, p1);
   const ca = Math.max(approach, descent);
   if (ca < 0.004) return;
+  const sa = sceneAlpha;
 
-  // Top canopy darkening
   const tg = ctx.createLinearGradient(0, 0, 0, H * 0.68);
-  tg.addColorStop(0,   `rgba(6,8,5,${ca * 0.90})`);
-  tg.addColorStop(0.55,`rgba(10,13,8,${ca * 0.58})`);
-  tg.addColorStop(1,   'rgba(0,0,0,0)');
+  tg.addColorStop(0,    `rgba(6,8,5,${ca * 0.90 * sa})`);
+  tg.addColorStop(0.55, `rgba(10,13,8,${ca * 0.58 * sa})`);
+  tg.addColorStop(1,    'rgba(0,0,0,0)');
   ctx.fillStyle = tg;
   ctx.fillRect(0, 0, W, H * 0.68);
 
-  // Forest floor mist
   const bg = ctx.createLinearGradient(0, H * 0.70, 0, H);
   bg.addColorStop(0, 'rgba(0,0,0,0)');
-  bg.addColorStop(1, `rgba(4,6,3,${ca * 0.60})`);
+  bg.addColorStop(1, `rgba(4,6,3,${ca * 0.60 * sa})`);
   ctx.fillStyle = bg;
   ctx.fillRect(0, H * 0.70, W, H * 0.30);
 
-  // Horizontal mist seam at ground level
   const mistY = H * 0.72;
   const mg = ctx.createLinearGradient(0, mistY - 45, 0, mistY + 35);
   mg.addColorStop(0,   'rgba(0,0,0,0)');
-  mg.addColorStop(0.5, `rgba(65,76,55,${ca * 0.16})`);
+  mg.addColorStop(0.5, `rgba(65,76,55,${ca * 0.16 * sa})`);
   mg.addColorStop(1,   'rgba(0,0,0,0)');
   ctx.fillStyle = mg;
   ctx.fillRect(0, mistY - 45, W, 80);
 }
 
-// ── Draw: open-air atmosphere at ridge ───────────────────────────────────────
-function drawRidgeHaze(p) {
-  const vis = window01(0.44, 0.54, 0.64, 0.76, p);
+// ── S1: Ridge haze ──────────────────────────────────────────────────────────
+function s1DrawRidgeHaze() {
+  const vis = window01(0.44, 0.54, 0.64, 0.76, p1);
   if (vis < 0.004) return;
   const hg = ctx.createLinearGradient(0, H * 0.34, 0, H * 0.64);
   hg.addColorStop(0, 'rgba(0,0,0,0)');
-  hg.addColorStop(1, `rgba(182,190,198,${vis * 0.22})`);
+  hg.addColorStop(1, `rgba(182,190,198,${vis * 0.22 * sceneAlpha})`);
   ctx.fillStyle = hg;
   ctx.fillRect(0, H * 0.34, W, H * 0.30);
 }
 
-// ── Draw: vignette ────────────────────────────────────────────────────────────
-function drawVignette() {
-  const vg = ctx.createRadialGradient(W/2, H/2, H*0.16, W/2, H/2, H*0.90);
-  vg.addColorStop(0, 'rgba(0,0,0,0)');
-  vg.addColorStop(1, 'rgba(0,0,0,0.50)');
-  ctx.fillStyle = vg;
+
+// =============================================================================
+// SCENE 2 — Drainage Edge Passage
+// =============================================================================
+
+// ── S2: Vegetation data ─────────────────────────────────────────────────────
+const S2_VEG = [];
+
+(function buildS2Veg() {
+  for (let i = 0; i < 80; i++) {
+    const wx = 400 + rand(i * 7 + 1) * 2200;
+    const layer = Math.floor(rand(i * 3 + 2) * 3);
+    S2_VEG.push({ wx, layer,
+      h: 0.02 + rand(i * 11 + 3) * 0.045,
+      w: 0.025 + rand(i * 17 + 4) * 0.035,
+      kind: 'meadow_grass', windPhase: rand(i * 23) * Math.PI * 2 });
+  }
+  for (let i = 100; i < 220; i++) {
+    const wx = 2000 + rand(i * 7) * 4500;
+    const layer = Math.floor(rand(i * 3) * 4);
+    const tall = rand(i * 9) > 0.7;
+    S2_VEG.push({ wx, layer,
+      h: tall ? (0.08 + rand(i * 11) * 0.14) : (0.03 + rand(i * 11) * 0.06),
+      w: 0.020 + rand(i * 17) * 0.030,
+      kind: tall ? 'tall_grass' : 'meadow_grass',
+      windPhase: rand(i * 23) * Math.PI * 2 });
+  }
+  const passageClumps = [3600, 4400, 5200, 6000, 6800, 7600, 8200, 9000];
+  passageClumps.forEach((cx, ci) => {
+    const clumpSize = 400 + rand(ci * 7) * 600;
+    const count = 12 + Math.floor(rand(ci * 11) * 18);
+    for (let i = 0; i < count; i++) {
+      const wx = cx + (rand(ci * 100 + i * 7) - 0.5) * clumpSize;
+      const layer = Math.floor(rand(ci * 100 + i * 3) * 4);
+      const kind = rand(ci * 100 + i * 5);
+      S2_VEG.push({ wx, layer,
+        h: 0.10 + rand(ci * 100 + i * 11) * 0.30 + layer * 0.06,
+        w: 0.018 + rand(ci * 100 + i * 17) * 0.028,
+        kind: kind > 0.72 ? 's2conifer' : (kind > 0.45 ? 'willow' : (kind > 0.20 ? 'alder' : 'wet_scrub')),
+        windPhase: rand(ci * 100 + i * 23) * Math.PI * 2 });
+    }
+  });
+  for (let i = 300; i < 380; i++) {
+    const wx = 2800 + rand(i * 7) * 8500;
+    S2_VEG.push({ wx, layer: 4,
+      h: 0.22 + rand(i * 11) * 0.38,
+      w: 0.030 + rand(i * 17) * 0.045,
+      kind: rand(i * 5) > 0.5 ? 'fg_willow' : 'fg_grass',
+      windPhase: rand(i * 23) * Math.PI * 2 });
+  }
+  for (let i = 400; i < 440; i++) {
+    const wx = 10000 + rand(i * 7) * 2500;
+    const layer = Math.floor(rand(i * 3) * 3);
+    S2_VEG.push({ wx, layer,
+      h: 0.04 + rand(i * 11) * 0.08,
+      w: 0.022 + rand(i * 17) * 0.025,
+      kind: 'meadow_grass', windPhase: rand(i * 23) * Math.PI * 2 });
+  }
+  for (let i = 450; i < 560; i++) {
+    const wx = 3800 + rand(i * 7) * 7000;
+    const layer = Math.floor(rand(i * 3) * 2) + 1;
+    S2_VEG.push({ wx, layer,
+      h: 0.025 + rand(i * 11) * 0.05,
+      w: 0.030 + rand(i * 17) * 0.040,
+      kind: 'wet_grass', windPhase: rand(i * 23) * Math.PI * 2 });
+  }
+  S2_VEG.sort((a, b) => a.layer - b.layer);
+})();
+
+// ── S2: Water features ──────────────────────────────────────────────────────
+const S2_WATER = [];
+
+(function buildS2Water() {
+  for (let i = 0; i < 5; i++) {
+    S2_WATER.push({ type: 'puddle', wx: 2800 + rand(i * 7) * 1600,
+      w: 50 + rand(i * 11) * 80, depth: 0.25 + rand(i * 5) * 0.30 });
+  }
+  S2_WATER.push({ type: 'channel', wx: 6400, w: 480, channelWidth: 38, depth: 0.90, angle: 0.12 });
+  for (let i = 10; i < 22; i++) {
+    S2_WATER.push({ type: 'puddle', wx: 5000 + rand(i * 7) * 4500,
+      w: 60 + rand(i * 11) * 160, depth: 0.30 + rand(i * 5) * 0.45 });
+  }
+  S2_WATER.push({ type: 'saturated', wx: 8200, w: 600, depth: 0.40 });
+})();
+
+// ── S2: Fog banks ───────────────────────────────────────────────────────────
+const S2_FOG = [];
+(function buildS2Fog() {
+  for (let i = 0; i < 16; i++) {
+    S2_FOG.push({
+      baseX: rand(i * 13 + 7) * S2_WORLD,
+      y: H * (0.32 + rand(i * 7 + 3) * 0.38),
+      w: W * (0.4 + rand(i * 11) * 0.8),
+      h: H * (0.10 + rand(i * 5 + 1) * 0.22),
+      density: 0.08 + rand(i * 9) * 0.16,
+      speed: 5 + rand(i * 3 + 2) * 14,
+      phase: rand(i * 17) * Math.PI * 2,
+      vertical: rand(i * 23) * 3 - 1.5
+    });
+  }
+})();
+
+// ── S2: Distant treeline ────────────────────────────────────────────────────
+const S2_DISTANT = [];
+(function buildS2Distant() {
+  for (let i = 0; i < 30; i++) {
+    const r = rand(i * 5);
+    S2_DISTANT.push({
+      wx: 800 + i * 420 + (rand(i * 7) - 0.5) * 140,
+      h: 0.06 + rand(i * 11) * 0.10,
+      w: 0.008 + rand(i * 17) * 0.012,
+      kind: r > 0.85 ? 'dead' : (r > 0.35 ? 'conifer' : 'deciduous')
+    });
+  }
+})();
+
+// ── S2: Ground height (local wx) ────────────────────────────────────────────
+function s2GroundY(wx) {
+  const base = H * 0.68;
+  const undulation = Math.sin(wx * 0.0008) * 6
+                   + Math.sin(wx * 0.0024 + 0.7) * 4
+                   + Math.sin(wx * 0.0052 + 1.8) * 2.5
+                   + Math.sin(wx * 0.00035 + 3.2) * 10;
+  const descent = Math.max(0, (wx - 1500) / 12000) * 28;
+  const drainCenter = 6800;
+  const drainDist = wx - drainCenter;
+  const drainL = drainDist < 0 ? Math.pow(Math.max(0, 1 + drainDist / 3200), 1.8) * 22
+                                : Math.pow(Math.max(0, 1 - drainDist / 2400), 2.2) * 22;
+  const dep1 = Math.pow(Math.max(0, 1 - Math.abs(wx - 4200) / 800), 2) * 8;
+  const dep2 = Math.pow(Math.max(0, 1 - Math.abs(wx - 9400) / 600), 2) * 6;
+  const hummock = Math.sin(wx * 0.018 + 0.3) * 1.8 + Math.sin(wx * 0.031 + 1.1) * 1.2;
+  return base + undulation + descent + drainL + dep1 + dep2 + hummock;
+}
+
+// ── S2: Sky colors ──────────────────────────────────────────────────────────
+function s2SkyColors() {
+  const close = fadeIn(0.18, 0.65, p2);
+  return {
+    topR: lerp(92, 68, close), topG: lerp(98, 74, close), topB: lerp(102, 76, close),
+    botR: lerp(128, 88, close), botG: lerp(132, 94, close), botB: lerp(130, 90, close),
+    horizon: H * 0.70
+  };
+}
+
+// ── S2: Fog density query ───────────────────────────────────────────────────
+function s2FogDensityAt(screenX, screenY, now) {
+  let total = 0;
+  S2_FOG.forEach(bank => {
+    const drift = now * 0.001 * bank.speed;
+    const fogCenterWx = bank.baseX + drift + Math.sin(now * 0.00018 + bank.phase) * 160;
+    const wrappedWx = ((fogCenterWx % (S2_WORLD * 1.5)) + S2_WORLD * 1.5) % (S2_WORLD * 1.5) - S2_WORLD * 0.25;
+    const fogCenterSx = wrappedWx - s2sx;
+    const vy = bank.y + Math.sin(now * 0.0003 + bank.phase) * bank.vertical * 10;
+    const dx = (screenX - fogCenterSx) / (bank.w * 0.5);
+    const dy = (screenY - vy) / (bank.h * 0.5);
+    const dist = dx * dx + dy * dy;
+    if (dist < 1) total += bank.density * (1 - dist) * (1 - dist);
+  });
+  return Math.min(total, 0.45);
+}
+
+// ── S2: Wind strength ───────────────────────────────────────────────────────
+function s2WindStr(now) {
+  return Math.sin(now * 0.0004) * 0.5 + Math.sin(now * 0.00095) * 0.3 + 0.2;
+}
+
+// ── S2: Distant treeline ────────────────────────────────────────────────────
+function s2DrawDistantTreeline(now) {
+  const vis = Math.max(
+    fadeOut(0.22, 0.42, p2) * fadeIn(0.04, 0.10, p2),
+    window01(0.76, 0.82, 0.88, 0.94, p2) * 0.6
+  );
+  if (vis < 0.006) return;
+
+  const off = s2sx * 0.04;
+  S2_DISTANT.forEach(dt => {
+    const sx = dt.wx - off;
+    if (sx < -40 || sx > W + 40) return;
+    const baseY = H * 0.48 + Math.sin((sx + off) * 0.0004) * 12;
+    const th = dt.h * H;
+    const fogA = s2FogDensityAt(sx, baseY, now);
+    const alpha = vis * 0.35 * Math.max(1 - fogA * 3, 0.05) * sceneAlpha;
+    if (alpha < 0.01) return;
+    ctx.globalAlpha = alpha;
+
+    if (dt.kind === 'dead') {
+      ctx.strokeStyle = '#4a4842';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(sx, baseY); ctx.lineTo(sx + 1, baseY - th); ctx.stroke();
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(sx, baseY - th * 0.6);
+      ctx.lineTo(sx + (rand(dt.wx) > 0.5 ? 6 : -6), baseY - th * 0.68);
+      ctx.stroke();
+    } else if (dt.kind === 'conifer') {
+      const tw = dt.w * W * 0.7;
+      ctx.fillStyle = '#364036';
+      ctx.beginPath();
+      ctx.moveTo(sx, baseY - th); ctx.lineTo(sx - tw * 0.5, baseY - th * 0.30); ctx.lineTo(sx + tw * 0.5, baseY - th * 0.30);
+      ctx.closePath(); ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(sx, baseY - th * 0.65); ctx.lineTo(sx - tw * 0.65, baseY - th * 0.05); ctx.lineTo(sx + tw * 0.65, baseY - th * 0.05);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#2a2e24'; ctx.fillRect(sx - 1, baseY - th * 0.08, 2, th * 0.08);
+    } else {
+      const tw = dt.w * W * 0.5;
+      ctx.fillStyle = '#3a4238';
+      ctx.beginPath();
+      ctx.moveTo(sx - tw, baseY - th * 0.35);
+      ctx.quadraticCurveTo(sx - tw * 0.8, baseY - th * 0.95, sx, baseY - th);
+      ctx.quadraticCurveTo(sx + tw * 0.8, baseY - th * 0.95, sx + tw, baseY - th * 0.35);
+      ctx.quadraticCurveTo(sx + tw * 0.5, baseY - th * 0.25, sx, baseY - th * 0.28);
+      ctx.quadraticCurveTo(sx - tw * 0.5, baseY - th * 0.25, sx - tw, baseY - th * 0.35);
+      ctx.fill();
+      ctx.fillStyle = '#2a2e26'; ctx.fillRect(sx - 1, baseY - th * 0.30, 2, th * 0.30);
+    }
+    ctx.globalAlpha = sceneAlpha;
+  });
+
+  // Distant horizon band
+  ctx.fillStyle = `rgba(62,68,60,${vis * 0.25 * sceneAlpha})`;
+  ctx.beginPath(); ctx.moveTo(0, H);
+  for (let x = -8; x <= W + 8; x += 6) {
+    const wx = x + off;
+    const y = H * 0.52 + Math.sin(wx * 0.00045) * 16 + Math.sin(wx * 0.0014 + 1.4) * 8;
+    ctx.lineTo(x, y);
+  }
+  ctx.lineTo(W, H); ctx.closePath(); ctx.fill();
+}
+
+// ── S2: Fog ─────────────────────────────────────────────────────────────────
+function s2DrawFog(now) {
+  const fogPresence = window01(0.12, 0.24, 0.78, 0.90, p2);
+  if (fogPresence < 0.005) return;
+  S2_FOG.forEach(bank => {
+    const drift = now * 0.001 * bank.speed;
+    const fogCenterWx = bank.baseX + drift + Math.sin(now * 0.00018 + bank.phase) * 160;
+    const wrappedWx = ((fogCenterWx % (S2_WORLD * 1.5)) + S2_WORLD * 1.5) % (S2_WORLD * 1.5) - S2_WORLD * 0.25;
+    const sx = wrappedWx - s2sx;
+    if (sx < -bank.w * 0.6 || sx > W + bank.w * 0.6) return;
+    const vy = bank.y + Math.sin(now * 0.0003 + bank.phase) * bank.vertical * 10;
+    const alpha = bank.density * fogPresence * sceneAlpha;
+    const rg = ctx.createRadialGradient(sx, vy, 0, sx, vy, Math.max(bank.w, bank.h) * 0.5);
+    rg.addColorStop(0,    `rgba(118,124,116,${alpha * 0.85})`);
+    rg.addColorStop(0.35, `rgba(108,114,106,${alpha * 0.5})`);
+    rg.addColorStop(0.65, `rgba(98,104,96,${alpha * 0.2})`);
+    rg.addColorStop(1,    'rgba(90,96,88,0)');
+    ctx.fillStyle = rg;
+    ctx.beginPath();
+    ctx.ellipse(sx, vy, bank.w * 0.5, bank.h * 0.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+  });
+}
+
+// ── S2: Water features ──────────────────────────────────────────────────────
+function s2DrawWater(now) {
+  const waterVis = fadeIn(0.18, 0.40, p2);
+  if (waterVis < 0.004) return;
+  const sa = sceneAlpha;
+
+  S2_WATER.forEach(wf => {
+    const sx = wf.wx - s2sx;
+
+    if (wf.type === 'puddle') {
+      if (sx < -wf.w || sx > W + wf.w) return;
+      const gy = s2GroundY(wf.wx);
+      const poolH = 4 + wf.depth * 10;
+      const alpha = waterVis * wf.depth * 0.62 * sa;
+      const rg = ctx.createLinearGradient(0, gy - 2, 0, gy + poolH);
+      rg.addColorStop(0,   `rgba(62,72,86,${alpha * 0.45})`);
+      rg.addColorStop(0.4, `rgba(50,62,78,${alpha * 0.72})`);
+      rg.addColorStop(0.7, `rgba(44,56,72,${alpha * 0.75})`);
+      rg.addColorStop(1,   `rgba(52,62,74,${alpha * 0.35})`);
+      ctx.fillStyle = rg;
+      ctx.beginPath(); ctx.ellipse(sx, gy, wf.w / 2, poolH, 0, 0, Math.PI * 2); ctx.fill();
+      const reflAlpha = alpha * 0.15;
+      ctx.fillStyle = `rgba(98,108,120,${reflAlpha})`;
+      ctx.beginPath();
+      ctx.ellipse(sx + Math.sin(now * 0.0003 + wf.wx * 0.01) * 4, gy - poolH * 0.1, wf.w * 0.22, poolH * 0.25, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = `rgba(82,94,108,${alpha * 0.22})`;
+      ctx.lineWidth = 0.6;
+      for (let r = 0; r < 3; r++) {
+        const rx = sx + Math.sin(now * 0.0004 + r * 2.3 + wf.wx * 0.01) * wf.w * 0.18;
+        const rw = 5 + rand(wf.wx + r) * 12;
+        ctx.beginPath();
+        ctx.moveTo(rx - rw, gy + rand(r + wf.wx) * poolH * 0.3);
+        ctx.quadraticCurveTo(rx, gy + rand(r + wf.wx) * poolH * 0.3 - 0.8, rx + rw, gy + rand(r + wf.wx) * poolH * 0.3 + 0.3);
+        ctx.stroke();
+      }
+    }
+
+    else if (wf.type === 'channel') {
+      if (sx < -wf.w * 0.7 || sx > W + wf.w * 0.7) return;
+      const channelVis = window01(0.36, 0.42, 0.58, 0.66, p2);
+      if (channelVis < 0.01) return;
+      const gy = s2GroundY(wf.wx);
+      const cw = wf.channelWidth;
+      const channelAlpha = channelVis * 0.80 * sa;
+      const cwg = ctx.createLinearGradient(0, gy - 6, 0, gy + 8);
+      cwg.addColorStop(0,    `rgba(50,60,74,${channelAlpha * 0.30})`);
+      cwg.addColorStop(0.25, `rgba(40,52,68,${channelAlpha * 0.78})`);
+      cwg.addColorStop(0.55, `rgba(36,48,64,${channelAlpha * 0.82})`);
+      cwg.addColorStop(0.8,  `rgba(38,50,66,${channelAlpha * 0.75})`);
+      cwg.addColorStop(1,    `rgba(46,56,68,${channelAlpha * 0.32})`);
+      ctx.fillStyle = cwg;
+
+      ctx.beginPath();
+      const channelLeft = sx - wf.w * 0.4;
+      const channelRight = sx + wf.w * 0.4;
+      ctx.moveTo(channelLeft, gy - cw * 0.4 + wf.angle * (channelLeft - sx));
+      for (let x = channelLeft; x <= channelRight; x += 8) {
+        const irregularity = Math.sin(x * 0.02 + 1.3) * 1.5 + Math.sin(x * 0.05) * 0.8;
+        ctx.lineTo(x, gy - cw * 0.4 + wf.angle * (x - sx) + irregularity);
+      }
+      for (let x = channelRight; x >= channelLeft; x -= 8) {
+        const irregularity = Math.sin(x * 0.02 + 2.7) * 1.5 + Math.sin(x * 0.048 + 0.5) * 0.8;
+        ctx.lineTo(x, gy + cw * 0.6 + wf.angle * (x - sx) + irregularity);
+      }
+      ctx.closePath(); ctx.fill();
+
+      const reflectAlpha = channelAlpha * 0.20;
+      ctx.fillStyle = `rgba(92,104,118,${reflectAlpha})`;
+      ctx.beginPath();
+      for (let x = channelLeft + 20; x <= channelRight - 20; x += 6) {
+        const ry = gy + wf.angle * (x - sx) + Math.sin(now * 0.0003 + x * 0.008) * 1.2;
+        if (x === channelLeft + 20) ctx.moveTo(x, ry); else ctx.lineTo(x, ry);
+      }
+      for (let x = channelRight - 20; x >= channelLeft + 20; x -= 6) {
+        const ry = gy + wf.angle * (x - sx) + 3 + Math.sin(now * 0.0003 + x * 0.008 + 0.5) * 1.2;
+        ctx.lineTo(x, ry);
+      }
+      ctx.closePath(); ctx.fill();
+
+      const fogReflect = s2FogDensityAt(sx, gy, now);
+      if (fogReflect > 0.02) {
+        ctx.fillStyle = `rgba(88,98,110,${fogReflect * channelAlpha * 0.45})`;
+        ctx.beginPath();
+        ctx.ellipse(sx + Math.sin(now * 0.0002) * 30, gy + 2, 60 + fogReflect * 200, 4, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.strokeStyle = `rgba(76,88,102,${channelAlpha * 0.25})`;
+      ctx.lineWidth = 0.6;
+      for (let r = 0; r < 5; r++) {
+        const rx = sx + (rand(r * 17) - 0.5) * wf.w * 0.5;
+        const ry = gy + wf.angle * (rx - sx) + Math.sin(now * 0.0005 + r * 1.7) * 1.5;
+        const rw = 8 + rand(r * 7) * 15;
+        const drift = now * 0.003 + r * 40;
+        ctx.beginPath();
+        ctx.moveTo(rx - rw + Math.sin(drift * 0.01) * 3, ry);
+        ctx.quadraticCurveTo(rx, ry - 0.6, rx + rw + Math.sin(drift * 0.01) * 3, ry + 0.3);
+        ctx.stroke();
+      }
+
+      for (let v = 0; v < 4; v++) {
+        const vx = sx + (rand(v * 13 + 77) - 0.5) * wf.w * 0.3;
+        const vy = gy + wf.angle * (vx - sx);
+        const vh = 8 + rand(v * 7 + 33) * 14;
+        ctx.fillStyle = `rgba(38,48,34,${channelAlpha * 0.6})`;
+        for (let r = 0; r < 3; r++) {
+          const rx = vx + (rand(v * 100 + r * 7) - 0.5) * 6;
+          const lean2 = (rand(v * 100 + r * 11) - 0.5) * 4 + Math.sin(now * 0.001 + v + r) * 1.5;
+          ctx.beginPath();
+          ctx.moveTo(rx, vy + 2);
+          ctx.quadraticCurveTo(rx + lean2 * 0.4, vy - vh * 0.5, rx + lean2, vy - vh);
+          ctx.lineTo(rx + lean2 + 0.8, vy - vh);
+          ctx.quadraticCurveTo(rx + lean2 * 0.4 + 0.8, vy - vh * 0.5, rx + 0.8, vy + 2);
+          ctx.fill();
+        }
+      }
+
+      ctx.fillStyle = `rgba(56,54,44,${channelAlpha * 0.3})`;
+      for (let x = channelLeft + 10; x < channelRight - 10; x += 14) {
+        const yOff = wf.angle * (x - sx);
+        ctx.fillRect(x, gy - cw * 0.4 + yOff - 2 + rand(x) * 2, 8, 2);
+        ctx.fillRect(x + 3, gy + cw * 0.6 + yOff + rand(x + 99) * 2, 7, 1.5);
+      }
+    }
+
+    else if (wf.type === 'saturated') {
+      if (sx < -wf.w || sx > W + wf.w) return;
+      const satVis = waterVis * wf.depth * 0.50 * sa;
+      if (satVis < 0.01) return;
+      const gy = s2GroundY(wf.wx);
+      const sg = ctx.createRadialGradient(sx, gy, 0, sx, gy, wf.w * 0.5);
+      sg.addColorStop(0,   `rgba(50,60,72,${satVis * 0.40})`);
+      sg.addColorStop(0.4, `rgba(46,56,66,${satVis * 0.28})`);
+      sg.addColorStop(0.7, `rgba(42,50,60,${satVis * 0.14})`);
+      sg.addColorStop(1,   'rgba(38,46,54,0)');
+      ctx.fillStyle = sg;
+      ctx.fillRect(sx - wf.w * 0.5, gy - 6, wf.w, 14);
+    }
+  });
+}
+
+// ── S2: Fallen trunk ────────────────────────────────────────────────────────
+function s2DrawFallenTrunk(now) {
+  const trunkWx = 6650;
+  const sx = trunkWx - s2sx;
+  if (sx < -400 || sx > W + 400) return;
+  const vis = window01(0.32, 0.40, 0.62, 0.72, p2);
+  if (vis < 0.01) return;
+  const fogOcc = s2FogDensityAt(sx, s2GroundY(trunkWx), now);
+  const alpha = vis * (1 - fogOcc * 0.65) * sceneAlpha;
+  if (alpha < 0.01) return;
+
+  const gy = s2GroundY(trunkWx);
+  const trunkLen = 180, trunkAngle = -0.08;
+  const baseDiam = 11, tipDiam = 3, sinkY = 6;
+  const x0 = sx - trunkLen * 0.45, y0 = gy + trunkAngle * trunkLen * 0.45 + sinkY;
+  const x1 = sx + trunkLen * 0.55, y1 = gy - trunkAngle * trunkLen * 0.55 + sinkY;
+  const steps = 12;
+
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = 'rgb(36,34,28)';
+  ctx.beginPath();
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps;
+    const px = x0 + (x1 - x0) * t, py = y0 + (y1 - y0) * t;
+    const radius = (baseDiam + (tipDiam - baseDiam) * t) * 0.5;
+    const bulge = Math.sin(t * Math.PI) * 1.5;
+    if (i === 0) ctx.moveTo(px, py - radius - bulge); else ctx.lineTo(px, py - radius - bulge);
+  }
+  for (let i = steps; i >= 0; i--) {
+    const t = i / steps;
+    const px = x0 + (x1 - x0) * t, py = y0 + (y1 - y0) * t;
+    const radius = (baseDiam + (tipDiam - baseDiam) * t) * 0.5;
+    ctx.lineTo(px, py + radius + Math.sin(t * Math.PI) * 1.0);
+  }
+  ctx.closePath(); ctx.fill();
+
+  ctx.fillStyle = 'rgba(48,46,38,0.40)';
+  ctx.beginPath();
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps;
+    const px = x0 + (x1 - x0) * t, py = y0 + (y1 - y0) * t;
+    const radius = (baseDiam + (tipDiam - baseDiam) * t) * 0.5;
+    if (i === 0) ctx.moveTo(px, py - radius - Math.sin(t * Math.PI) * 1.5);
+    else ctx.lineTo(px, py - radius - Math.sin(t * Math.PI) * 1.5);
+  }
+  for (let i = steps; i >= 0; i--) {
+    const t = i / steps;
+    const px = x0 + (x1 - x0) * t, py = y0 + (y1 - y0) * t;
+    ctx.lineTo(px, py - 1);
+  }
+  ctx.closePath(); ctx.fill();
+
+  ctx.strokeStyle = 'rgb(32,30,24)'; ctx.lineCap = 'round';
+  [{t:0.20,len:9,angle:-1.0},{t:0.48,len:6,angle:-1.2},{t:0.72,len:7,angle:-0.7}].forEach(s => {
+    const bx = x0 + (x1 - x0) * s.t, by = y0 + (y1 - y0) * s.t;
+    const r = (baseDiam + (tipDiam - baseDiam) * s.t) * 0.5;
+    ctx.lineWidth = 1.5 + (1 - s.t) * 1.5;
+    ctx.beginPath(); ctx.moveTo(bx, by - r);
+    ctx.lineTo(bx + Math.cos(s.angle) * s.len, by - r + Math.sin(s.angle) * s.len);
+    ctx.stroke();
+  });
+
+  ctx.fillStyle = 'rgba(34,42,30,0.30)';
+  for (let m = 0; m < 3; m++) {
+    const mt = 0.20 + rand(m * 17 + 77) * 0.55;
+    const mx = x0 + (x1 - x0) * mt, my = y0 + (y1 - y0) * mt - 2;
+    ctx.beginPath(); ctx.ellipse(mx, my, 5 + rand(m * 11 + 33) * 10, 2 + rand(m * 7 + 55) * 3, trunkAngle, 0, Math.PI * 2); ctx.fill();
+  }
+
+  ctx.fillStyle = `rgba(30,40,26,${alpha * 0.50 / sceneAlpha})`;
+  for (let g = 0; g < 5; g++) {
+    const gt = 0.08 + rand(g * 13 + 41) * 0.82;
+    const gx = x0 + (x1 - x0) * gt + (rand(g * 7) - 0.5) * 12;
+    const grassH = 8 + rand(g * 11 + 23) * 14;
+    const lean2 = (rand(g * 19) - 0.5) * 5 + Math.sin(now * 0.0008 + g * 1.3) * 1.5;
+    ctx.beginPath();
+    ctx.moveTo(gx, gy + 2);
+    ctx.quadraticCurveTo(gx + lean2 * 0.4, gy - grassH * 0.5, gx + lean2, gy - grassH);
+    ctx.lineTo(gx + lean2 + 0.7, gy - grassH);
+    ctx.quadraticCurveTo(gx + lean2 * 0.4 + 0.7, gy - grassH * 0.5, gx + 0.7, gy + 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+// ── S2: Single vegetation element ───────────────────────────────────────────
+function s2DrawOneVeg(v, now) {
+  const sx = v.wx - s2sx;
+  if (sx < -300 || sx > W + 300) return;
+
+  const gY = s2GroundY(v.wx);
+  const vh = v.h * H, vw = v.w * W;
+  const dep = Math.min(v.layer, 3) / 3;
+  const wet = fadeIn(0.22, 0.60, p2);
+  const windS = 0.6 + Math.sin(now * 0.0004 + v.windPhase) * 0.4;
+  const windLean = Math.sin(now * 0.0008 + v.windPhase) * windS * 3
+                 + Math.sin(now * 0.0019 + v.windPhase * 1.7) * windS * 1.5;
+
+  if (v.kind === 'meadow_grass') {
+    const r = lerp(72,52,wet)|0, g = lerp(78,60,wet)|0, b = lerp(58,42,wet)|0;
+    ctx.fillStyle = `rgba(${r},${g},${b},0.55)`;
+    for (let bl = 0; bl < 5; bl++) {
+      const bx = sx - vw * 0.4 + bl * vw * 0.2;
+      const lean2 = (rand(v.wx + bl * 7) - 0.5) * vw * 0.3 + windLean;
+      ctx.beginPath();
+      ctx.moveTo(bx, gY);
+      ctx.quadraticCurveTo(bx + lean2 * 0.5, gY - vh * 0.6, bx + lean2, gY - vh);
+      ctx.quadraticCurveTo(bx + lean2 * 0.5 + 1.2, gY - vh * 0.6, bx + 1.5, gY);
+      ctx.fill();
+    }
+  } else if (v.kind === 'tall_grass') {
+    const r = lerp(64,44,wet)|0, g = lerp(72,54,wet)|0, b = lerp(50,36,wet)|0;
+    ctx.fillStyle = `rgba(${r},${g},${b},0.62)`;
+    for (let bl = 0; bl < 7; bl++) {
+      const bx = sx - vw * 0.45 + bl * vw * 0.15;
+      const lean2 = (rand(v.wx + bl * 7) - 0.5) * vw * 0.35 + windLean * 1.5;
+      const bladeH = vh * (0.7 + rand(v.wx + bl * 3) * 0.3);
+      ctx.beginPath(); ctx.moveTo(bx, gY);
+      ctx.quadraticCurveTo(bx + lean2 * 0.4, gY - bladeH * 0.5, bx + lean2, gY - bladeH);
+      ctx.lineTo(bx + lean2 + 1, gY - bladeH);
+      ctx.quadraticCurveTo(bx + lean2 * 0.4 + 1, gY - bladeH * 0.5, bx + 1.5, gY);
+      ctx.fill();
+    }
+  } else if (v.kind === 'wet_grass') {
+    const r = lerp(54,38,wet)|0, g = lerp(64,48,wet)|0, b = lerp(40,30,wet)|0;
+    ctx.fillStyle = `rgba(${r},${g},${b},0.48)`;
+    for (let bl = 0; bl < 6; bl++) {
+      const bx = sx - vw * 0.45 + bl * vw * 0.18;
+      const lean2 = (rand(v.wx + bl * 5) - 0.5) * vw * 0.2 + windLean * 0.8;
+      ctx.beginPath(); ctx.moveTo(bx, gY);
+      ctx.quadraticCurveTo(bx + lean2 * 0.4, gY - vh * 0.5, bx + lean2, gY - vh);
+      ctx.lineTo(bx + lean2 + 1, gY - vh);
+      ctx.quadraticCurveTo(bx + lean2 * 0.4 + 1, gY - vh * 0.5, bx + 1.5, gY);
+      ctx.fill();
+    }
+  } else if (v.kind === 'willow') {
+    const r = lerp(44,24,dep)|0, g2 = lerp(54,34,dep)|0, b2 = lerp(36,20,dep)|0;
+    ctx.strokeStyle = `rgb(${(r*0.55)|0},${(g2*0.45)|0},${(b2*0.45)|0})`;
+    ctx.lineWidth = Math.max(1.5, vw * 0.06);
+    const stems = 2 + Math.floor(rand(v.wx * 3) * 3);
+    for (let s = 0; s < stems; s++) {
+      const sLean = (rand(v.wx + s * 11) - 0.5) * vw * 0.4 + windLean * 0.3;
+      ctx.beginPath();
+      ctx.moveTo(sx + (s - stems / 2) * 3, gY);
+      ctx.quadraticCurveTo(sx + sLean * 0.4, gY - vh * 0.5, sx + sLean, gY - vh * (0.7 + rand(v.wx + s) * 0.3));
+      ctx.stroke();
+    }
+    ctx.fillStyle = `rgba(${r},${g2},${b2},0.75)`;
+    ctx.beginPath();
+    ctx.ellipse(sx + windLean * 0.2, gY - vh * 0.72, vw * 0.55, vh * 0.35, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = `rgba(${r},${g2+6},${b2},0.35)`;
+    ctx.lineWidth = 0.7;
+    for (let f = 0; f < 5; f++) {
+      const fx = sx + (rand(v.wx + f * 17) - 0.5) * vw * 0.9 + windLean * 0.4;
+      const fy = gY - vh * (0.55 + rand(v.wx + f * 3) * 0.22);
+      ctx.beginPath(); ctx.moveTo(fx, fy);
+      ctx.quadraticCurveTo(fx + windLean * 0.3 + (rand(f + v.wx) - 0.5) * 10, fy + vh * 0.18, fx + windLean * 0.5 + (rand(f * 3 + v.wx) - 0.5) * 6, fy + vh * 0.30);
+      ctx.stroke();
+    }
+  } else if (v.kind === 'alder') {
+    const r = lerp(40,20,dep)|0, g2 = lerp(50,30,dep)|0, b2 = lerp(34,18,dep)|0;
+    ctx.strokeStyle = `rgb(${(r*0.50)|0},${(g2*0.42)|0},${(b2*0.38)|0})`;
+    ctx.lineWidth = Math.max(1.5, vw * 0.07);
+    ctx.beginPath(); ctx.moveTo(sx, gY); ctx.lineTo(sx + windLean * 0.1, gY - vh * 0.55); ctx.stroke();
+    if (rand(v.wx * 5) > 0.35) {
+      const leanDir = rand(v.wx * 9) > 0.5 ? 1 : -1;
+      ctx.lineWidth = Math.max(1, vw * 0.04);
+      ctx.beginPath();
+      ctx.moveTo(sx, gY - vh * 0.22);
+      ctx.quadraticCurveTo(sx + leanDir * vw * 0.15 + windLean * 0.2, gY - vh * 0.48, sx + leanDir * vw * 0.2 + windLean * 0.3, gY - vh * 0.68);
+      ctx.stroke();
+    }
+    ctx.fillStyle = `rgba(${r},${g2},${b2},0.78)`;
+    ctx.beginPath();
+    ctx.ellipse(sx + windLean * 0.15, gY - vh * 0.72, vw * 0.42, vh * 0.32, 0, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (v.kind === 'wet_scrub') {
+    const r = lerp(42,26,dep)|0, g2 = lerp(52,36,dep)|0, b2 = lerp(36,22,dep)|0;
+    ctx.fillStyle = `rgba(${r},${g2},${b2},0.68)`;
+    ctx.beginPath();
+    ctx.ellipse(sx + windLean * 0.1, gY - vh * 0.48, vw * 0.52, vh * 0.50, 0, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (v.kind === 's2conifer') {
+    const r = lerp(32,16,dep)|0, g2 = lerp(42,24,dep)|0, b2 = lerp(30,16,dep)|0;
+    ctx.strokeStyle = `rgb(${(r*0.40)|0},${(g2*0.35)|0},${(b2*0.30)|0})`;
+    ctx.lineWidth = Math.max(1.5, vw * 0.05);
+    ctx.beginPath(); ctx.moveTo(sx, gY); ctx.lineTo(sx + windLean * 0.08, gY - vh); ctx.stroke();
+    ctx.fillStyle = `rgba(${r},${g2},${b2},0.82)`;
+    const tipX = sx + windLean * 0.12, tipY = gY - vh;
+    const midY = gY - vh * 0.52, baseW = vw * 0.38, midW = vw * 0.48;
+    ctx.beginPath();
+    ctx.moveTo(tipX, tipY);
+    ctx.lineTo(tipX - baseW * 0.6 + windLean * 0.05, midY);
+    ctx.lineTo(tipX + baseW * 0.6 + windLean * 0.05, midY);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = `rgba(${r-4|0},${g2-4|0},${b2-3|0},0.78)`;
+    ctx.beginPath();
+    ctx.moveTo(tipX, midY + vh * 0.06);
+    ctx.lineTo(sx - midW * 0.7 + windLean * 0.04, gY - vh * 0.12);
+    ctx.lineTo(sx + midW * 0.7 + windLean * 0.04, gY - vh * 0.12);
+    ctx.closePath(); ctx.fill();
+  } else if (v.kind === 'fg_willow') {
+    const fgAlpha = window01(0.16, 0.26, 0.74, 0.86, p2) * 0.75 * sceneAlpha;
+    if (fgAlpha < 0.02) return;
+    ctx.globalAlpha = fgAlpha;
+    ctx.strokeStyle = 'rgb(18,22,14)';
+    ctx.lineWidth = Math.max(3, vw * 0.12);
+    const stems = 2 + Math.floor(rand(v.wx * 3) * 2);
+    for (let s = 0; s < stems; s++) {
+      const sLean = (rand(v.wx + s * 11) - 0.5) * vw * 0.5 + windLean * 0.5;
+      ctx.beginPath();
+      ctx.moveTo(sx + (s - stems / 2) * 6, gY + 20);
+      ctx.quadraticCurveTo(sx + sLean * 0.3, gY - vh * 0.4, sx + sLean, gY - vh * (0.6 + rand(v.wx + s) * 0.4));
+      ctx.stroke();
+    }
+    ctx.fillStyle = 'rgba(14,20,12,0.80)';
+    ctx.beginPath();
+    ctx.ellipse(sx + windLean * 0.3, gY - vh * 0.65, vw * 0.7, vh * 0.40, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(16,22,12,0.55)'; ctx.lineWidth = 1.2;
+    for (let f = 0; f < 8; f++) {
+      const fx = sx + (rand(v.wx + f * 17) - 0.5) * vw * 1.2 + windLean * 0.5;
+      const fy = gY - vh * (0.40 + rand(v.wx + f * 3) * 0.30);
+      ctx.beginPath(); ctx.moveTo(fx, fy);
+      ctx.quadraticCurveTo(fx + windLean * 0.4 + (rand(f + v.wx) - 0.5) * 16, fy + vh * 0.20,
+                           fx + windLean * 0.6 + (rand(f * 3 + v.wx) - 0.5) * 10, fy + vh * 0.35);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = sceneAlpha;
+  } else if (v.kind === 'fg_grass') {
+    const fgAlpha = window01(0.16, 0.26, 0.74, 0.86, p2) * 0.65 * sceneAlpha;
+    if (fgAlpha < 0.02) return;
+    ctx.globalAlpha = fgAlpha;
+    ctx.fillStyle = 'rgba(28,36,22,0.70)';
+    for (let bl = 0; bl < 9; bl++) {
+      const bx = sx - vw * 0.6 + bl * vw * 0.15;
+      const lean2 = (rand(v.wx + bl * 7) - 0.5) * vw * 0.5 + windLean * 2.0;
+      const bladeH = vh * (0.6 + rand(v.wx + bl * 3) * 0.4);
+      ctx.beginPath(); ctx.moveTo(bx, gY + 30);
+      ctx.quadraticCurveTo(bx + lean2 * 0.4, gY - bladeH * 0.4, bx + lean2, gY - bladeH);
+      ctx.lineTo(bx + lean2 + 2, gY - bladeH);
+      ctx.quadraticCurveTo(bx + lean2 * 0.4 + 2, gY - bladeH * 0.4, bx + 2.5, gY + 30);
+      ctx.fill();
+    }
+    ctx.globalAlpha = sceneAlpha;
+  }
+}
+
+// ── S2: Overhead vegetation ─────────────────────────────────────────────────
+function s2DrawOverheadVegetation(now) {
+  const overhead = window01(0.30, 0.42, 0.68, 0.80, p2);
+  if (overhead < 0.004) return;
+  const sa = sceneAlpha;
+  const baseAlpha = overhead * 0.55 * sa;
+
+  const tg = ctx.createLinearGradient(0, 0, 0, H * 0.45);
+  tg.addColorStop(0,   `rgba(14,18,12,${baseAlpha * 0.7})`);
+  tg.addColorStop(0.4, `rgba(18,24,16,${baseAlpha * 0.35})`);
+  tg.addColorStop(1,   'rgba(0,0,0,0)');
+  ctx.fillStyle = tg;
+  ctx.fillRect(0, 0, W, H * 0.45);
+
+  ctx.fillStyle = `rgba(12,16,10,${overhead * 0.40 * sa})`;
+  const branchOffset = s2sx * 0.15;
+  const ws = s2WindStr(now);
+  for (let i = 0; i < 8; i++) {
+    const bx = (i * W * 0.18 + rand(i * 7) * W * 0.12 - branchOffset * (0.8 + rand(i * 3) * 0.4)) % (W * 1.4) - W * 0.2;
+    const by = H * (0.02 + rand(i * 11) * 0.12);
+    const bw = W * (0.08 + rand(i * 13) * 0.15);
+    const bh = H * (0.03 + rand(i * 17) * 0.06);
+    ctx.beginPath();
+    ctx.ellipse(bx + ws * 4, by, bw, bh, rand(i * 19) * 0.3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+// ── S2: Side enclosure ──────────────────────────────────────────────────────
+function s2DrawSideEnclosure() {
+  const enclosure = window01(0.28, 0.40, 0.70, 0.82, p2);
+  if (enclosure < 0.004) return;
+  const sa = sceneAlpha;
+
+  const leftStr = enclosure * 1.1;
+  const lg = ctx.createLinearGradient(0, 0, W * 0.22, 0);
+  lg.addColorStop(0, `rgba(16,22,14,${Math.min(leftStr, 1) * 0.45 * sa})`);
+  lg.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = lg;
+  ctx.fillRect(0, H * 0.15, W * 0.22, H * 0.70);
+
+  const rightStr = enclosure * 0.85;
+  const rg = ctx.createLinearGradient(W, 0, W * 0.80, 0);
+  rg.addColorStop(0, `rgba(16,22,14,${rightStr * 0.40 * sa})`);
+  rg.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = rg;
+  ctx.fillRect(W * 0.80, H * 0.18, W * 0.20, H * 0.65);
+
+  const bottomStr = window01(0.32, 0.44, 0.66, 0.78, p2);
+  if (bottomStr > 0.01) {
+    const bg = ctx.createLinearGradient(0, H, 0, H * 0.76);
+    bg.addColorStop(0, `rgba(14,18,12,${bottomStr * 0.38 * sa})`);
+    bg.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, H * 0.76, W, H * 0.24);
+  }
+}
+
+// ── S2: Atmosphere ──────────────────────────────────────────────────────────
+function s2DrawAtmosphere() {
+  const sa = sceneAlpha;
+  const haze = window01(0.20, 0.35, 0.70, 0.85, p2);
+  if (haze > 0.004) {
+    const hg = ctx.createLinearGradient(0, H * 0.35, 0, H * 0.65);
+    hg.addColorStop(0, 'rgba(0,0,0,0)');
+    hg.addColorStop(0.5, `rgba(88,96,90,${haze * 0.08 * sa})`);
+    hg.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = hg;
+    ctx.fillRect(0, H * 0.35, W, H * 0.30);
+  }
+  const groundMoist = fadeIn(0.30, 0.55, p2) * fadeOut(0.75, 0.88, p2);
+  if (groundMoist > 0.004) {
+    const mg = ctx.createLinearGradient(0, H * 0.64, 0, H * 0.76);
+    mg.addColorStop(0, 'rgba(0,0,0,0)');
+    mg.addColorStop(0.5, `rgba(78,86,80,${groundMoist * 0.12 * sa})`);
+    mg.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = mg;
+    ctx.fillRect(0, H * 0.64, W, H * 0.12);
+  }
+}
+
+// ── S2: Sky corridors ───────────────────────────────────────────────────────
+function s2DrawSkyCorridors(now) {
+  const vis = window01(0.35, 0.44, 0.62, 0.72, p2) * 0.35;
+  if (vis < 0.008) return;
+  const sa = sceneAlpha;
+  const gaps = [{ wx: 5800, w: 120, h: 0.12 },{ wx: 7200, w: 80, h: 0.08 },{ wx: 8800, w: 150, h: 0.15 }];
+  gaps.forEach(gap => {
+    const sx = gap.wx - s2sx;
+    if (sx < -gap.w || sx > W + gap.w) return;
+    const fogAtten = 1 - s2FogDensityAt(sx, H * 0.3, now) * 2;
+    const alpha = vis * Math.max(fogAtten, 0.1) * sa;
+    const gg = ctx.createRadialGradient(sx, H * 0.28, 0, sx, H * 0.28, gap.w);
+    gg.addColorStop(0,   `rgba(128,136,134,${alpha * 0.45})`);
+    gg.addColorStop(0.5, `rgba(108,116,114,${alpha * 0.2})`);
+    gg.addColorStop(1,   'rgba(0,0,0,0)');
+    ctx.fillStyle = gg;
+    ctx.fillRect(sx - gap.w, H * 0.1, gap.w * 2, H * gap.h + H * 0.2);
+  });
+}
+
+
+// =============================================================================
+// SCENE 3 — Human-Influenced Woodland Passage
+// =============================================================================
+
+// ── S3: Vegetation data ─────────────────────────────────────────────────────
+const S3_VEG = [];
+
+(function buildS3Veg() {
+  // Dense mixed woodland - early section (heavy, pressing)
+  // Clearing zone exclusion: no tall trees in wx 3400–5400
+  for (let i = 0; i < 180; i++) {
+    const wx = 600 + rand(i * 7 + 1) * 5400;
+    const layer = Math.floor(rand(i * 3 + 2) * 4);
+    const kind = rand(i * 5 + 3);
+    // Density weighting: more vegetation in early-to-mid range
+    const densityBias = wx < 5000 ? 1.0 : (wx < 9000 ? 0.75 : 0.45);
+    if (rand(i * 13) > densityBias) continue;
+    // Skip clearing zone — these trees were felled
+    if (wx > 3200 && wx < 5600) continue;
+    S3_VEG.push({ wx, layer,
+      h: 0.12 + rand(i * 11 + 3) * 0.32 + layer * 0.07,
+      w: 0.018 + rand(i * 17 + 4) * 0.028,
+      kind: kind > 0.65 ? 'birch' : (kind > 0.35 ? 'alder' : 'willow'),
+      windPhase: rand(i * 23) * Math.PI * 2 });
+  }
+  // Wet understory - dense early, thinning
+  for (let i = 200; i < 340; i++) {
+    const wx = 800 + rand(i * 7) * 7000;
+    const layer = Math.floor(rand(i * 3) * 2) + 1;
+    const thin = wx > 8000 ? (1 - (wx - 8000) / 6000) : 1;
+    if (rand(i * 9) > thin * 0.85) continue;
+    S3_VEG.push({ wx, layer,
+      h: 0.025 + rand(i * 11) * 0.055,
+      w: 0.025 + rand(i * 17) * 0.035,
+      kind: rand(i * 5) > 0.5 ? 'wet_grass' : 'sedge',
+      windPhase: rand(i * 23) * Math.PI * 2 });
+  }
+  // Scrub and bramble clusters - early-mid
+  for (let i = 350; i < 410; i++) {
+    const wx = 1200 + rand(i * 7) * 5500;
+    if (wx > 3400 && wx < 5400) continue;  // clearing exclusion
+    const layer = Math.floor(rand(i * 3) * 3);
+    S3_VEG.push({ wx, layer,
+      h: 0.06 + rand(i * 11) * 0.14,
+      w: 0.030 + rand(i * 17) * 0.040,
+      kind: 'wet_scrub',
+      windPhase: rand(i * 23) * Math.PI * 2 });
+  }
+  // Conifers - scattered throughout but more in mid-late
+  for (let i = 420; i < 490; i++) {
+    const wx = 3000 + rand(i * 7) * 10000;
+    if (wx > 3200 && wx < 5600) continue;  // clearing exclusion
+    const layer = Math.floor(rand(i * 3) * 4);
+    S3_VEG.push({ wx, layer,
+      h: 0.14 + rand(i * 11) * 0.36 + layer * 0.08,
+      w: 0.016 + rand(i * 17) * 0.024,
+      kind: 's3conifer',
+      windPhase: rand(i * 23) * Math.PI * 2 });
+  }
+  // Reed clusters near water/infrastructure
+  const reedZones = [2400, 3200, 4600, 5800, 7400];
+  reedZones.forEach((cx, ci) => {
+    for (let i = 0; i < 14; i++) {
+      const wx = cx + (rand(ci * 100 + i * 7) - 0.5) * 500;
+      S3_VEG.push({ wx, layer: Math.floor(rand(ci * 100 + i * 3) * 3),
+        h: 0.04 + rand(ci * 100 + i * 11) * 0.09,
+        w: 0.020 + rand(ci * 100 + i * 17) * 0.025,
+        kind: 'reeds',
+        windPhase: rand(ci * 100 + i * 23) * Math.PI * 2 });
+    }
+  });
+  // Foreground interrupters - large, dark, close
+  for (let i = 500; i < 555; i++) {
+    const wx = 1500 + rand(i * 7) * 11000;
+    if (wx > 3200 && wx < 5600) continue;  // clearing exclusion
+    S3_VEG.push({ wx, layer: 4,
+      h: 0.20 + rand(i * 11) * 0.34,
+      w: 0.035 + rand(i * 17) * 0.045,
+      kind: rand(i * 5) > 0.5 ? 'fg_alder' : 'fg_grass',
+      windPhase: rand(i * 23) * Math.PI * 2 });
+  }
+  // Late-scene meadow grass (opening)
+  for (let i = 560; i < 610; i++) {
+    const wx = 10000 + rand(i * 7) * 4500;
+    const layer = Math.floor(rand(i * 3) * 3);
+    S3_VEG.push({ wx, layer,
+      h: 0.03 + rand(i * 11) * 0.06,
+      w: 0.022 + rand(i * 17) * 0.030,
+      kind: 'meadow_grass',
+      windPhase: rand(i * 23) * Math.PI * 2 });
+  }
+  S3_VEG.sort((a, b) => a.layer - b.layer);
+})();
+
+// ── S3: Water features ──────────────────────────────────────────────────────
+const S3_WATER = [];
+
+(function buildS3Water() {
+  // Standing water near infrastructure
+  S3_WATER.push({ type: 'puddle', wx: 2600, w: 90, depth: 0.55 });
+  S3_WATER.push({ type: 'puddle', wx: 3400, w: 120, depth: 0.65 });
+  // Damp ground in clearing — exposed soil retains more moisture
+  S3_WATER.push({ type: 'saturated', wx: 4300, w: 500, depth: 0.40 });
+  // Drainage channel (redirected - evidence of human work)
+  S3_WATER.push({ type: 'ditch', wx: 3800, w: 380, channelWidth: 28, depth: 0.75, angle: 0.06 });
+  // Scattered puddles mid-section
+  for (let i = 0; i < 8; i++) {
+    S3_WATER.push({ type: 'puddle', wx: 5000 + rand(i * 7) * 5000,
+      w: 40 + rand(i * 11) * 100, depth: 0.20 + rand(i * 5) * 0.35 });
+  }
+  // Late section - drying
+  S3_WATER.push({ type: 'puddle', wx: 11500, w: 55, depth: 0.18 });
+  S3_WATER.push({ type: 'puddle', wx: 13000, w: 45, depth: 0.12 });
+})();
+
+// ── S3: Fog banks ───────────────────────────────────────────────────────────
+const S3_FOG = [];
+(function buildS3Fog() {
+  for (let i = 0; i < 14; i++) {
+    S3_FOG.push({
+      baseX: rand(i * 13 + 7) * S3_WORLD,
+      y: H * (0.30 + rand(i * 7 + 3) * 0.35),
+      w: W * (0.35 + rand(i * 11) * 0.70),
+      h: H * (0.08 + rand(i * 5 + 1) * 0.18),
+      density: 0.10 + rand(i * 9) * 0.18,
+      speed: 3 + rand(i * 3 + 2) * 10,
+      phase: rand(i * 17) * Math.PI * 2,
+      vertical: rand(i * 23) * 2.5 - 1.2
+    });
+  }
+})();
+
+// ── S3: Infrastructure elements ─────────────────────────────────────────────
+// ── S3: Stump clearing — the strongest human-influence evidence ─────────────
+// A patch of forest deliberately felled: 10 stumps, one fallen trunk, open canopy.
+// Clearing zone: wx 3400–5400 (peaks around p3 ~0.28–0.38)
+const S3_CLEARING = {
+  startWx: 3400, endWx: 5400, centerWx: 4400,
+  stumps: [
+    { wx: 3600, diameter: 28, height: 12, cutAngle: 0.04, barkColor: 0.3 },
+    { wx: 3850, diameter: 36, height: 8,  cutAngle: -0.06, barkColor: 0.5 },
+    { wx: 4000, diameter: 22, height: 15, cutAngle: 0.02, barkColor: 0.2 },
+    { wx: 4150, diameter: 42, height: 10, cutAngle: -0.03, barkColor: 0.6 },
+    { wx: 4350, diameter: 30, height: 14, cutAngle: 0.05, barkColor: 0.4 },
+    { wx: 4500, diameter: 34, height: 9,  cutAngle: -0.04, barkColor: 0.35 },
+    { wx: 4700, diameter: 26, height: 16, cutAngle: 0.03, barkColor: 0.55 },
+    { wx: 4900, diameter: 38, height: 7,  cutAngle: -0.02, barkColor: 0.45 },
+    { wx: 5050, diameter: 20, height: 13, cutAngle: 0.06, barkColor: 0.25 },
+    { wx: 5200, diameter: 32, height: 11, cutAngle: -0.05, barkColor: 0.5 },
+  ],
+  // One felled tree lying on its side, partially delimbed
+  fallenTrunk: {
+    wx: 4250, length: 220, baseDiameter: 34, tipDiameter: 12,
+    angle: 0.15, // slight rotation from stump line
+    branchStubs: [
+      { along: 0.20, len: 18, angle: -0.6 },
+      { along: 0.40, len: 24, angle: -0.4 },
+      { along: 0.55, len: 14, angle: -0.7 },
+      { along: 0.72, len: 20, angle: -0.5 },
+      { along: 0.85, len: 10, angle: -0.3 },
+    ]
+  },
+  // Old cut line (cleared corridor partially reclaimed)
+  cutLine: { startWx: 5200, endWx: 6400, width: 120 },
+};
+
+// ── S3: Distant treeline ────────────────────────────────────────────────────
+const S3_DISTANT = [];
+(function buildS3Distant() {
+  for (let i = 0; i < 24; i++) {
+    const r = rand(i * 5);
+    S3_DISTANT.push({
+      wx: 600 + i * 520 + (rand(i * 7) - 0.5) * 160,
+      h: 0.05 + rand(i * 11) * 0.09,
+      w: 0.007 + rand(i * 17) * 0.010,
+      kind: r > 0.80 ? 'dead' : (r > 0.40 ? 'conifer' : 'deciduous')
+    });
+  }
+})();
+
+// ── S3: Ground height (local wx) ────────────────────────────────────────────
+function s3GroundY(wx) {
+  const base = H * 0.69;
+  const undulation = Math.sin(wx * 0.0007) * 5
+                   + Math.sin(wx * 0.0022 + 0.9) * 3.5
+                   + Math.sin(wx * 0.0048 + 1.5) * 2
+                   + Math.sin(wx * 0.00032 + 2.8) * 8;
+  // Clearing zone: slightly depressed ground where root systems were removed
+  const cl = S3_CLEARING;
+  let clearingDip = 0;
+  if (wx > cl.startWx && wx < cl.endWx) {
+    const clT = (wx - cl.startWx) / (cl.endWx - cl.startWx);
+    clearingDip = Math.sin(clT * Math.PI) * 5;
+  }
+  // General descent through scene
+  const descent = Math.max(0, (wx - 1000) / 14000) * 18;
+  // Hummock micro-terrain (less pronounced in clearing)
+  const inClearing = (wx > cl.startWx && wx < cl.endWx) ? 0.4 : 1.0;
+  const hummock = (Math.sin(wx * 0.016 + 0.5) * 2.0 + Math.sin(wx * 0.028 + 1.3) * 1.4) * inClearing;
+  return base + undulation + clearingDip + descent + hummock;
+}
+
+// ── S3: Sky colors ──────────────────────────────────────────────────────────
+function s3SkyColors() {
+  const close = fadeIn(0.14, 0.50, p3);
+  const reopen = fadeIn(0.65, 0.88, p3);
+  const enclosed = Math.max(0, close - reopen * 0.7);
+  return {
+    topR: lerp(82, 52, enclosed), topG: lerp(86, 58, enclosed), topB: lerp(88, 56, enclosed),
+    botR: lerp(110, 72, enclosed), botG: lerp(114, 78, enclosed), botB: lerp(108, 72, enclosed),
+    horizon: H * 0.68
+  };
+}
+
+// ── S3: Fog density query ───────────────────────────────────────────────────
+function s3FogDensityAt(screenX, screenY, now) {
+  let total = 0;
+  S3_FOG.forEach(bank => {
+    const drift = now * 0.001 * bank.speed;
+    const fogCenterWx = bank.baseX + drift + Math.sin(now * 0.00016 + bank.phase) * 140;
+    const wrappedWx = ((fogCenterWx % (S3_WORLD * 1.5)) + S3_WORLD * 1.5) % (S3_WORLD * 1.5) - S3_WORLD * 0.25;
+    const fogCenterSx = wrappedWx - s3sx;
+    const vy = bank.y + Math.sin(now * 0.00028 + bank.phase) * bank.vertical * 8;
+    const dx = (screenX - fogCenterSx) / (bank.w * 0.5);
+    const dy = (screenY - vy) / (bank.h * 0.5);
+    const dist = dx * dx + dy * dy;
+    if (dist < 1) total += bank.density * (1 - dist) * (1 - dist);
+  });
+  return Math.min(total, 0.50);
+}
+
+// ── S3: Wind strength ───────────────────────────────────────────────────────
+function s3WindStr(now) {
+  return Math.sin(now * 0.00035) * 0.4 + Math.sin(now * 0.0008) * 0.25 + 0.15;
+}
+
+// ── S3: Distant treeline ────────────────────────────────────────────────────
+function s3DrawDistantTreeline(now) {
+  // Visible briefly at entry and more at exit (reopening)
+  const vis = Math.max(
+    fadeOut(0.18, 0.36, p3) * fadeIn(0.03, 0.10, p3),
+    window01(0.72, 0.80, 0.90, 0.96, p3) * 0.7
+  );
+  if (vis < 0.006) return;
+
+  const off = s3sx * 0.035;
+  S3_DISTANT.forEach(dt => {
+    const sx = dt.wx - off;
+    if (sx < -40 || sx > W + 40) return;
+    const baseY = H * 0.46 + Math.sin((sx + off) * 0.00038) * 10;
+    const th = dt.h * H;
+    const fogA = s3FogDensityAt(sx, baseY, now);
+    const alpha = vis * 0.30 * Math.max(1 - fogA * 3, 0.05) * sceneAlpha;
+    if (alpha < 0.01) return;
+    ctx.globalAlpha = alpha;
+
+    if (dt.kind === 'dead') {
+      ctx.strokeStyle = '#464440';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.moveTo(sx, baseY); ctx.lineTo(sx + 1, baseY - th); ctx.stroke();
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.moveTo(sx, baseY - th * 0.55);
+      ctx.lineTo(sx + (rand(dt.wx) > 0.5 ? 5 : -5), baseY - th * 0.64);
+      ctx.stroke();
+    } else if (dt.kind === 'conifer') {
+      const tw = dt.w * W * 0.6;
+      ctx.fillStyle = '#323830';
+      ctx.beginPath();
+      ctx.moveTo(sx, baseY - th); ctx.lineTo(sx - tw * 0.5, baseY - th * 0.30); ctx.lineTo(sx + tw * 0.5, baseY - th * 0.30);
+      ctx.closePath(); ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(sx, baseY - th * 0.60); ctx.lineTo(sx - tw * 0.65, baseY - th * 0.05); ctx.lineTo(sx + tw * 0.65, baseY - th * 0.05);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#282c22'; ctx.fillRect(sx - 1, baseY - th * 0.08, 2, th * 0.08);
+    } else {
+      const tw = dt.w * W * 0.45;
+      ctx.fillStyle = '#363e34';
+      ctx.beginPath();
+      ctx.moveTo(sx - tw, baseY - th * 0.32);
+      ctx.quadraticCurveTo(sx - tw * 0.8, baseY - th * 0.90, sx, baseY - th);
+      ctx.quadraticCurveTo(sx + tw * 0.8, baseY - th * 0.90, sx + tw, baseY - th * 0.32);
+      ctx.quadraticCurveTo(sx + tw * 0.5, baseY - th * 0.22, sx, baseY - th * 0.25);
+      ctx.quadraticCurveTo(sx - tw * 0.5, baseY - th * 0.22, sx - tw, baseY - th * 0.32);
+      ctx.fill();
+      ctx.fillStyle = '#282c24'; ctx.fillRect(sx - 1, baseY - th * 0.28, 2, th * 0.28);
+    }
+    ctx.globalAlpha = sceneAlpha;
+  });
+
+  // Distant horizon band
+  ctx.fillStyle = `rgba(56,62,54,${vis * 0.22 * sceneAlpha})`;
+  ctx.beginPath(); ctx.moveTo(0, H);
+  for (let x = -8; x <= W + 8; x += 6) {
+    const wx = x + off;
+    const y = H * 0.50 + Math.sin(wx * 0.00042) * 14 + Math.sin(wx * 0.0012 + 1.6) * 7;
+    ctx.lineTo(x, y);
+  }
+  ctx.lineTo(W, H); ctx.closePath(); ctx.fill();
+}
+
+// ── S3: Fog ─────────────────────────────────────────────────────────────────
+function s3DrawFog(now) {
+  const fogPresence = window01(0.10, 0.22, 0.75, 0.88, p3);
+  if (fogPresence < 0.005) return;
+  S3_FOG.forEach(bank => {
+    const drift = now * 0.001 * bank.speed;
+    const fogCenterWx = bank.baseX + drift + Math.sin(now * 0.00016 + bank.phase) * 140;
+    const wrappedWx = ((fogCenterWx % (S3_WORLD * 1.5)) + S3_WORLD * 1.5) % (S3_WORLD * 1.5) - S3_WORLD * 0.25;
+    const sx = wrappedWx - s3sx;
+    if (sx < -bank.w * 0.6 || sx > W + bank.w * 0.6) return;
+    const vy = bank.y + Math.sin(now * 0.00028 + bank.phase) * bank.vertical * 8;
+    const alpha = bank.density * fogPresence * sceneAlpha;
+    const rg = ctx.createRadialGradient(sx, vy, 0, sx, vy, Math.max(bank.w, bank.h) * 0.5);
+    rg.addColorStop(0,    `rgba(104,110,100,${alpha * 0.80})`);
+    rg.addColorStop(0.35, `rgba(94,100,90,${alpha * 0.45})`);
+    rg.addColorStop(0.65, `rgba(86,92,82,${alpha * 0.18})`);
+    rg.addColorStop(1,    'rgba(78,84,74,0)');
+    ctx.fillStyle = rg;
+    ctx.beginPath();
+    ctx.ellipse(sx, vy, bank.w * 0.5, bank.h * 0.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+  });
+}
+
+// ── S3: Water features ──────────────────────────────────────────────────────
+function s3DrawWater(now) {
+  const waterVis = fadeIn(0.12, 0.35, p3);
+  if (waterVis < 0.004) return;
+  const sa = sceneAlpha;
+
+  S3_WATER.forEach(wf => {
+    const sx = wf.wx - s3sx;
+
+    if (wf.type === 'puddle') {
+      if (sx < -wf.w || sx > W + wf.w) return;
+      const gy = s3GroundY(wf.wx);
+      const poolH = 3 + wf.depth * 9;
+      const alpha = waterVis * wf.depth * 0.58 * sa;
+      const rg = ctx.createLinearGradient(0, gy - 2, 0, gy + poolH);
+      rg.addColorStop(0,   `rgba(56,64,74,${alpha * 0.40})`);
+      rg.addColorStop(0.4, `rgba(44,54,68,${alpha * 0.68})`);
+      rg.addColorStop(0.7, `rgba(40,50,64,${alpha * 0.70})`);
+      rg.addColorStop(1,   `rgba(48,56,66,${alpha * 0.30})`);
+      ctx.fillStyle = rg;
+      ctx.beginPath(); ctx.ellipse(sx, gy, wf.w / 2, poolH, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = `rgba(88,98,108,${alpha * 0.12})`;
+      ctx.beginPath();
+      ctx.ellipse(sx + Math.sin(now * 0.00025 + wf.wx * 0.01) * 3, gy - poolH * 0.1, wf.w * 0.18, poolH * 0.22, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    else if (wf.type === 'ditch') {
+      if (sx < -wf.w * 0.7 || sx > W + wf.w * 0.7) return;
+      const ditchVis = window01(0.18, 0.26, 0.48, 0.58, p3);
+      if (ditchVis < 0.01) return;
+      const gy = s3GroundY(wf.wx);
+      const cw = wf.channelWidth;
+      const channelAlpha = ditchVis * 0.72 * sa;
+      const cwg = ctx.createLinearGradient(0, gy - 5, 0, gy + 7);
+      cwg.addColorStop(0,    `rgba(44,52,64,${channelAlpha * 0.28})`);
+      cwg.addColorStop(0.25, `rgba(36,46,60,${channelAlpha * 0.72})`);
+      cwg.addColorStop(0.55, `rgba(32,42,58,${channelAlpha * 0.76})`);
+      cwg.addColorStop(0.8,  `rgba(34,44,60,${channelAlpha * 0.68})`);
+      cwg.addColorStop(1,    `rgba(40,50,62,${channelAlpha * 0.28})`);
+      ctx.fillStyle = cwg;
+
+      ctx.beginPath();
+      const channelLeft = sx - wf.w * 0.4;
+      const channelRight = sx + wf.w * 0.4;
+      ctx.moveTo(channelLeft, gy - cw * 0.35 + wf.angle * (channelLeft - sx));
+      for (let x = channelLeft; x <= channelRight; x += 7) {
+        const irr = Math.sin(x * 0.022 + 1.5) * 1.8 + Math.sin(x * 0.048) * 0.9;
+        ctx.lineTo(x, gy - cw * 0.35 + wf.angle * (x - sx) + irr);
+      }
+      for (let x = channelRight; x >= channelLeft; x -= 7) {
+        const irr = Math.sin(x * 0.022 + 2.9) * 1.8 + Math.sin(x * 0.046 + 0.6) * 0.9;
+        ctx.lineTo(x, gy + cw * 0.55 + wf.angle * (x - sx) + irr);
+      }
+      ctx.closePath(); ctx.fill();
+
+      // Bank edges - slightly darker, suggesting cut earth
+      ctx.fillStyle = `rgba(52,48,38,${channelAlpha * 0.28})`;
+      for (let x = channelLeft + 8; x < channelRight - 8; x += 12) {
+        const yOff = wf.angle * (x - sx);
+        ctx.fillRect(x, gy - cw * 0.35 + yOff - 2 + rand(x) * 1.5, 7, 2.5);
+        ctx.fillRect(x + 2, gy + cw * 0.55 + yOff + rand(x + 88) * 1.5, 6, 2);
+      }
+    }
+
+    else if (wf.type === 'saturated') {
+      if (sx < -wf.w || sx > W + wf.w) return;
+      const satVis = waterVis * wf.depth * 0.45 * sa;
+      if (satVis < 0.01) return;
+      const gy = s3GroundY(wf.wx);
+      const sg = ctx.createRadialGradient(sx, gy, 0, sx, gy, wf.w * 0.5);
+      sg.addColorStop(0,   `rgba(46,54,64,${satVis * 0.38})`);
+      sg.addColorStop(0.4, `rgba(42,50,58,${satVis * 0.24})`);
+      sg.addColorStop(0.7, `rgba(38,46,54,${satVis * 0.12})`);
+      sg.addColorStop(1,   'rgba(34,42,50,0)');
+      ctx.fillStyle = sg;
+      ctx.fillRect(sx - wf.w * 0.5, gy - 5, wf.w, 12);
+    }
+  });
+}
+
+// ── S3: Stump Clearing — felled trees, open canopy ─────────────────────────
+function s3DrawStumpClearing(now) {
+  const cl = S3_CLEARING;
+  const vis = window01(0.14, 0.22, 0.50, 0.60, p3);
+  if (vis < 0.01) return;
+  const sa = sceneAlpha;
+
+  const clStartSx = cl.startWx - s3sx;
+  const clEndSx = cl.endWx - s3sx;
+  if (clEndSx < -100 || clStartSx > W + 100) return;
+
+  // ─── 1. GROUND BRIGHTENING — sun reaches the floor where canopy was removed
+  const clearingGrad = ctx.createLinearGradient(clStartSx, 0, clEndSx, 0);
+  clearingGrad.addColorStop(0,    `rgba(120,115,95,0)`);
+  clearingGrad.addColorStop(0.15, `rgba(120,115,95,${vis * 0.12 * sa})`);
+  clearingGrad.addColorStop(0.5,  `rgba(128,122,100,${vis * 0.18 * sa})`);
+  clearingGrad.addColorStop(0.85, `rgba(120,115,95,${vis * 0.12 * sa})`);
+  clearingGrad.addColorStop(1,    `rgba(120,115,95,0)`);
+  ctx.fillStyle = clearingGrad;
+  const gTop = s3GroundY(cl.centerWx) - 10;
+  ctx.fillRect(clStartSx, gTop, clEndSx - clStartSx, H - gTop);
+
+  // ─── 2. SAWDUST / WOOD CHIP SCATTER on ground near stumps
+  ctx.globalAlpha = vis * 0.30 * sa;
+  cl.stumps.forEach((st, si) => {
+    const sx = st.wx - s3sx;
+    if (sx < -60 || sx > W + 60) return;
+    const gy = s3GroundY(st.wx);
+    // Scatter of pale wood chips around each stump
+    for (let c2 = 0; c2 < 8; c2++) {
+      const cx = sx + (rand(st.wx + c2 * 7) - 0.5) * st.diameter * 2.5;
+      const cy = gy + rand(st.wx + c2 * 11) * 6 - 1;
+      const cw = 2 + rand(st.wx + c2 * 13) * 4;
+      const ch = 1 + rand(st.wx + c2 * 17) * 2;
+      const pale = (165 + rand(st.wx + c2 * 19) * 35) | 0;
+      ctx.fillStyle = `rgba(${pale},${pale - 15},${pale - 35},${vis * 0.25})`;
+      ctx.fillRect(cx - cw / 2, cy, cw, ch);
+    }
+  });
+  ctx.globalAlpha = sa;
+
+  // ─── 3. STUMPS — cut faces with growth rings, bark sides
+  cl.stumps.forEach((st, si) => {
+    const sx = st.wx - s3sx;
+    if (sx < -50 || sx > W + 50) return;
+    const gy = s3GroundY(st.wx);
+    const R = st.diameter / 2;
+    const topY = gy - st.height;
+
+    const fogOcc = s3FogDensityAt(sx, gy, now);
+    const alpha = vis * (1 - fogOcc * 0.35) * sa;
+    if (alpha < 0.01) return;
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+
+    // Bark sides — dark, textured vertical faces
+    const barkR = (52 + st.barkColor * 30) | 0;
+    const barkG = (42 + st.barkColor * 20) | 0;
+    const barkB = (32 + st.barkColor * 12) | 0;
+
+    // Left bark face
+    const barkGrad = ctx.createLinearGradient(sx - R, 0, sx + R, 0);
+    barkGrad.addColorStop(0,   `rgb(${barkR - 12},${barkG - 8},${barkB - 6})`);
+    barkGrad.addColorStop(0.3, `rgb(${barkR},${barkG},${barkB})`);
+    barkGrad.addColorStop(0.7, `rgb(${barkR + 6},${barkG + 4},${barkB + 2})`);
+    barkGrad.addColorStop(1,   `rgb(${barkR - 8},${barkG - 6},${barkB - 4})`);
+    ctx.fillStyle = barkGrad;
+    ctx.beginPath();
+    ctx.moveTo(sx - R, topY + 2);
+    ctx.lineTo(sx + R, topY + 2 + st.cutAngle * st.diameter);
+    ctx.lineTo(sx + R + 1, gy + 2);
+    ctx.lineTo(sx - R - 1, gy + 2);
+    ctx.closePath();
+    ctx.fill();
+
+    // Bark texture lines — vertical fissures
+    ctx.strokeStyle = `rgba(${barkR - 18},${barkG - 14},${barkB - 10},0.30)`;
+    ctx.lineWidth = 0.8;
+    for (let f = 0; f < 5; f++) {
+      const fx = sx - R + (f + 0.5) * (st.diameter / 5) + (rand(st.wx + f * 3) - 0.5) * 3;
+      ctx.beginPath();
+      ctx.moveTo(fx, topY + 3 + rand(f * 7) * 2);
+      ctx.lineTo(fx + (rand(f * 11) - 0.5) * 2, gy);
+      ctx.stroke();
+    }
+
+    // Cut face — the top, exposed wood
+    const cutTiltY = st.cutAngle * st.diameter;
+    // Exposed wood is pale, yellowish
+    const woodGrad = ctx.createRadialGradient(sx, topY + cutTiltY * 0.5, 0,
+                                               sx, topY + cutTiltY * 0.5, R * 0.9);
+    woodGrad.addColorStop(0,   `rgba(185,170,135,1)`);   // heartwood — pale
+    woodGrad.addColorStop(0.3, `rgba(175,158,118,1)`);   // inner rings
+    woodGrad.addColorStop(0.7, `rgba(155,138,100,1)`);    // outer rings
+    woodGrad.addColorStop(0.9, `rgba(130,112,78,1)`);     // sapwood
+    woodGrad.addColorStop(1,   `rgba(${barkR},${barkG},${barkB},1)`);  // bark edge
+    ctx.fillStyle = woodGrad;
+    ctx.beginPath();
+    ctx.ellipse(sx, topY + cutTiltY * 0.5, R, R * 0.35 + Math.abs(cutTiltY) * 0.2,
+                st.cutAngle * 0.3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Growth rings — concentric ellipses
+    ctx.strokeStyle = `rgba(120,105,72,0.30)`;
+    ctx.lineWidth = 0.6;
+    for (let ring = 1; ring <= 4; ring++) {
+      const rFrac = ring / 5;
+      ctx.beginPath();
+      ctx.ellipse(sx, topY + cutTiltY * 0.5, R * rFrac, (R * 0.35 + Math.abs(cutTiltY) * 0.2) * rFrac,
+                  st.cutAngle * 0.3, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    // Weathering stain on cut face — darker patches
+    ctx.fillStyle = `rgba(90,78,55,0.15)`;
+    ctx.beginPath();
+    ctx.ellipse(sx + (rand(st.wx + 100) - 0.5) * R * 0.4,
+                topY + cutTiltY * 0.5 + (rand(st.wx + 101) - 0.5) * R * 0.15,
+                R * 0.3 + rand(st.wx + 102) * R * 0.2,
+                R * 0.12 + rand(st.wx + 103) * R * 0.08,
+                rand(st.wx + 104) * 0.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Regrowth shoots — 1-2 small green sprigs on some stumps
+    if (rand(st.wx + 200) > 0.4) {
+      const shootX = sx + (rand(st.wx + 201) - 0.5) * R * 0.6;
+      const shootBaseY = topY + cutTiltY * 0.3;
+      const shootH = 8 + rand(st.wx + 202) * 14;
+      const shootLean = (rand(st.wx + 203) - 0.5) * 4 + Math.sin(now * 0.0008 + st.wx) * 1.5;
+      ctx.fillStyle = `rgba(52,68,38,0.55)`;
+      ctx.beginPath();
+      ctx.moveTo(shootX, shootBaseY);
+      ctx.quadraticCurveTo(shootX + shootLean * 0.4, shootBaseY - shootH * 0.5,
+                           shootX + shootLean, shootBaseY - shootH);
+      ctx.lineTo(shootX + shootLean + 1, shootBaseY - shootH);
+      ctx.quadraticCurveTo(shootX + shootLean * 0.4 + 1, shootBaseY - shootH * 0.5,
+                           shootX + 1, shootBaseY);
+      ctx.fill();
+    }
+
+    ctx.restore();
+  });
+
+  // ─── 4. FALLEN TRUNK — one felled tree lying on the ground
+  const ft = cl.fallenTrunk;
+  const ftSx = ft.wx - s3sx;
+  if (ftSx > -ft.length && ftSx < W + ft.length) {
+    const ftGy = s3GroundY(ft.wx);
+    const ftVis = vis * sa;
+    const fogOcc = s3FogDensityAt(ftSx, ftGy, now);
+    const ftAlpha = ftVis * (1 - fogOcc * 0.35);
+
+    if (ftAlpha > 0.01) {
+      ctx.save();
+      ctx.globalAlpha = ftAlpha;
+
+      // Trunk lies along the ground at a slight angle
+      const baseX = ftSx;
+      const baseY = ftGy - ft.baseDiameter * 0.3;  // raised slightly off ground
+      const tipX = ftSx + Math.cos(ft.angle) * ft.length;
+      const tipY = s3GroundY(ft.wx + ft.length * 0.8) - ft.tipDiameter * 0.2;
+
+      // Main trunk body — tapered
+      const trunkGrad = ctx.createLinearGradient(baseX, 0, tipX, 0);
+      trunkGrad.addColorStop(0,   'rgb(58,50,38)');
+      trunkGrad.addColorStop(0.5, 'rgb(52,46,34)');
+      trunkGrad.addColorStop(1,   'rgb(48,42,30)');
+      ctx.fillStyle = trunkGrad;
+      ctx.beginPath();
+      const bR = ft.baseDiameter / 2;
+      const tR = ft.tipDiameter / 2;
+      ctx.moveTo(baseX, baseY - bR * 0.5);
+      ctx.lineTo(tipX, tipY - tR * 0.5);
+      ctx.lineTo(tipX, tipY + tR * 0.7);
+      ctx.lineTo(baseX, baseY + bR * 0.7);
+      ctx.closePath();
+      ctx.fill();
+
+      // Trunk top highlight
+      ctx.fillStyle = 'rgba(72,64,48,0.25)';
+      ctx.beginPath();
+      ctx.moveTo(baseX, baseY - bR * 0.5);
+      ctx.lineTo(tipX, tipY - tR * 0.5);
+      ctx.lineTo(tipX, tipY - tR * 0.3);
+      ctx.lineTo(baseX, baseY - bR * 0.3);
+      ctx.closePath();
+      ctx.fill();
+
+      // Bark texture
+      ctx.strokeStyle = 'rgba(38,32,24,0.22)';
+      ctx.lineWidth = 0.7;
+      for (let b = 0; b < 12; b++) {
+        const t = rand(ft.wx + b * 7) * 0.85 + 0.05;
+        const bx = baseX + (tipX - baseX) * t;
+        const by = baseY + (tipY - baseY) * t;
+        const localR = bR + (tR - bR) * t;
+        ctx.beginPath();
+        ctx.moveTo(bx, by - localR * 0.5 + rand(b * 3) * 2);
+        ctx.lineTo(bx + (rand(b * 5) - 0.5) * 3, by + localR * 0.7 - rand(b * 7) * 2);
+        ctx.stroke();
+      }
+
+      // Branch stubs — broken/cut limbs
+      ft.branchStubs.forEach((br, bi) => {
+        const bx = baseX + (tipX - baseX) * br.along;
+        const by = baseY + (tipY - baseY) * br.along;
+        const localR = bR + (tR - bR) * br.along;
+        // Stub pointing up and slightly outward
+        const stubEndX = bx + Math.cos(br.angle) * br.len;
+        const stubEndY = by + Math.sin(br.angle) * br.len;
+        const stubW = 2.5 + (1 - br.along) * 3;
+        ctx.fillStyle = `rgba(55,48,36,${ftAlpha * 0.65})`;
+        ctx.beginPath();
+        ctx.moveTo(bx - stubW * 0.5, by - localR * 0.4);
+        ctx.lineTo(stubEndX - 1, stubEndY);
+        ctx.lineTo(stubEndX + 1, stubEndY);
+        ctx.lineTo(bx + stubW * 0.5, by - localR * 0.4);
+        ctx.closePath();
+        ctx.fill();
+        // Broken end — pale wood
+        ctx.fillStyle = `rgba(155,140,105,${ftAlpha * 0.40})`;
+        ctx.beginPath();
+        ctx.arc(stubEndX, stubEndY, 1.5 + rand(bi * 3) * 1.5, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // Cut end face at the base — where the saw cut it
+      ctx.fillStyle = 'rgba(170,155,120,0.50)';
+      ctx.beginPath();
+      ctx.ellipse(baseX, baseY + bR * 0.1, bR * 0.55, bR * 0.8, 0.1, 0, Math.PI * 2);
+      ctx.fill();
+      // Rings on cut face
+      ctx.strokeStyle = 'rgba(120,105,72,0.25)';
+      ctx.lineWidth = 0.5;
+      for (let r = 1; r <= 3; r++) {
+        ctx.beginPath();
+        ctx.ellipse(baseX, baseY + bR * 0.1, bR * 0.55 * r / 4, bR * 0.8 * r / 4, 0.1, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      ctx.restore();
+    }
+  }
+
+  // ─── 5. CLEARING EDGE REGROWTH — low grass and weeds in the opening
+  ctx.globalAlpha = vis * 0.40 * sa;
+  for (let g = 0; g < 18; g++) {
+    const gwx = cl.startWx + 200 + rand(g * 7 + 800) * (cl.endWx - cl.startWx - 400);
+    const gsx = gwx - s3sx;
+    if (gsx < -30 || gsx > W + 30) continue;
+    const gy = s3GroundY(gwx);
+    const gh = 5 + rand(g * 11 + 800) * 12;   // shorter than forest understory
+    const lean = (rand(g * 13 + 800) - 0.5) * 4 + Math.sin(now * 0.0007 + g * 1.1) * 2;
+    // Slightly brighter green — more sun reaching the ground
+    const gr = (48 + rand(g * 17 + 800) * 20) | 0;
+    const gg = (62 + rand(g * 19 + 800) * 25) | 0;
+    const gb = (32 + rand(g * 23 + 800) * 12) | 0;
+    ctx.fillStyle = `rgba(${gr},${gg},${gb},${vis * 0.38})`;
+    ctx.beginPath();
+    ctx.moveTo(gsx, gy);
+    ctx.quadraticCurveTo(gsx + lean * 0.4, gy - gh * 0.5, gsx + lean, gy - gh);
+    ctx.lineTo(gsx + lean + 1, gy - gh);
+    ctx.quadraticCurveTo(gsx + lean * 0.4 + 1, gy - gh * 0.5, gsx + 1, gy);
+    ctx.fill();
+  }
+  ctx.globalAlpha = sa;
+}
+
+// ── S3: Single vegetation element ───────────────────────────────────────────
+function s3DrawOneVeg(v, now) {
+  const sx = v.wx - s3sx;
+  if (sx < -300 || sx > W + 300) return;
+
+  const gY = s3GroundY(v.wx);
+  const vh = v.h * H, vw = v.w * W;
+  const dep = Math.min(v.layer, 3) / 3;
+  const wet = fadeIn(0.15, 0.50, p3);
+  const windS = 0.5 + Math.sin(now * 0.00035 + v.windPhase) * 0.35;
+  const windLean = Math.sin(now * 0.0007 + v.windPhase) * windS * 2.5
+                 + Math.sin(now * 0.0017 + v.windPhase * 1.6) * windS * 1.2;
+
+  if (v.kind === 'birch') {
+    // White-barked trunk
+    const barkR = lerp(165, 120, dep) | 0;
+    const barkG = lerp(158, 112, dep) | 0;
+    const barkB = lerp(148, 102, dep) | 0;
+    ctx.strokeStyle = `rgb(${barkR},${barkG},${barkB})`;
+    ctx.lineWidth = Math.max(1.5, vw * 0.04);
+    ctx.beginPath(); ctx.moveTo(sx, gY); ctx.lineTo(sx + windLean * 0.06, gY - vh * 0.65); ctx.stroke();
+    // Dark marks on bark
+    ctx.strokeStyle = `rgba(${barkR - 60},${barkG - 55},${barkB - 50},0.30)`;
+    ctx.lineWidth = 1;
+    for (let m = 0; m < 3; m++) {
+      const my = gY - vh * (0.15 + rand(v.wx + m * 7) * 0.40);
+      const mx = sx + windLean * 0.03 * (my - gY) / (vh * 0.65);
+      ctx.beginPath();
+      ctx.moveTo(mx - 2, my); ctx.lineTo(mx + 2, my);
+      ctx.stroke();
+    }
+    // Canopy
+    const cr = lerp(52, 28, dep) | 0, cg = lerp(62, 36, dep) | 0, cb = lerp(44, 24, dep) | 0;
+    ctx.fillStyle = `rgba(${cr},${cg},${cb},0.72)`;
+    ctx.beginPath();
+    ctx.ellipse(sx + windLean * 0.12, gY - vh * 0.78, vw * 0.48, vh * 0.28, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+  } else if (v.kind === 'alder') {
+    const r = lerp(38, 18, dep) | 0, g = lerp(46, 28, dep) | 0, b = lerp(32, 16, dep) | 0;
+    ctx.strokeStyle = `rgb(${(r * 0.48) | 0},${(g * 0.40) | 0},${(b * 0.36) | 0})`;
+    ctx.lineWidth = Math.max(1.5, vw * 0.06);
+    ctx.beginPath(); ctx.moveTo(sx, gY); ctx.lineTo(sx + windLean * 0.08, gY - vh * 0.55); ctx.stroke();
+    if (rand(v.wx * 5) > 0.4) {
+      const leanDir = rand(v.wx * 9) > 0.5 ? 1 : -1;
+      ctx.lineWidth = Math.max(1, vw * 0.035);
+      ctx.beginPath();
+      ctx.moveTo(sx, gY - vh * 0.25);
+      ctx.quadraticCurveTo(sx + leanDir * vw * 0.14 + windLean * 0.15, gY - vh * 0.46, sx + leanDir * vw * 0.18 + windLean * 0.25, gY - vh * 0.65);
+      ctx.stroke();
+    }
+    ctx.fillStyle = `rgba(${r},${g},${b},0.76)`;
+    ctx.beginPath();
+    ctx.ellipse(sx + windLean * 0.12, gY - vh * 0.70, vw * 0.40, vh * 0.30, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+  } else if (v.kind === 'willow') {
+    const r = lerp(42, 22, dep) | 0, g = lerp(52, 32, dep) | 0, b = lerp(34, 18, dep) | 0;
+    ctx.strokeStyle = `rgb(${(r * 0.50) | 0},${(g * 0.42) | 0},${(b * 0.40) | 0})`;
+    ctx.lineWidth = Math.max(1.5, vw * 0.055);
+    const stems = 2 + Math.floor(rand(v.wx * 3) * 3);
+    for (let s = 0; s < stems; s++) {
+      const sLean = (rand(v.wx + s * 11) - 0.5) * vw * 0.35 + windLean * 0.25;
+      ctx.beginPath();
+      ctx.moveTo(sx + (s - stems / 2) * 3, gY);
+      ctx.quadraticCurveTo(sx + sLean * 0.4, gY - vh * 0.5, sx + sLean, gY - vh * (0.65 + rand(v.wx + s) * 0.3));
+      ctx.stroke();
+    }
+    ctx.fillStyle = `rgba(${r},${g},${b},0.72)`;
+    ctx.beginPath();
+    ctx.ellipse(sx + windLean * 0.18, gY - vh * 0.70, vw * 0.50, vh * 0.32, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Drooping fronds
+    ctx.strokeStyle = `rgba(${r},${g + 5},${b},0.30)`;
+    ctx.lineWidth = 0.6;
+    for (let f = 0; f < 4; f++) {
+      const fx = sx + (rand(v.wx + f * 17) - 0.5) * vw * 0.8 + windLean * 0.35;
+      const fy = gY - vh * (0.50 + rand(v.wx + f * 3) * 0.20);
+      ctx.beginPath(); ctx.moveTo(fx, fy);
+      ctx.quadraticCurveTo(fx + windLean * 0.25 + (rand(f + v.wx) - 0.5) * 8, fy + vh * 0.16, fx + windLean * 0.4 + (rand(f * 3 + v.wx) - 0.5) * 5, fy + vh * 0.28);
+      ctx.stroke();
+    }
+
+  } else if (v.kind === 'wet_grass' || v.kind === 'sedge') {
+    const isSedge = v.kind === 'sedge';
+    const r = lerp(isSedge ? 58 : 50, isSedge ? 38 : 34, wet) | 0;
+    const g = lerp(isSedge ? 66 : 60, isSedge ? 46 : 44, wet) | 0;
+    const b = lerp(isSedge ? 44 : 38, isSedge ? 30 : 26, wet) | 0;
+    ctx.fillStyle = `rgba(${r},${g},${b},${isSedge ? 0.55 : 0.45})`;
+    const blades = isSedge ? 8 : 6;
+    for (let bl = 0; bl < blades; bl++) {
+      const bx = sx - vw * 0.45 + bl * vw * (0.9 / blades);
+      const lean = (rand(v.wx + bl * 5) - 0.5) * vw * 0.22 + windLean * (isSedge ? 1.0 : 0.7);
+      const bladeH = vh * (0.6 + rand(v.wx + bl * 3) * 0.4);
+      ctx.beginPath(); ctx.moveTo(bx, gY);
+      ctx.quadraticCurveTo(bx + lean * 0.4, gY - bladeH * 0.5, bx + lean, gY - bladeH);
+      ctx.lineTo(bx + lean + 0.8, gY - bladeH);
+      ctx.quadraticCurveTo(bx + lean * 0.4 + 0.8, gY - bladeH * 0.5, bx + 0.8, gY);
+      ctx.fill();
+    }
+
+  } else if (v.kind === 'wet_scrub') {
+    const r = lerp(40, 24, dep) | 0, g = lerp(50, 34, dep) | 0, b = lerp(34, 20, dep) | 0;
+    ctx.fillStyle = `rgba(${r},${g},${b},0.65)`;
+    ctx.beginPath();
+    ctx.ellipse(sx + windLean * 0.08, gY - vh * 0.46, vw * 0.48, vh * 0.48, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+  } else if (v.kind === 'reeds') {
+    const r = lerp(54, 38, wet) | 0, g = lerp(62, 46, wet) | 0, b = lerp(40, 28, wet) | 0;
+    ctx.fillStyle = `rgba(${r},${g},${b},0.48)`;
+    for (let bl = 0; bl < 6; bl++) {
+      const bx = sx - vw * 0.3 + bl * vw * 0.12;
+      const lean = (rand(v.wx + bl * 5) - 0.5) * vw * 0.15 + windLean * 0.9;
+      const bladeH = vh * (0.7 + rand(v.wx + bl * 3) * 0.3);
+      ctx.beginPath(); ctx.moveTo(bx, gY + 1);
+      ctx.quadraticCurveTo(bx + lean * 0.3, gY - bladeH * 0.4, bx + lean, gY - bladeH);
+      ctx.lineTo(bx + lean + 0.6, gY - bladeH);
+      ctx.quadraticCurveTo(bx + lean * 0.3 + 0.6, gY - bladeH * 0.4, bx + 0.6, gY + 1);
+      ctx.fill();
+    }
+
+  } else if (v.kind === 's3conifer') {
+    const r = lerp(30, 14, dep) | 0, g = lerp(40, 22, dep) | 0, b = lerp(28, 14, dep) | 0;
+    ctx.strokeStyle = `rgb(${(r * 0.38) | 0},${(g * 0.32) | 0},${(b * 0.28) | 0})`;
+    ctx.lineWidth = Math.max(1.5, vw * 0.045);
+    ctx.beginPath(); ctx.moveTo(sx, gY); ctx.lineTo(sx + windLean * 0.06, gY - vh); ctx.stroke();
+    ctx.fillStyle = `rgba(${r},${g},${b},0.80)`;
+    const tipX = sx + windLean * 0.10, tipY = gY - vh;
+    const midY = gY - vh * 0.50, baseW = vw * 0.36, midW = vw * 0.44;
+    ctx.beginPath();
+    ctx.moveTo(tipX, tipY);
+    ctx.lineTo(tipX - baseW * 0.55 + windLean * 0.04, midY);
+    ctx.lineTo(tipX + baseW * 0.55 + windLean * 0.04, midY);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = `rgba(${r - 3 | 0},${g - 3 | 0},${b - 2 | 0},0.76)`;
+    ctx.beginPath();
+    ctx.moveTo(tipX, midY + vh * 0.05);
+    ctx.lineTo(sx - midW * 0.65 + windLean * 0.03, gY - vh * 0.10);
+    ctx.lineTo(sx + midW * 0.65 + windLean * 0.03, gY - vh * 0.10);
+    ctx.closePath(); ctx.fill();
+
+  } else if (v.kind === 'meadow_grass') {
+    const r = lerp(68, 50, wet) | 0, g = lerp(74, 58, wet) | 0, b = lerp(56, 40, wet) | 0;
+    ctx.fillStyle = `rgba(${r},${g},${b},0.50)`;
+    for (let bl = 0; bl < 5; bl++) {
+      const bx = sx - vw * 0.4 + bl * vw * 0.2;
+      const lean = (rand(v.wx + bl * 7) - 0.5) * vw * 0.28 + windLean;
+      ctx.beginPath();
+      ctx.moveTo(bx, gY);
+      ctx.quadraticCurveTo(bx + lean * 0.5, gY - vh * 0.6, bx + lean, gY - vh);
+      ctx.quadraticCurveTo(bx + lean * 0.5 + 1.2, gY - vh * 0.6, bx + 1.5, gY);
+      ctx.fill();
+    }
+
+  } else if (v.kind === 'fg_alder') {
+    const fgAlpha = window01(0.12, 0.22, 0.72, 0.84, p3) * 0.70 * sceneAlpha;
+    if (fgAlpha < 0.02) return;
+    ctx.globalAlpha = fgAlpha;
+    ctx.strokeStyle = 'rgb(16,20,12)';
+    ctx.lineWidth = Math.max(3, vw * 0.10);
+    ctx.beginPath();
+    ctx.moveTo(sx, gY + 20);
+    ctx.lineTo(sx + windLean * 0.08, gY - vh * 0.50);
+    ctx.stroke();
+    if (rand(v.wx * 5) > 0.3) {
+      const ld = rand(v.wx * 9) > 0.5 ? 1 : -1;
+      ctx.lineWidth = Math.max(2, vw * 0.05);
+      ctx.beginPath();
+      ctx.moveTo(sx, gY - vh * 0.20);
+      ctx.quadraticCurveTo(sx + ld * vw * 0.2 + windLean * 0.15, gY - vh * 0.42, sx + ld * vw * 0.25 + windLean * 0.25, gY - vh * 0.60);
+      ctx.stroke();
+    }
+    ctx.fillStyle = 'rgba(12,18,10,0.78)';
+    ctx.beginPath();
+    ctx.ellipse(sx + windLean * 0.25, gY - vh * 0.62, vw * 0.65, vh * 0.38, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = sceneAlpha;
+
+  } else if (v.kind === 'fg_grass') {
+    const fgAlpha = window01(0.12, 0.22, 0.72, 0.84, p3) * 0.60 * sceneAlpha;
+    if (fgAlpha < 0.02) return;
+    ctx.globalAlpha = fgAlpha;
+    ctx.fillStyle = 'rgba(24,32,20,0.65)';
+    for (let bl = 0; bl < 9; bl++) {
+      const bx = sx - vw * 0.6 + bl * vw * 0.15;
+      const lean = (rand(v.wx + bl * 7) - 0.5) * vw * 0.45 + windLean * 1.8;
+      const bladeH = vh * (0.55 + rand(v.wx + bl * 3) * 0.45);
+      ctx.beginPath(); ctx.moveTo(bx, gY + 30);
+      ctx.quadraticCurveTo(bx + lean * 0.4, gY - bladeH * 0.4, bx + lean, gY - bladeH);
+      ctx.lineTo(bx + lean + 2, gY - bladeH);
+      ctx.quadraticCurveTo(bx + lean * 0.4 + 2, gY - bladeH * 0.4, bx + 2.5, gY + 30);
+      ctx.fill();
+    }
+    ctx.globalAlpha = sceneAlpha;
+  }
+}
+
+// ── S3: Overhead vegetation ─────────────────────────────────────────────────
+function s3DrawOverheadVegetation(now) {
+  // Heavier overhead than S2, especially early-mid
+  const overhead = window01(0.12, 0.24, 0.62, 0.78, p3);
+  if (overhead < 0.004) return;
+  const sa = sceneAlpha;
+  const baseAlpha = overhead * 0.62 * sa;
+
+  const tg = ctx.createLinearGradient(0, 0, 0, H * 0.48);
+  tg.addColorStop(0,   `rgba(12,16,10,${baseAlpha * 0.75})`);
+  tg.addColorStop(0.4, `rgba(16,22,14,${baseAlpha * 0.38})`);
+  tg.addColorStop(1,   'rgba(0,0,0,0)');
+  ctx.fillStyle = tg;
+  ctx.fillRect(0, 0, W, H * 0.48);
+
+  ctx.fillStyle = `rgba(10,14,8,${overhead * 0.45 * sa})`;
+  const branchOffset = s3sx * 0.12;
+  const ws = s3WindStr(now);
+  for (let i = 0; i < 10; i++) {
+    const bx = (i * W * 0.16 + rand(i * 7) * W * 0.10 - branchOffset * (0.7 + rand(i * 3) * 0.5)) % (W * 1.4) - W * 0.2;
+    const by = H * (0.01 + rand(i * 11) * 0.10);
+    const bw = W * (0.07 + rand(i * 13) * 0.14);
+    const bh = H * (0.025 + rand(i * 17) * 0.055);
+    ctx.beginPath();
+    ctx.ellipse(bx + ws * 3, by, bw, bh, rand(i * 19) * 0.25, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+// ── S3: Side enclosure ──────────────────────────────────────────────────────
+function s3DrawSideEnclosure() {
+  // Tighter than S2, especially in the infrastructure zone
+  const enclosure = window01(0.10, 0.22, 0.65, 0.80, p3);
+  if (enclosure < 0.004) return;
+  const sa = sceneAlpha;
+  const infraBoost = window01(0.18, 0.28, 0.42, 0.52, p3) * 0.3;
+  const totalEnc = Math.min(enclosure + infraBoost, 1);
+
+  const leftStr = totalEnc * 1.2;
+  const lg = ctx.createLinearGradient(0, 0, W * 0.24, 0);
+  lg.addColorStop(0, `rgba(14,20,12,${Math.min(leftStr, 1) * 0.50 * sa})`);
+  lg.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = lg;
+  ctx.fillRect(0, H * 0.12, W * 0.24, H * 0.72);
+
+  const rightStr = totalEnc * 0.95;
+  const rg = ctx.createLinearGradient(W, 0, W * 0.78, 0);
+  rg.addColorStop(0, `rgba(14,20,12,${rightStr * 0.45 * sa})`);
+  rg.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = rg;
+  ctx.fillRect(W * 0.78, H * 0.15, W * 0.22, H * 0.68);
+
+  const bottomStr = window01(0.14, 0.26, 0.58, 0.72, p3);
+  if (bottomStr > 0.01) {
+    const bg = ctx.createLinearGradient(0, H, 0, H * 0.74);
+    bg.addColorStop(0, `rgba(12,16,10,${bottomStr * 0.42 * sa})`);
+    bg.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, H * 0.74, W, H * 0.26);
+  }
+}
+
+// ── S3: Atmosphere ──────────────────────────────────────────────────────────
+function s3DrawAtmosphere() {
+  const sa = sceneAlpha;
+  const haze = window01(0.16, 0.30, 0.68, 0.82, p3);
+  if (haze > 0.004) {
+    const hg = ctx.createLinearGradient(0, H * 0.32, 0, H * 0.62);
+    hg.addColorStop(0, 'rgba(0,0,0,0)');
+    hg.addColorStop(0.5, `rgba(80,86,78,${haze * 0.09 * sa})`);
+    hg.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = hg;
+    ctx.fillRect(0, H * 0.32, W, H * 0.30);
+  }
+  const groundMoist = fadeIn(0.18, 0.45, p3) * fadeOut(0.70, 0.86, p3);
+  if (groundMoist > 0.004) {
+    const mg = ctx.createLinearGradient(0, H * 0.62, 0, H * 0.74);
+    mg.addColorStop(0, 'rgba(0,0,0,0)');
+    mg.addColorStop(0.5, `rgba(72,78,70,${groundMoist * 0.14 * sa})`);
+    mg.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = mg;
+    ctx.fillRect(0, H * 0.62, W, H * 0.12);
+  }
+}
+
+// ── S3: Sky corridors ───────────────────────────────────────────────────────
+function s3DrawSkyCorridors(now) {
+  // Fewer, narrower sky gaps - more enclosed
+  const vis = window01(0.28, 0.38, 0.56, 0.68, p3) * 0.28;
+  if (vis < 0.008) return;
+  const sa = sceneAlpha;
+  const gaps = [{ wx: 3400, w: 70, h: 0.08 },{ wx: 6600, w: 100, h: 0.10 },{ wx: 10200, w: 130, h: 0.14 }];
+  gaps.forEach(gap => {
+    const sx = gap.wx - s3sx;
+    if (sx < -gap.w || sx > W + gap.w) return;
+    const fogAtten = 1 - s3FogDensityAt(sx, H * 0.28, now) * 2;
+    const alpha = vis * Math.max(fogAtten, 0.1) * sa;
+    const gg = ctx.createRadialGradient(sx, H * 0.26, 0, sx, H * 0.26, gap.w);
+    gg.addColorStop(0,   `rgba(118,124,120,${alpha * 0.40})`);
+    gg.addColorStop(0.5, `rgba(98,104,100,${alpha * 0.18})`);
+    gg.addColorStop(1,   'rgba(0,0,0,0)');
+    ctx.fillStyle = gg;
+    ctx.fillRect(sx - gap.w, H * 0.08, gap.w * 2, H * gap.h + H * 0.18);
+  });
+}
+
+
+// =============================================================================
+// SCENE 4 — Reabsorption / Weather Veil / Return Toward Orientation
+// =============================================================================
+
+// ── S4: Vegetation data ─────────────────────────────────────────────────────
+const S4_VEG = [];
+
+(function buildS4Veg() {
+  // Early section: sparse, irregular — residual clearing influence
+  for (let i = 0; i < 60; i++) {
+    const wx = 400 + rand(i * 7 + 1) * 3200;
+    const layer = Math.floor(rand(i * 3 + 2) * 3);
+    const kind = rand(i * 5 + 3);
+    S4_VEG.push({ wx, layer,
+      h: 0.08 + rand(i * 11 + 3) * 0.22 + layer * 0.05,
+      w: 0.016 + rand(i * 17 + 4) * 0.022,
+      kind: kind > 0.6 ? 's4conifer' : (kind > 0.3 ? 'birch' : 'scrub'),
+      windPhase: rand(i * 23) * Math.PI * 2 });
+  }
+  // Mid section: weather zone — trees present but visibility-limited
+  for (let i = 70; i < 190; i++) {
+    const wx = 3000 + rand(i * 7) * 6000;
+    const layer = Math.floor(rand(i * 3) * 4);
+    const kind = rand(i * 5);
+    S4_VEG.push({ wx, layer,
+      h: 0.10 + rand(i * 11) * 0.30 + layer * 0.07,
+      w: 0.015 + rand(i * 17) * 0.025,
+      kind: kind > 0.55 ? 's4conifer' : (kind > 0.30 ? 'birch' : (kind > 0.15 ? 'alder' : 'wet_scrub')),
+      windPhase: rand(i * 23) * Math.PI * 2 });
+  }
+  // Late section: forest returning, denser, layered
+  for (let i = 200; i < 360; i++) {
+    const wx = 8500 + rand(i * 7) * 5000;
+    const layer = Math.floor(rand(i * 3) * 4);
+    const kind = rand(i * 5);
+    S4_VEG.push({ wx, layer,
+      h: 0.12 + rand(i * 11) * 0.36 + layer * 0.08,
+      w: 0.016 + rand(i * 17) * 0.026,
+      kind: kind > 0.50 ? 's4conifer' : (kind > 0.25 ? 'birch' : 'alder'),
+      windPhase: rand(i * 23) * Math.PI * 2 });
+  }
+  // Ground cover throughout
+  for (let i = 370; i < 470; i++) {
+    const wx = 600 + rand(i * 7) * 13000;
+    const layer = Math.floor(rand(i * 3) * 2) + 1;
+    S4_VEG.push({ wx, layer,
+      h: 0.02 + rand(i * 11) * 0.05,
+      w: 0.022 + rand(i * 17) * 0.030,
+      kind: rand(i * 5) > 0.5 ? 'wet_grass' : 'meadow_grass',
+      windPhase: rand(i * 23) * Math.PI * 2 });
+  }
+  // Foreground elements — softer than S3
+  for (let i = 480; i < 520; i++) {
+    const wx = 2000 + rand(i * 7) * 10500;
+    S4_VEG.push({ wx, layer: 4,
+      h: 0.16 + rand(i * 11) * 0.28,
+      w: 0.030 + rand(i * 17) * 0.040,
+      kind: rand(i * 5) > 0.6 ? 'fg_conifer' : 'fg_grass',
+      windPhase: rand(i * 23) * Math.PI * 2 });
+  }
+  S4_VEG.sort((a, b) => a.layer - b.layer);
+})();
+
+// ── S4: Water features ──────────────────────────────────────────────────────
+const S4_WATER = [];
+(function buildS4Water() {
+  for (let i = 0; i < 6; i++) {
+    S4_WATER.push({ type: 'puddle', wx: 2000 + rand(i * 7) * 10000,
+      w: 35 + rand(i * 11) * 70, depth: 0.15 + rand(i * 5) * 0.25 });
+  }
+  S4_WATER.push({ type: 'saturated', wx: 5500, w: 700, depth: 0.25 });
+  S4_WATER.push({ type: 'saturated', wx: 9000, w: 400, depth: 0.18 });
+})();
+
+// ── S4: Fog banks ───────────────────────────────────────────────────────────
+const S4_FOG = [];
+(function buildS4Fog() {
+  for (let i = 0; i < 22; i++) {
+    S4_FOG.push({
+      baseX: rand(i * 13 + 7) * S4_WORLD,
+      y: H * (0.28 + rand(i * 7 + 3) * 0.40),
+      w: W * (0.45 + rand(i * 11) * 0.90),
+      h: H * (0.10 + rand(i * 5 + 1) * 0.25),
+      density: 0.12 + rand(i * 9) * 0.22,
+      speed: 2 + rand(i * 3 + 2) * 8,
+      phase: rand(i * 17) * Math.PI * 2,
+      vertical: rand(i * 23) * 2 - 1
+    });
+  }
+})();
+
+// ── S4: Weather streaks (vertical haze) ─────────────────────────────────────
+const S4_STREAKS = [];
+(function buildS4Streaks() {
+  for (let i = 0; i < 40; i++) {
+    S4_STREAKS.push({
+      wx: rand(i * 13 + 5) * S4_WORLD,
+      width: 20 + rand(i * 7) * 60,
+      density: 0.06 + rand(i * 11) * 0.14,
+      speed: 1 + rand(i * 3) * 4,
+      phase: rand(i * 17) * Math.PI * 2,
+      yOffset: rand(i * 23) * 0.15 - 0.075
+    });
+  }
+})();
+
+// ── S4: Distant treeline ────────────────────────────────────────────────────
+const S4_DISTANT = [];
+(function buildS4Distant() {
+  for (let i = 0; i < 28; i++) {
+    const r = rand(i * 5);
+    S4_DISTANT.push({
+      wx: 700 + i * 460 + (rand(i * 7) - 0.5) * 150,
+      h: 0.05 + rand(i * 11) * 0.09,
+      w: 0.007 + rand(i * 17) * 0.011,
+      kind: r > 0.80 ? 'dead' : (r > 0.30 ? 'conifer' : 'deciduous')
+    });
+  }
+})();
+
+// ── S4: Ground height (local wx) ────────────────────────────────────────────
+function s4GroundY(wx) {
+  const base = H * 0.70;
+  const undulation = Math.sin(wx * 0.0007) * 5
+                   + Math.sin(wx * 0.0020 + 0.8) * 3
+                   + Math.sin(wx * 0.0045 + 1.6) * 2
+                   + Math.sin(wx * 0.00030 + 3.0) * 9;
+  const rise = wx > 9000 ? -Math.pow((wx - 9000) / 5000, 1.5) * 12 : 0;
+  const hummock = Math.sin(wx * 0.015 + 0.4) * 1.6 + Math.sin(wx * 0.026 + 1.0) * 1.0;
+  return base + undulation + rise + hummock;
+}
+
+// ── S4: Sky colors ──────────────────────────────────────────────────────────
+function s4SkyColors() {
+  const weather = window01(0.20, 0.40, 0.65, 0.82, p4);
+  const late = fadeIn(0.70, 0.90, p4);
+  return {
+    topR: lerp(lerp(72, 58, weather), 82, late),
+    topG: lerp(lerp(76, 62, weather), 84, late),
+    topB: lerp(lerp(78, 60, weather), 80, late),
+    botR: lerp(lerp(98, 76, weather), 108, late),
+    botG: lerp(lerp(100, 80, weather), 106, late),
+    botB: lerp(lerp(96, 74, weather), 100, late),
+    horizon: H * 0.69
+  };
+}
+
+// ── S4: Fog density query ───────────────────────────────────────────────────
+function s4FogDensityAt(screenX, screenY, now) {
+  let total = 0;
+  const pwSettle = s4pw * H * 0.08;
+  const pwSurge = 1 + s4pw * 1.1;
+  S4_FOG.forEach(bank => {
+    const drift = now * 0.001 * bank.speed;
+    const fogCenterWx = bank.baseX + drift + Math.sin(now * 0.00014 + bank.phase) * 120;
+    const wrappedWx = ((fogCenterWx % (S4_WORLD * 1.5)) + S4_WORLD * 1.5) % (S4_WORLD * 1.5) - S4_WORLD * 0.25;
+    const fogCenterSx = wrappedWx - s4sx;
+    const vy = bank.y + Math.sin(now * 0.00025 + bank.phase) * bank.vertical * 8 + pwSettle;
+    const expandH = bank.h * (1 + s4pw * 0.4);
+    const dx = (screenX - fogCenterSx) / (bank.w * 0.5);
+    const dy = (screenY - vy) / (expandH * 0.5);
+    const dist = dx * dx + dy * dy;
+    if (dist < 1) total += bank.density * pwSurge * (1 - dist) * (1 - dist);
+  });
+  return Math.min(total, 0.65);
+}
+
+// ── S4: Wind strength ───────────────────────────────────────────────────────
+function s4WindStr(now) {
+  return Math.sin(now * 0.00030) * 0.35 + Math.sin(now * 0.00072) * 0.20 + 0.12;
+}
+
+// ── S4: Perceptual weather ─────────────────────────────────────────────────
+// Time-driven atmospheric modulation independent of scroll position.
+// When high: depth cues collapse, tonal layers flatten, horizon vanishes.
+// When low: full spatial legibility returns.
+// Multiple incommensurate periods prevent rhythmic predictability.
+function s4PerceptualWeather(now) {
+  const a = Math.sin(now * 0.0000523 + 1.7) * 0.5 + 0.5;   // ~120s
+  const b = Math.sin(now * 0.0000884 + 0.3) * 0.5 + 0.5;   // ~71s
+  const c = Math.sin(now * 0.0000312 + 2.9) * 0.5 + 0.5;   // ~201s
+  const d = Math.sin(now * 0.000148  + 0.8) * 0.5 + 0.5;    // ~42s
+  // Weighted blend — more even weighting increases overlap probability
+  const raw = a * 0.30 + b * 0.28 + c * 0.24 + d * 0.18;
+  // Lower threshold: weather events begin sooner, occur more often
+  return smooth(clamp((raw - 0.26) / 0.32, 0, 1));
+}
+
+// ── S4: Distant treeline ────────────────────────────────────────────────────
+function s4DrawDistantTreeline(now) {
+  const baseVis = Math.max(
+    window01(0.04, 0.12, 0.22, 0.35, p4) * 0.4,
+    window01(0.68, 0.78, 0.88, 0.95, p4) * 0.65
+  );
+  // Perceptual weather suppresses horizon — depth vanishes and returns
+  const vis = baseVis * (1 - s4pw * 0.85);
+  if (vis < 0.006) return;
+
+  const off = s4sx * 0.035;
+  S4_DISTANT.forEach(dt => {
+    const sx = dt.wx - off;
+    if (sx < -40 || sx > W + 40) return;
+    const baseY = H * 0.47 + Math.sin((sx + off) * 0.00036) * 10;
+    const th = dt.h * H;
+    const fogA = s4FogDensityAt(sx, baseY, now);
+    const alpha = vis * 0.28 * Math.max(1 - fogA * 3.5, 0.03) * sceneAlpha;
+    if (alpha < 0.01) return;
+    ctx.globalAlpha = alpha;
+
+    if (dt.kind === 'dead') {
+      ctx.strokeStyle = '#4a4842';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.moveTo(sx, baseY); ctx.lineTo(sx + 1, baseY - th); ctx.stroke();
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.moveTo(sx, baseY - th * 0.55);
+      ctx.lineTo(sx + (rand(dt.wx) > 0.5 ? 5 : -5), baseY - th * 0.64);
+      ctx.stroke();
+    } else if (dt.kind === 'conifer') {
+      const tw = dt.w * W * 0.6;
+      ctx.fillStyle = '#343a32';
+      ctx.beginPath();
+      ctx.moveTo(sx, baseY - th); ctx.lineTo(sx - tw * 0.5, baseY - th * 0.30); ctx.lineTo(sx + tw * 0.5, baseY - th * 0.30);
+      ctx.closePath(); ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(sx, baseY - th * 0.62); ctx.lineTo(sx - tw * 0.65, baseY - th * 0.05); ctx.lineTo(sx + tw * 0.65, baseY - th * 0.05);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#2a2e24'; ctx.fillRect(sx - 1, baseY - th * 0.08, 2, th * 0.08);
+    } else {
+      const tw = dt.w * W * 0.45;
+      ctx.fillStyle = '#383e36';
+      ctx.beginPath();
+      ctx.moveTo(sx - tw, baseY - th * 0.32);
+      ctx.quadraticCurveTo(sx - tw * 0.8, baseY - th * 0.90, sx, baseY - th);
+      ctx.quadraticCurveTo(sx + tw * 0.8, baseY - th * 0.90, sx + tw, baseY - th * 0.32);
+      ctx.quadraticCurveTo(sx + tw * 0.5, baseY - th * 0.22, sx, baseY - th * 0.25);
+      ctx.quadraticCurveTo(sx - tw * 0.5, baseY - th * 0.22, sx - tw, baseY - th * 0.32);
+      ctx.fill();
+      ctx.fillStyle = '#2a2e26'; ctx.fillRect(sx - 1, baseY - th * 0.28, 2, th * 0.28);
+    }
+    ctx.globalAlpha = sceneAlpha;
+  });
+
+  ctx.fillStyle = `rgba(58,64,56,${vis * 0.18 * sceneAlpha})`;
+  ctx.beginPath(); ctx.moveTo(0, H);
+  for (let x = -8; x <= W + 8; x += 6) {
+    const wx = x + off;
+    const y = H * 0.51 + Math.sin(wx * 0.00040) * 12 + Math.sin(wx * 0.0012 + 1.5) * 6;
+    ctx.lineTo(x, y);
+  }
+  ctx.lineTo(W, H); ctx.closePath(); ctx.fill();
+}
+
+// ── S4: Fog ─────────────────────────────────────────────────────────────────
+function s4DrawFog(now) {
+  const fogPresence = window01(0.08, 0.18, 0.82, 0.94, p4);
+  if (fogPresence < 0.005) return;
+  const weatherBoost = window01(0.25, 0.40, 0.60, 0.75, p4) * 0.4;
+  // Perceptual weather surges fog density and settles banks lower
+  const pwSurge = 1 + s4pw * 1.1;
+  const pwSettle = s4pw * H * 0.08;
+  S4_FOG.forEach(bank => {
+    const drift = now * 0.001 * bank.speed;
+    const fogCenterWx = bank.baseX + drift + Math.sin(now * 0.00014 + bank.phase) * 120;
+    const wrappedWx = ((fogCenterWx % (S4_WORLD * 1.5)) + S4_WORLD * 1.5) % (S4_WORLD * 1.5) - S4_WORLD * 0.25;
+    const sx = wrappedWx - s4sx;
+    if (sx < -bank.w * 0.6 || sx > W + bank.w * 0.6) return;
+    // Fog settles toward ground during heavy weather
+    const vy = bank.y + Math.sin(now * 0.00025 + bank.phase) * bank.vertical * 8 + pwSettle;
+    const alpha = bank.density * (fogPresence + weatherBoost) * pwSurge * sceneAlpha;
+    // Banks expand vertically during heavy weather, compressing spatial legibility
+    const expandH = bank.h * (1 + s4pw * 0.4);
+    const rg = ctx.createRadialGradient(sx, vy, 0, sx, vy, Math.max(bank.w, expandH) * 0.5);
+    rg.addColorStop(0,    `rgba(108,112,106,${alpha * 0.75})`);
+    rg.addColorStop(0.35, `rgba(98,102,96,${alpha * 0.42})`);
+    rg.addColorStop(0.65, `rgba(88,92,86,${alpha * 0.16})`);
+    rg.addColorStop(1,    'rgba(80,84,78,0)');
+    ctx.fillStyle = rg;
+    ctx.beginPath();
+    ctx.ellipse(sx, vy, bank.w * 0.5, expandH * 0.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+  });
+}
+
+// ── S4: Weather veil (vertical haze streaks) ────────────────────────────────
+function s4DrawWeatherVeil(now) {
+  const weatherStr = window01(0.18, 0.32, 0.62, 0.80, p4);
+  if (weatherStr < 0.005) return;
+  const sa = sceneAlpha;
+  // Perceptual weather intensifies the overall dampening
+  const pwDamp = 1 + s4pw * 0.65;
+
+  const dampGrad = ctx.createLinearGradient(0, 0, 0, H);
+  dampGrad.addColorStop(0,   `rgba(82,86,80,${weatherStr * 0.12 * pwDamp * sa})`);
+  dampGrad.addColorStop(0.3, `rgba(78,82,76,${weatherStr * 0.18 * pwDamp * sa})`);
+  dampGrad.addColorStop(0.6, `rgba(74,78,72,${weatherStr * 0.15 * pwDamp * sa})`);
+  dampGrad.addColorStop(1,   `rgba(70,74,68,${weatherStr * 0.08 * pwDamp * sa})`);
+  ctx.fillStyle = dampGrad;
+  ctx.fillRect(0, 0, W, H);
+
+  // Streaks drift at their own pace independent of scroll —
+  // during heavy weather the mismatch creates uncertainty about what is moving
+  const pwStreakBoost = 1 + s4pw * 0.50;
+  S4_STREAKS.forEach(streak => {
+    const drift = now * 0.001 * streak.speed * pwStreakBoost;
+    const baseWx = streak.wx + drift + Math.sin(now * 0.00012 + streak.phase) * (80 + s4pw * 60);
+    const wrappedWx = ((baseWx % (S4_WORLD * 1.3)) + S4_WORLD * 1.3) % (S4_WORLD * 1.3) - S4_WORLD * 0.15;
+    const sx = wrappedWx - s4sx;
+    if (sx < -streak.width * 2 || sx > W + streak.width * 2) return;
+
+    const alpha = streak.density * weatherStr * pwDamp * sa;
+    const yOff = streak.yOffset * H;
+    // Streaks widen during heavy weather
+    const sw = streak.width * (1 + s4pw * 0.35);
+    const streakGrad = ctx.createLinearGradient(sx - sw * 0.5, 0, sx + sw * 0.5, 0);
+    streakGrad.addColorStop(0,   'rgba(96,100,94,0)');
+    streakGrad.addColorStop(0.3, `rgba(96,100,94,${alpha * 0.6})`);
+    streakGrad.addColorStop(0.5, `rgba(92,96,90,${alpha})`);
+    streakGrad.addColorStop(0.7, `rgba(96,100,94,${alpha * 0.6})`);
+    streakGrad.addColorStop(1,   'rgba(96,100,94,0)');
+    ctx.fillStyle = streakGrad;
+    const topY = H * 0.05 + yOff;
+    const botY = H * 0.85 + yOff;
+    ctx.fillRect(sx - sw * 0.5, topY, sw, botY - topY);
+  });
+
+  // Low fog thickens during heavy weather — obscures terrain shape
+  const lowFog = weatherStr * (0.20 + s4pw * 0.18) * sa;
+  // Low fog band rises higher during heavy weather
+  const lfgTop = H * (0.58 - s4pw * 0.08);
+  const lfg = ctx.createLinearGradient(0, lfgTop, 0, H * 0.82);
+  lfg.addColorStop(0, 'rgba(0,0,0,0)');
+  lfg.addColorStop(0.3, `rgba(88,92,86,${lowFog * 0.6})`);
+  lfg.addColorStop(0.6, `rgba(84,88,82,${lowFog})`);
+  lfg.addColorStop(1, `rgba(82,86,80,${lowFog * 0.65})`);
+  ctx.fillStyle = lfg;
+  ctx.fillRect(0, lfgTop, W, H * 0.82 - lfgTop);
+}
+
+// ── S4: Water features ──────────────────────────────────────────────────────
+function s4DrawWater(now) {
+  const waterVis = fadeIn(0.10, 0.30, p4);
+  if (waterVis < 0.004) return;
+  const sa = sceneAlpha;
+
+  S4_WATER.forEach(wf => {
+    const sx = wf.wx - s4sx;
+
+    if (wf.type === 'puddle') {
+      if (sx < -wf.w || sx > W + wf.w) return;
+      const gy = s4GroundY(wf.wx);
+      const poolH = 3 + wf.depth * 7;
+      const alpha = waterVis * wf.depth * 0.48 * sa;
+      const rg = ctx.createLinearGradient(0, gy - 2, 0, gy + poolH);
+      rg.addColorStop(0,   `rgba(60,68,78,${alpha * 0.35})`);
+      rg.addColorStop(0.4, `rgba(48,58,72,${alpha * 0.60})`);
+      rg.addColorStop(1,   `rgba(52,60,70,${alpha * 0.25})`);
+      ctx.fillStyle = rg;
+      ctx.beginPath(); ctx.ellipse(sx, gy, wf.w / 2, poolH, 0, 0, Math.PI * 2); ctx.fill();
+    }
+
+    else if (wf.type === 'saturated') {
+      if (sx < -wf.w || sx > W + wf.w) return;
+      const satVis = waterVis * wf.depth * 0.38 * sa;
+      if (satVis < 0.01) return;
+      const gy = s4GroundY(wf.wx);
+      const sg = ctx.createRadialGradient(sx, gy, 0, sx, gy, wf.w * 0.5);
+      sg.addColorStop(0,   `rgba(48,56,66,${satVis * 0.32})`);
+      sg.addColorStop(0.5, `rgba(44,52,60,${satVis * 0.18})`);
+      sg.addColorStop(1,   'rgba(40,48,56,0)');
+      ctx.fillStyle = sg;
+      ctx.fillRect(sx - wf.w * 0.5, gy - 4, wf.w, 10);
+    }
+  });
+}
+
+// ── S4: Single vegetation element ───────────────────────────────────────────
+function s4DrawOneVeg(v, now) {
+  const sx = v.wx - s4sx;
+  if (sx < -300 || sx > W + 300) return;
+
+  const gY = s4GroundY(v.wx);
+  const vh = v.h * H, vw = v.w * W;
+  // Tonal convergence: during heavy weather, depth layers compress toward mid-tone
+  // Back layers and front layers become less distinguishable
+  const rawDep = Math.min(v.layer, 3) / 3;
+  const dep = lerp(rawDep, 0.45, s4pw * 0.62);
+  const wet = window01(0.15, 0.40, 0.65, 0.85, p4);
+  const windS = 0.4 + Math.sin(now * 0.00030 + v.windPhase) * 0.28;
+  const windLean = Math.sin(now * 0.0006 + v.windPhase) * windS * 2.0
+                 + Math.sin(now * 0.0015 + v.windPhase * 1.5) * windS * 1.0;
+  // Weather dampens vegetation opacity; perceptual weather intensifies the effect
+  const weatherDamp = 1 - window01(0.25, 0.38, 0.58, 0.72, p4) * (0.25 + s4pw * 0.30);
+
+  if (v.kind === 's4conifer') {
+    const r = lerp(32, 16, dep) | 0, g = lerp(42, 24, dep) | 0, b = lerp(30, 16, dep) | 0;
+    ctx.strokeStyle = `rgb(${(r * 0.40) | 0},${(g * 0.35) | 0},${(b * 0.30) | 0})`;
+    ctx.lineWidth = Math.max(1.5, vw * 0.045);
+    ctx.beginPath(); ctx.moveTo(sx, gY); ctx.lineTo(sx + windLean * 0.06, gY - vh); ctx.stroke();
+    ctx.fillStyle = `rgba(${r},${g},${b},${0.78 * weatherDamp})`;
+    const tipX = sx + windLean * 0.10, tipY = gY - vh;
+    const midY = gY - vh * 0.50;
+    ctx.beginPath();
+    ctx.moveTo(tipX, tipY);
+    ctx.lineTo(tipX - vw * 0.20 + windLean * 0.04, midY);
+    ctx.lineTo(tipX + vw * 0.20 + windLean * 0.04, midY);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = `rgba(${r - 3 | 0},${g - 3 | 0},${b - 2 | 0},${0.74 * weatherDamp})`;
+    ctx.beginPath();
+    ctx.moveTo(tipX, midY + vh * 0.05);
+    ctx.lineTo(sx - vw * 0.28 + windLean * 0.03, gY - vh * 0.10);
+    ctx.lineTo(sx + vw * 0.28 + windLean * 0.03, gY - vh * 0.10);
+    ctx.closePath(); ctx.fill();
+
+  } else if (v.kind === 'birch') {
+    const barkR = lerp(155, 110, dep) | 0;
+    const barkG = lerp(148, 102, dep) | 0;
+    const barkB = lerp(138, 92, dep) | 0;
+    ctx.strokeStyle = `rgba(${barkR},${barkG},${barkB},${0.85 * weatherDamp})`;
+    ctx.lineWidth = Math.max(1.5, vw * 0.04);
+    ctx.beginPath(); ctx.moveTo(sx, gY); ctx.lineTo(sx + windLean * 0.05, gY - vh * 0.62); ctx.stroke();
+    const cr = lerp(48, 26, dep) | 0, cg = lerp(58, 34, dep) | 0, cb = lerp(42, 22, dep) | 0;
+    ctx.fillStyle = `rgba(${cr},${cg},${cb},${0.68 * weatherDamp})`;
+    ctx.beginPath();
+    ctx.ellipse(sx + windLean * 0.10, gY - vh * 0.76, vw * 0.44, vh * 0.26, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+  } else if (v.kind === 'alder') {
+    const r = lerp(36, 16, dep) | 0, g2 = lerp(44, 26, dep) | 0, b2 = lerp(30, 14, dep) | 0;
+    ctx.strokeStyle = `rgb(${(r * 0.46) | 0},${(g2 * 0.38) | 0},${(b2 * 0.34) | 0})`;
+    ctx.lineWidth = Math.max(1.5, vw * 0.055);
+    ctx.beginPath(); ctx.moveTo(sx, gY); ctx.lineTo(sx + windLean * 0.07, gY - vh * 0.52); ctx.stroke();
+    ctx.fillStyle = `rgba(${r},${g2},${b2},${0.72 * weatherDamp})`;
+    ctx.beginPath();
+    ctx.ellipse(sx + windLean * 0.11, gY - vh * 0.68, vw * 0.38, vh * 0.28, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+  } else if (v.kind === 'scrub' || v.kind === 'wet_scrub') {
+    const r = lerp(40, 24, dep) | 0, g2 = lerp(50, 34, dep) | 0, b2 = lerp(34, 20, dep) | 0;
+    ctx.fillStyle = `rgba(${r},${g2},${b2},${0.58 * weatherDamp})`;
+    ctx.beginPath();
+    ctx.ellipse(sx + windLean * 0.08, gY - vh * 0.45, vw * 0.46, vh * 0.46, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+  } else if (v.kind === 'wet_grass' || v.kind === 'meadow_grass') {
+    const isWet = v.kind === 'wet_grass';
+    const r = lerp(isWet ? 52 : 66, isWet ? 36 : 48, wet) | 0;
+    const g2 = lerp(isWet ? 62 : 72, isWet ? 46 : 56, wet) | 0;
+    const b2 = lerp(isWet ? 40 : 54, isWet ? 28 : 38, wet) | 0;
+    ctx.fillStyle = `rgba(${r},${g2},${b2},${(isWet ? 0.42 : 0.46) * weatherDamp})`;
+    for (let bl = 0; bl < 5; bl++) {
+      const bx = sx - vw * 0.4 + bl * vw * 0.2;
+      const lean = (rand(v.wx + bl * 7) - 0.5) * vw * 0.25 + windLean * 0.8;
+      const bladeH = vh * (0.6 + rand(v.wx + bl * 3) * 0.4);
+      ctx.beginPath(); ctx.moveTo(bx, gY);
+      ctx.quadraticCurveTo(bx + lean * 0.4, gY - bladeH * 0.5, bx + lean, gY - bladeH);
+      ctx.quadraticCurveTo(bx + lean * 0.4 + 1.2, gY - bladeH * 0.5, bx + 1.2, gY);
+      ctx.fill();
+    }
+
+  } else if (v.kind === 'fg_conifer') {
+    const fgAlpha = window01(0.10, 0.20, 0.75, 0.88, p4) * 0.55 * weatherDamp * sceneAlpha;
+    if (fgAlpha < 0.02) return;
+    ctx.globalAlpha = fgAlpha;
+    ctx.strokeStyle = 'rgb(14,18,12)';
+    ctx.lineWidth = Math.max(3, vw * 0.10);
+    ctx.beginPath(); ctx.moveTo(sx, gY + 20); ctx.lineTo(sx + windLean * 0.06, gY - vh * 0.55); ctx.stroke();
+    ctx.fillStyle = 'rgba(12,16,10,0.75)';
+    const tipX = sx + windLean * 0.10;
+    ctx.beginPath();
+    ctx.moveTo(tipX, gY - vh);
+    ctx.lineTo(sx - vw * 0.35 + windLean * 0.04, gY - vh * 0.35);
+    ctx.lineTo(sx + vw * 0.35 + windLean * 0.04, gY - vh * 0.35);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = 'rgba(10,14,8,0.70)';
+    ctx.beginPath();
+    ctx.moveTo(tipX, gY - vh * 0.55);
+    ctx.lineTo(sx - vw * 0.45 + windLean * 0.03, gY - vh * 0.08);
+    ctx.lineTo(sx + vw * 0.45 + windLean * 0.03, gY - vh * 0.08);
+    ctx.closePath(); ctx.fill();
+    ctx.globalAlpha = sceneAlpha;
+
+  } else if (v.kind === 'fg_grass') {
+    const fgAlpha = window01(0.10, 0.20, 0.75, 0.88, p4) * 0.50 * weatherDamp * sceneAlpha;
+    if (fgAlpha < 0.02) return;
+    ctx.globalAlpha = fgAlpha;
+    ctx.fillStyle = 'rgba(22,30,18,0.60)';
+    for (let bl = 0; bl < 8; bl++) {
+      const bx = sx - vw * 0.55 + bl * vw * 0.14;
+      const lean = (rand(v.wx + bl * 7) - 0.5) * vw * 0.40 + windLean * 1.5;
+      const bladeH = vh * (0.5 + rand(v.wx + bl * 3) * 0.5);
+      ctx.beginPath(); ctx.moveTo(bx, gY + 30);
+      ctx.quadraticCurveTo(bx + lean * 0.4, gY - bladeH * 0.4, bx + lean, gY - bladeH);
+      ctx.lineTo(bx + lean + 2, gY - bladeH);
+      ctx.quadraticCurveTo(bx + lean * 0.4 + 2, gY - bladeH * 0.4, bx + 2.5, gY + 30);
+      ctx.fill();
+    }
+    ctx.globalAlpha = sceneAlpha;
+  }
+}
+
+// ── S4: Overhead vegetation (returning canopy) ──────────────────────────────
+function s4DrawOverheadVegetation(now) {
+  const overhead = window01(0.30, 0.45, 0.80, 0.92, p4);
+  if (overhead < 0.004) return;
+  const sa = sceneAlpha;
+  const baseAlpha = overhead * 0.42 * sa;
+
+  const tg = ctx.createLinearGradient(0, 0, 0, H * 0.42);
+  tg.addColorStop(0,   `rgba(14,18,12,${baseAlpha * 0.55})`);
+  tg.addColorStop(0.4, `rgba(18,24,16,${baseAlpha * 0.25})`);
+  tg.addColorStop(1,   'rgba(0,0,0,0)');
+  ctx.fillStyle = tg;
+  ctx.fillRect(0, 0, W, H * 0.42);
+
+  ctx.fillStyle = `rgba(12,16,10,${overhead * 0.30 * sa})`;
+  const branchOffset = s4sx * 0.10;
+  const ws = s4WindStr(now);
+  for (let i = 0; i < 7; i++) {
+    const bx = (i * W * 0.20 + rand(i * 7) * W * 0.12 - branchOffset * (0.6 + rand(i * 3) * 0.4)) % (W * 1.4) - W * 0.2;
+    const by = H * (0.02 + rand(i * 11) * 0.10);
+    const bw = W * (0.06 + rand(i * 13) * 0.12);
+    const bh = H * (0.02 + rand(i * 17) * 0.045);
+    ctx.beginPath();
+    ctx.ellipse(bx + ws * 2.5, by, bw, bh, rand(i * 19) * 0.2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+// ── S4: Side enclosure ──────────────────────────────────────────────────────
+function s4DrawSideEnclosure() {
+  const enclosure = window01(0.25, 0.40, 0.78, 0.90, p4);
+  if (enclosure < 0.004) return;
+  const sa = sceneAlpha;
+
+  const leftStr = enclosure * 0.85;
+  const lg = ctx.createLinearGradient(0, 0, W * 0.20, 0);
+  lg.addColorStop(0, `rgba(16,22,14,${leftStr * 0.38 * sa})`);
+  lg.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = lg;
+  ctx.fillRect(0, H * 0.15, W * 0.20, H * 0.68);
+
+  const rightStr = enclosure * 0.70;
+  const rg = ctx.createLinearGradient(W, 0, W * 0.82, 0);
+  rg.addColorStop(0, `rgba(16,22,14,${rightStr * 0.35 * sa})`);
+  rg.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = rg;
+  ctx.fillRect(W * 0.82, H * 0.18, W * 0.18, H * 0.64);
+
+  const bottomStr = window01(0.30, 0.44, 0.72, 0.85, p4);
+  if (bottomStr > 0.01) {
+    const bg = ctx.createLinearGradient(0, H, 0, H * 0.78);
+    bg.addColorStop(0, `rgba(14,18,12,${bottomStr * 0.32 * sa})`);
+    bg.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, H * 0.78, W, H * 0.22);
+  }
+}
+
+// ── S4: Atmosphere ──────────────────────────────────────────────────────────
+function s4DrawAtmosphere() {
+  const sa = sceneAlpha;
+  const haze = window01(0.12, 0.25, 0.72, 0.88, p4);
+  // Mid-height haze intensifies during heavy weather — depth compresses into tonal band
+  const hazeStr = haze * (0.10 + s4pw * 0.12);
+  if (haze > 0.004) {
+    const hg = ctx.createLinearGradient(0, H * 0.26, 0, H * 0.62);
+    hg.addColorStop(0, 'rgba(0,0,0,0)');
+    hg.addColorStop(0.4, `rgba(76,82,74,${hazeStr * sa})`);
+    hg.addColorStop(0.7, `rgba(74,80,72,${hazeStr * 0.7 * sa})`);
+    hg.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = hg;
+    ctx.fillRect(0, H * 0.26, W, H * 0.36);
+  }
+  const groundMoist = fadeIn(0.16, 0.40, p4) * fadeOut(0.68, 0.85, p4);
+  if (groundMoist > 0.004) {
+    const moistStr = groundMoist * (0.11 + s4pw * 0.08);
+    const mg = ctx.createLinearGradient(0, H * 0.62, 0, H * 0.76);
+    mg.addColorStop(0, 'rgba(0,0,0,0)');
+    mg.addColorStop(0.5, `rgba(70,76,68,${moistStr * sa})`);
+    mg.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = mg;
+    ctx.fillRect(0, H * 0.62, W, H * 0.14);
+  }
+}
+
+// ── S4: Sky corridors ───────────────────────────────────────────────────────
+function s4DrawSkyCorridors(now) {
+  // Sky gaps close during heavy weather — canopy gaps become invisible
+  const vis = window01(0.35, 0.48, 0.58, 0.72, p4) * 0.18 * (1 - s4pw * 0.75);
+  if (vis < 0.008) return;
+  const sa = sceneAlpha;
+  const gaps = [{ wx: 4200, w: 60, h: 0.07 },{ wx: 7800, w: 90, h: 0.09 },{ wx: 11400, w: 110, h: 0.12 }];
+  gaps.forEach(gap => {
+    const sx = gap.wx - s4sx;
+    if (sx < -gap.w || sx > W + gap.w) return;
+    const fogAtten = 1 - s4FogDensityAt(sx, H * 0.28, now) * 2.5;
+    const alpha = vis * Math.max(fogAtten, 0.05) * sa;
+    const gg = ctx.createRadialGradient(sx, H * 0.28, 0, sx, H * 0.28, gap.w);
+    gg.addColorStop(0,   `rgba(112,118,114,${alpha * 0.35})`);
+    gg.addColorStop(0.5, `rgba(94,100,96,${alpha * 0.14})`);
+    gg.addColorStop(1,   'rgba(0,0,0,0)');
+    ctx.fillStyle = gg;
+    ctx.fillRect(sx - gap.w, H * 0.10, gap.w * 2, H * gap.h + H * 0.16);
+  });
+}
+
+
+// =============================================================================
+// BLENDED DRAWS — Sky, Ground, Vignette, Dark
+// =============================================================================
+
+function drawBlendedSky() {
+  const s1c = s1SkyColors();
+  const s2c = s2SkyColors();
+  const s3c = s3SkyColors();
+  const s4c = s4SkyColors();
+  // Three-stage blend: S1->S2 via seamT, result->S3 via seamT2, result->S4 via seamT3
+  let topR = lerp(s1c.topR, s2c.topR, seamT);
+  let topG = lerp(s1c.topG, s2c.topG, seamT);
+  let topB = lerp(s1c.topB, s2c.topB, seamT);
+  let botR = lerp(s1c.botR, s2c.botR, seamT);
+  let botG = lerp(s1c.botG, s2c.botG, seamT);
+  let botB = lerp(s1c.botB, s2c.botB, seamT);
+  let horizon = lerp(s1c.horizon, s2c.horizon, seamT);
+  topR = lerp(topR, s3c.topR, seamT2);
+  topG = lerp(topG, s3c.topG, seamT2);
+  topB = lerp(topB, s3c.topB, seamT2);
+  botR = lerp(botR, s3c.botR, seamT2);
+  botG = lerp(botG, s3c.botG, seamT2);
+  botB = lerp(botB, s3c.botB, seamT2);
+  horizon = lerp(horizon, s3c.horizon, seamT2);
+  topR = lerp(topR, s4c.topR, seamT3) | 0;
+  topG = lerp(topG, s4c.topG, seamT3) | 0;
+  topB = lerp(topB, s4c.topB, seamT3) | 0;
+  botR = lerp(botR, s4c.botR, seamT3) | 0;
+  botG = lerp(botG, s4c.botG, seamT3) | 0;
+  botB = lerp(botB, s4c.botB, seamT3) | 0;
+  horizon = lerp(horizon, s4c.horizon, seamT3);
+  const g = ctx.createLinearGradient(0, 0, 0, horizon);
+  g.addColorStop(0, `rgb(${topR},${topG},${topB})`);
+  g.addColorStop(1, `rgb(${botR},${botG},${botB})`);
+  ctx.fillStyle = g;
   ctx.fillRect(0, 0, W, H);
 }
 
-// ── Draw: fade to/from dark ────────────────────────────────────────────────────
-function drawDark(p) {
-  const open  = fadeOut(0, 0.06, p);
-  const close = fadeIn(0.92, 1.0, p);
-  const d = Math.max(open, close);
+function drawBlendedGround() {
+  // Color blending
+  const s1rf = window01(0.38, 0.52, 0.64, 0.80, p1);
+  const s1tR = lerp(38,96,s1rf), s1tG = lerp(43,100,s1rf), s1tB = lerp(32,92,s1rf);
+  const s1bR = lerp(16,52,s1rf), s1bG = lerp(19,56,s1rf), s1bB = lerp(12,48,s1rf);
+
+  const s2wet = fadeIn(0.22, 0.60, p2);
+  const s2reopen = fadeIn(0.76, 0.90, p2);
+  const wetness = Math.max(0, s2wet - s2reopen * 0.3);
+  const s2tR = lerp(82,50,wetness), s2tG = lerp(80,56,wetness), s2tB = lerp(68,44,wetness);
+  const s2bR = lerp(44,28,wetness), s2bG = lerp(42,32,wetness), s2bB = lerp(34,24,wetness);
+
+  const s3wet2 = fadeIn(0.15, 0.50, p3);
+  const s3reopen2 = fadeIn(0.65, 0.85, p3);
+  const s3wetness = Math.max(0, s3wet2 - s3reopen2 * 0.4);
+  const s3tR = lerp(74,42,s3wetness), s3tG = lerp(72,48,s3wetness), s3tB = lerp(60,36,s3wetness);
+  const s3bR = lerp(38,22,s3wetness), s3bG = lerp(36,26,s3wetness), s3bB = lerp(28,18,s3wetness);
+
+  const s4wet3 = window01(0.15, 0.40, 0.65, 0.85, p4);
+  const s4tR = lerp(70,46,s4wet3), s4tG = lerp(68,50,s4wet3), s4tB = lerp(58,38,s4wet3);
+  const s4bR = lerp(36,22,s4wet3), s4bG = lerp(34,26,s4wet3), s4bB = lerp(28,18,s4wet3);
+
+  // Three-stage color blend
+  let tR = lerp(s1tR, s2tR, seamT);
+  let tG = lerp(s1tG, s2tG, seamT);
+  let tB = lerp(s1tB, s2tB, seamT);
+  let bR = lerp(s1bR, s2bR, seamT);
+  let bG = lerp(s1bG, s2bG, seamT);
+  let bB = lerp(s1bB, s2bB, seamT);
+  tR = lerp(tR, s3tR, seamT2);
+  tG = lerp(tG, s3tG, seamT2);
+  tB = lerp(tB, s3tB, seamT2);
+  bR = lerp(bR, s3bR, seamT2);
+  bG = lerp(bG, s3bG, seamT2);
+  bB = lerp(bB, s3bB, seamT2);
+  tR = lerp(tR, s4tR, seamT3) | 0;
+  tG = lerp(tG, s4tG, seamT3) | 0;
+  tB = lerp(tB, s4tB, seamT3) | 0;
+  bR = lerp(bR, s4bR, seamT3) | 0;
+  bG = lerp(bG, s4bG, seamT3) | 0;
+  bB = lerp(bB, s4bB, seamT3) | 0;
+
+  // Height blending (four-way)
+  ctx.beginPath();
+  ctx.moveTo(0, H);
+  for (let x = 0; x <= W; x += 3) {
+    const globalWx = x + scrollX;
+    const s2LocalWx = globalWx - S2_OFFSET;
+    const s3LocalWx = globalWx - S3_OFFSET;
+    const s4LocalWx = globalWx - S4_OFFSET;
+    let y = lerp(s1GroundY(globalWx), s2GroundY(s2LocalWx), seamT);
+    y = lerp(y, s3GroundY(s3LocalWx), seamT2);
+    y = lerp(y, s4GroundY(s4LocalWx), seamT3);
+    ctx.lineTo(x, y);
+  }
+  ctx.lineTo(W, H);
+  ctx.closePath();
+
+  const midGlobalWx = scrollX + W / 2;
+  const s2MidLocal = midGlobalWx - S2_OFFSET;
+  const s3MidLocal = midGlobalWx - S3_OFFSET;
+  const s4MidLocal = midGlobalWx - S4_OFFSET;
+  let midGY = lerp(s1GroundY(midGlobalWx), s2GroundY(s2MidLocal), seamT);
+  midGY = lerp(midGY, s3GroundY(s3MidLocal), seamT2);
+  midGY = lerp(midGY, s4GroundY(s4MidLocal), seamT3);
+  const g = ctx.createLinearGradient(0, midGY, 0, H);
+  g.addColorStop(0, `rgb(${tR},${tG},${tB})`);
+  g.addColorStop(1, `rgb(${bR},${bG},${bB})`);
+  ctx.fillStyle = g;
+  ctx.fill();
+
+  // Scene 2 wet sheen (when scene 2 is active)
+  const s2Alpha = seamT * (1 - seamT2);
+  if (s2Alpha > 0.1) {
+    const sheenVis = fadeIn(0.35, 0.60, p2) * fadeOut(0.78, 0.90, p2) * s2Alpha;
+    if (sheenVis > 0.008) {
+      const sg = ctx.createLinearGradient(0, H * 0.70, 0, H * 0.79);
+      sg.addColorStop(0, `rgba(56,62,70,${sheenVis * 0.06})`);
+      sg.addColorStop(0.5, `rgba(50,56,64,${sheenVis * 0.08})`);
+      sg.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = sg;
+      ctx.fillRect(0, H * 0.70, W, H * 0.09);
+    }
+  }
+
+  // Scene 3 wet sheen
+  if (seamT2 > 0.1 && seamT3 < 0.9) {
+    const s3sheen = fadeIn(0.22, 0.50, p3) * fadeOut(0.72, 0.88, p3) * seamT2 * (1 - seamT3);
+    if (s3sheen > 0.008) {
+      const sg3 = ctx.createLinearGradient(0, H * 0.68, 0, H * 0.78);
+      sg3.addColorStop(0, `rgba(50,56,62,${s3sheen * 0.07})`);
+      sg3.addColorStop(0.5, `rgba(44,50,56,${s3sheen * 0.10})`);
+      sg3.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = sg3;
+      ctx.fillRect(0, H * 0.68, W, H * 0.10);
+    }
+  }
+
+  // Scene 4 wet sheen
+  if (seamT3 > 0.1) {
+    const s4sheen = window01(0.18, 0.38, 0.65, 0.82, p4) * seamT3;
+    if (s4sheen > 0.008) {
+      const sg4 = ctx.createLinearGradient(0, H * 0.66, 0, H * 0.76);
+      sg4.addColorStop(0, `rgba(48,54,58,${s4sheen * 0.06})`);
+      sg4.addColorStop(0.5, `rgba(42,48,52,${s4sheen * 0.08})`);
+      sg4.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = sg4;
+      ctx.fillRect(0, H * 0.66, W, H * 0.10);
+    }
+  }
+}
+
+function drawBlendedVignette() {
+  const s2Alpha = seamT * (1 - seamT2);
+  const s3Alpha = seamT2 * (1 - seamT3);
+  const s4Alpha = seamT3;
+
+  if (seamT < 1) {
+    const vg = ctx.createRadialGradient(W/2, H/2, H*0.16, W/2, H/2, H*0.90);
+    vg.addColorStop(0, 'rgba(0,0,0,0)');
+    vg.addColorStop(1, `rgba(0,0,0,${0.50 * (1 - seamT)})`);
+    ctx.fillStyle = vg;
+    ctx.fillRect(0, 0, W, H);
+  }
+  if (s2Alpha > 0.01) {
+    const close = window01(0.25, 0.40, 0.68, 0.82, p2);
+    const radius = lerp(0.88, 0.52, close);
+    const strength = lerp(0.40, 0.62, close);
+    const vg = ctx.createRadialGradient(W/2, H/2, H*0.14, W/2, H/2, H*radius);
+    vg.addColorStop(0, 'rgba(0,0,0,0)');
+    vg.addColorStop(1, `rgba(0,0,0,${strength * s2Alpha})`);
+    ctx.fillStyle = vg;
+    ctx.fillRect(0, 0, W, H);
+  }
+  if (s3Alpha > 0.01) {
+    const close3 = window01(0.15, 0.28, 0.62, 0.78, p3);
+    const radius3 = lerp(0.82, 0.46, close3);
+    const strength3 = lerp(0.42, 0.68, close3);
+    const vg3 = ctx.createRadialGradient(W/2, H/2, H*0.12, W/2, H/2, H*radius3);
+    vg3.addColorStop(0, 'rgba(0,0,0,0)');
+    vg3.addColorStop(1, `rgba(0,0,0,${strength3 * s3Alpha})`);
+    ctx.fillStyle = vg3;
+    ctx.fillRect(0, 0, W, H);
+  }
+  if (s4Alpha > 0.01) {
+    const weather4 = window01(0.22, 0.35, 0.62, 0.78, p4);
+    const radius4 = lerp(0.86, 0.55, weather4);
+    const strength4 = lerp(0.38, 0.55, weather4);
+    const vg4 = ctx.createRadialGradient(W/2, H/2, H*0.14, W/2, H/2, H*radius4);
+    vg4.addColorStop(0, 'rgba(0,0,0,0)');
+    vg4.addColorStop(1, `rgba(0,0,0,${strength4 * s4Alpha})`);
+    ctx.fillStyle = vg4;
+    ctx.fillRect(0, 0, W, H);
+  }
+}
+
+let loopCooldown = 0;
+
+function drawDark() {
+  let d = 0;
+  // Scene 1 opening: fade from black
+  if (p1 < 0.10) d = Math.max(d, fadeOut(0, 0.06, p1));
+  // Scene 4 closing: fade to black (end of traversal, triggers loop)
+  if (p4 > 0.85) d = Math.max(d, fadeIn(0.90, 0.98, p4));
   if (d < 0.003) return;
   ctx.fillStyle = `rgba(0,0,0,${d})`;
   ctx.fillRect(0, 0, W, H);
+
+  // Loop-back: when fully black at end of S4, reset to beginning
+  if (d > 0.97 && p4 > 0.95 && performance.now() > loopCooldown) {
+    scrollX = 0;
+    targetX = 0;
+    loopCooldown = performance.now() + 2000;
+    // Reset all fragment triggers
+    S1_FRAGS.forEach(f => f.done = false);
+    S2_FRAGS.forEach(f => f.done = false);
+    S3_FRAGS.forEach(f => f.done = false);
+    S4_FRAGS.forEach(f => f.done = false);
+    fragPhase = 'idle';
+  }
 }
 
-// ── Audio ─────────────────────────────────────────────────────────────────────
-let ac, forestG, windG, audioLive = false;
+
+// =============================================================================
+// TEXT FRAGMENTS
+// =============================================================================
+
+const S1_FRAGS = [
+  { at: 0.29, text: 'lower orchard still producing', done: false },
+  { at: 0.51, text: 'wind stronger above the ridge', done: false },
+  { at: 0.84, text: 'boundary stones continued north', done: false },
+];
+
+const S2_FRAGS = [
+  { at: 0.22, text: 'water audible before visible', done: false },
+  { at: 0.52, text: 'footing narrowed near the drainage cut', done: false },
+  { at: 0.72, text: 'insects thickest over standing water', done: false },
+];
+
+const S3_FRAGS = [
+  { at: 0.22, text: 'fresh cuts beside older stumps', done: false },
+  { at: 0.36, text: 'removal line continued west', done: false },
+  { at: 0.68, text: 'grade flattened near the opening', done: false },
+];
+
+const S4_FRAGS = [
+  { at: 0.24, text: 'visibility dropped along the low ground', done: false },
+  { at: 0.52, text: 'fog held after rainfall', done: false },
+  { at: 0.68, text: 'ridge visible again for a moment', done: false },
+];
+
+let fragPhase = 'idle', fragStart = 0, fragScene = 1;
+
+function triggerFrag(text, scene) {
+  fragEl.textContent = text;
+  fragPhase = 'in';
+  fragStart = performance.now();
+  fragScene = scene;
+}
+
+function tickFrag(now) {
+  if (fragPhase === 'idle') return;
+  const el = now - fragStart;
+  const col = fragScene === 1 ? 'rgba(212,200,178,' : (fragScene === 2 ? 'rgba(200,198,186,' : (fragScene === 3 ? 'rgba(196,192,180,' : 'rgba(194,196,188,'));
+  // S4 fragments partially obscured by perceptual weather — text encountered through conditions
+  const baseMaxA = fragScene === 1 ? 0.82 : (fragScene === 2 ? 0.72 : (fragScene === 3 ? 0.68 : 0.64));
+  const maxA = fragScene === 4 ? baseMaxA * (1 - s4pw * 0.40) : baseMaxA;
+  const fadeInT = fragScene === 1 ? 1500 : (fragScene === 2 ? 2000 : (fragScene === 3 ? 2200 : 2800));
+  const holdT = fragScene === 1 ? 3000 : (fragScene === 2 ? 3800 : (fragScene === 3 ? 4000 : 4500));
+  const fadeOutT = fragScene === 1 ? 1800 : (fragScene === 2 ? 2400 : (fragScene === 3 ? 2600 : 3000));
+
+  if (fragPhase === 'in') {
+    const a = Math.min(el / fadeInT, 1);
+    fragEl.style.color = `${col}${smooth(a) * maxA})`;
+    if (a >= 1) { fragPhase = 'hold'; fragStart = now; }
+  } else if (fragPhase === 'hold') {
+    if (el > holdT) { fragPhase = 'out'; fragStart = now; }
+  } else {
+    const a = Math.max(1 - el / fadeOutT, 0);
+    fragEl.style.color = `${col}${smooth(a) * maxA})`;
+    if (a <= 0) fragPhase = 'idle';
+  }
+}
+
+function checkFrags() {
+  S1_FRAGS.forEach(f => {
+    if (!f.done && p1 >= f.at && p1 < f.at + 0.14 && seamT < 0.7) {
+      f.done = true;
+      triggerFrag(f.text, 1);
+    }
+  });
+  S2_FRAGS.forEach(f => {
+    if (!f.done && p2 >= f.at && p2 < f.at + 0.10 && seamT > 0.3 && seamT2 < 0.7) {
+      f.done = true;
+      triggerFrag(f.text, 2);
+    }
+  });
+  S3_FRAGS.forEach(f => {
+    if (!f.done && p3 >= f.at && p3 < f.at + 0.10 && seamT2 > 0.3 && seamT3 < 0.7) {
+      f.done = true;
+      triggerFrag(f.text, 3);
+    }
+  });
+  S4_FRAGS.forEach(f => {
+    if (!f.done && p4 >= f.at && p4 < f.at + 0.10 && seamT3 > 0.3) {
+      f.done = true;
+      triggerFrag(f.text, 4);
+    }
+  });
+}
+
+
+// =============================================================================
+// AUDIO — One AudioContext, all channels
+// =============================================================================
+
+let ac, s1ForestG, s1WindG, s2WindG, s2WaterG, s2InsectG, s2BirdG, s2DripG;
+let s3ForestG, s3WaterG, s3DripG, s3ResonanceG;
+let s4WindG, s4DripG, s4RainHissG, s4ForestG;
+let audioLive = false, nextBirdTime = 0, nextDripTime = 0, nextS3DripTime = 0, nextS4DripTime = 0;
 
 function bootAudio() {
   if (audioLive) return;
@@ -458,15 +2997,13 @@ function bootAudio() {
   try {
     ac = new (window.AudioContext || window.webkitAudioContext)();
     const master = ac.createGain();
-    master.gain.value = 0.22;
+    master.gain.value = 0.20;
     master.connect(ac.destination);
 
-    // Noise buffer
-    const sr  = ac.sampleRate;
-    const len = sr * 8;
+    const sr = ac.sampleRate, len = sr * 8;
     const buf = ac.createBuffer(1, len, sr);
-    const d   = buf.getChannelData(0);
-    let prev  = 0;
+    const d = buf.getChannelData(0);
+    let prev = 0;
     for (let i = 0; i < len; i++) {
       const w = Math.random() * 2 - 1;
       d[i] = (prev + 0.04 * w) / 1.04;
@@ -474,47 +3011,291 @@ function bootAudio() {
       d[i] *= 3.2;
     }
     const noise = ac.createBufferSource();
-    noise.buffer = buf;
-    noise.loop   = true;
+    noise.buffer = buf; noise.loop = true;
 
-    // Forest channel: low-pass rumble
-    forestG = ac.createGain(); forestG.gain.value = 0;
-    const ff = ac.createBiquadFilter();
-    ff.type = 'lowpass'; ff.frequency.value = 260; ff.Q.value = 1.4;
-    noise.connect(ff); ff.connect(forestG); forestG.connect(master);
+    // S1: Forest rumble
+    s1ForestG = ac.createGain(); s1ForestG.gain.value = 0;
+    const ff = ac.createBiquadFilter(); ff.type = 'lowpass'; ff.frequency.value = 260; ff.Q.value = 1.4;
+    noise.connect(ff); ff.connect(s1ForestG); s1ForestG.connect(master);
 
-    // Wind channel: bandpass
-    windG = ac.createGain(); windG.gain.value = 0;
-    const wf = ac.createBiquadFilter();
-    wf.type = 'bandpass'; wf.frequency.value = 680; wf.Q.value = 0.45;
-    noise.connect(wf); wf.connect(windG); windG.connect(master);
+    // S1: Wind
+    s1WindG = ac.createGain(); s1WindG.gain.value = 0;
+    const s1wf = ac.createBiquadFilter(); s1wf.type = 'bandpass'; s1wf.frequency.value = 680; s1wf.Q.value = 0.45;
+    noise.connect(s1wf); s1wf.connect(s1WindG); s1WindG.connect(master);
 
-    // Sub drone (very low, always present but quiet)
-    const sub = ac.createOscillator();
-    sub.type = 'sine'; sub.frequency.value = 44;
-    const subG = ac.createGain(); subG.gain.value = 0.030;
-    sub.connect(subG); subG.connect(master);
-    sub.start();
+    // S2: Wind (reduced, distant)
+    s2WindG = ac.createGain(); s2WindG.gain.value = 0;
+    const s2wf = ac.createBiquadFilter(); s2wf.type = 'bandpass'; s2wf.frequency.value = 420; s2wf.Q.value = 0.30;
+    noise.connect(s2wf); s2wf.connect(s2WindG); s2WindG.connect(master);
+
+    // S2: Water
+    s2WaterG = ac.createGain(); s2WaterG.gain.value = 0;
+    const watf = ac.createBiquadFilter(); watf.type = 'lowpass'; watf.frequency.value = 280; watf.Q.value = 1.4;
+    const watf2 = ac.createBiquadFilter(); watf2.type = 'bandpass'; watf2.frequency.value = 180; watf2.Q.value = 0.8;
+    noise.connect(watf); watf.connect(watf2); watf2.connect(s2WaterG); s2WaterG.connect(master);
+
+    // S2: Insects
+    s2InsectG = ac.createGain(); s2InsectG.gain.value = 0;
+    const insF = ac.createBiquadFilter(); insF.type = 'highpass'; insF.frequency.value = 4200; insF.Q.value = 3.0;
+    const insF2 = ac.createBiquadFilter(); insF2.type = 'bandpass'; insF2.frequency.value = 4800; insF2.Q.value = 5.0;
+    noise.connect(insF); insF.connect(insF2); insF2.connect(s2InsectG); s2InsectG.connect(master);
+
+    // S2: Bird calls
+    s2BirdG = ac.createGain(); s2BirdG.gain.value = 0;
+    s2BirdG.connect(master);
+
+    // S2: Drips
+    s2DripG = ac.createGain(); s2DripG.gain.value = 0;
+    s2DripG.connect(master);
+
+    // S3: Dense woodland low rumble
+    s3ForestG = ac.createGain(); s3ForestG.gain.value = 0;
+    const s3ff = ac.createBiquadFilter(); s3ff.type = 'lowpass'; s3ff.frequency.value = 220; s3ff.Q.value = 1.6;
+    noise.connect(s3ff); s3ff.connect(s3ForestG); s3ForestG.connect(master);
+
+    // S3: Water (heavier, closer)
+    s3WaterG = ac.createGain(); s3WaterG.gain.value = 0;
+    const s3wf1 = ac.createBiquadFilter(); s3wf1.type = 'lowpass'; s3wf1.frequency.value = 240; s3wf1.Q.value = 1.6;
+    const s3wf2 = ac.createBiquadFilter(); s3wf2.type = 'bandpass'; s3wf2.frequency.value = 160; s3wf2.Q.value = 1.0;
+    noise.connect(s3wf1); s3wf1.connect(s3wf2); s3wf2.connect(s3WaterG); s3WaterG.connect(master);
+
+    // S3: Drips (heavier, more frequent)
+    s3DripG = ac.createGain(); s3DripG.gain.value = 0;
+    s3DripG.connect(master);
+
+    // S3: Clearing wind (higher, more open air movement through gap)
+    s3ResonanceG = ac.createGain(); s3ResonanceG.gain.value = 0;
+    const resF = ac.createBiquadFilter(); resF.type = 'bandpass'; resF.frequency.value = 320; resF.Q.value = 1.5;
+    noise.connect(resF); resF.connect(s3ResonanceG); s3ResonanceG.connect(master);
+
+    // S4: Soft dampened wind
+    s4WindG = ac.createGain(); s4WindG.gain.value = 0;
+    const s4wf = ac.createBiquadFilter(); s4wf.type = 'bandpass'; s4wf.frequency.value = 350; s4wf.Q.value = 0.25;
+    noise.connect(s4wf); s4wf.connect(s4WindG); s4WindG.connect(master);
+
+    // S4: Forest low rumble (returning)
+    s4ForestG = ac.createGain(); s4ForestG.gain.value = 0;
+    const s4ff = ac.createBiquadFilter(); s4ff.type = 'lowpass'; s4ff.frequency.value = 200; s4ff.Q.value = 1.4;
+    noise.connect(s4ff); s4ff.connect(s4ForestG); s4ForestG.connect(master);
+
+    // S4: Rain hiss (very quiet high-frequency)
+    s4RainHissG = ac.createGain(); s4RainHissG.gain.value = 0;
+    const s4rf = ac.createBiquadFilter(); s4rf.type = 'highpass'; s4rf.frequency.value = 3200; s4rf.Q.value = 0.6;
+    const s4rf2 = ac.createBiquadFilter(); s4rf2.type = 'lowpass'; s4rf2.frequency.value = 6000; s4rf2.Q.value = 0.8;
+    noise.connect(s4rf); s4rf.connect(s4rf2); s4rf2.connect(s4RainHissG); s4RainHissG.connect(master);
+
+    // S4: Drips (lighter, more sporadic)
+    s4DripG = ac.createGain(); s4DripG.gain.value = 0;
+    s4DripG.connect(master);
+
+    // Shared sub drone
+    const sub = ac.createOscillator(); sub.type = 'sine'; sub.frequency.value = 40;
+    const subG = ac.createGain(); subG.gain.value = 0.025;
+    sub.connect(subG); subG.connect(master); sub.start();
 
     noise.start();
   } catch(e) {}
 }
 
-function tickAudio(p) {
-  if (!ac || !forestG || !windG) return;
-  const fa = window01(0.06, 0.14, 0.30, 0.44, p);
-  const fd = window01(0.66, 0.72, 0.82, 0.92, p);
-  const forest = Math.max(fa, fd) * 0.52;
-  const wind   = window01(0.44, 0.55, 0.64, 0.78, p) * 0.38;
+function triggerBirdCall() {
+  if (!ac || !s2BirdG) return;
   const t = ac.currentTime;
-  forestG.gain.setTargetAtTime(forest, t, 1.2);
-  windG.gain.setTargetAtTime(wind,   t, 1.2);
+  const osc = ac.createOscillator();
+  const env = ac.createGain();
+  if (Math.random() > 0.5) {
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(2600 + Math.random() * 1000, t);
+    osc.frequency.exponentialRampToValueAtTime(2000 + Math.random() * 600, t + 0.10);
+    env.gain.setValueAtTime(0, t);
+    env.gain.linearRampToValueAtTime(0.05 + Math.random() * 0.03, t + 0.018);
+    env.gain.exponentialRampToValueAtTime(0.001, t + 0.10 + Math.random() * 0.06);
+  } else {
+    osc.type = 'sine';
+    const f1 = 3000 + Math.random() * 600;
+    osc.frequency.setValueAtTime(f1, t);
+    osc.frequency.setValueAtTime(f1 - 300 - Math.random() * 250, t + 0.08);
+    env.gain.setValueAtTime(0, t);
+    env.gain.linearRampToValueAtTime(0.04, t + 0.012);
+    env.gain.setValueAtTime(0.008, t + 0.06);
+    env.gain.linearRampToValueAtTime(0.035, t + 0.09);
+    env.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
+  }
+  osc.connect(env); env.connect(s2BirdG);
+  osc.start(t); osc.stop(t + 0.22);
 }
 
-// ── Input ────────────────────────────────────────────────────────────────────
+function triggerDrip() {
+  if (!ac || !s2DripG) return;
+  const t = ac.currentTime;
+  const osc = ac.createOscillator();
+  const env = ac.createGain();
+  osc.type = 'sine';
+  const freq = 800 + Math.random() * 1200;
+  osc.frequency.setValueAtTime(freq, t);
+  osc.frequency.exponentialRampToValueAtTime(freq * 0.6, t + 0.04);
+  env.gain.setValueAtTime(0, t);
+  env.gain.linearRampToValueAtTime(0.06 + Math.random() * 0.04, t + 0.003);
+  env.gain.exponentialRampToValueAtTime(0.001, t + 0.04 + Math.random() * 0.03);
+  osc.connect(env); env.connect(s2DripG);
+  osc.start(t); osc.stop(t + 0.10);
+}
+
+function triggerS3Drip() {
+  if (!ac || !s3DripG) return;
+  const t = ac.currentTime;
+  const osc = ac.createOscillator();
+  const env = ac.createGain();
+  osc.type = 'sine';
+  // Heavier, lower drips - closer proximity
+  const freq = 600 + Math.random() * 900;
+  osc.frequency.setValueAtTime(freq, t);
+  osc.frequency.exponentialRampToValueAtTime(freq * 0.5, t + 0.05);
+  env.gain.setValueAtTime(0, t);
+  env.gain.linearRampToValueAtTime(0.08 + Math.random() * 0.05, t + 0.004);
+  env.gain.exponentialRampToValueAtTime(0.001, t + 0.05 + Math.random() * 0.04);
+  osc.connect(env); env.connect(s3DripG);
+  osc.start(t); osc.stop(t + 0.12);
+}
+
+function triggerS4Drip() {
+  if (!ac || !s4DripG) return;
+  const t = ac.currentTime;
+  const osc = ac.createOscillator();
+  const env = ac.createGain();
+  osc.type = 'sine';
+  const freq = 900 + Math.random() * 1100;
+  osc.frequency.setValueAtTime(freq, t);
+  osc.frequency.exponentialRampToValueAtTime(freq * 0.55, t + 0.035);
+  env.gain.setValueAtTime(0, t);
+  env.gain.linearRampToValueAtTime(0.05 + Math.random() * 0.03, t + 0.003);
+  env.gain.exponentialRampToValueAtTime(0.001, t + 0.035 + Math.random() * 0.025);
+  osc.connect(env); env.connect(s4DripG);
+  osc.start(t); osc.stop(t + 0.08);
+}
+
+function tickAudio(now) {
+  if (!ac) return;
+  const t = ac.currentTime;
+  const s1a = 1 - seamT;
+  const s2a = seamT * (1 - seamT2);
+  const s3a = seamT2 * (1 - seamT3);
+  const s4a = seamT3;
+
+  if (s1ForestG) {
+    const fa = window01(0.06, 0.14, 0.30, 0.44, p1);
+    const fd = window01(0.66, 0.72, 0.82, 0.92, p1);
+    s1ForestG.gain.setTargetAtTime(Math.max(fa, fd) * 0.52 * s1a, t, 1.2);
+  }
+  if (s1WindG) {
+    s1WindG.gain.setTargetAtTime(window01(0.44, 0.55, 0.64, 0.78, p1) * 0.38 * s1a, t, 1.2);
+  }
+  if (s2WindG) {
+    const wind = (fadeOut(0.25, 0.55, p2) * fadeIn(0.04, 0.12, p2)
+                + window01(0.78, 0.84, 0.90, 0.96, p2) * 0.5) * 0.30 * s2a;
+    s2WindG.gain.setTargetAtTime(wind, t, 1.2);
+  }
+  if (s2WaterG) {
+    const waterBase = fadeIn(0.18, 0.40, p2) * fadeOut(0.82, 0.94, p2) * 0.32;
+    const channelBoost = window01(0.42, 0.48, 0.56, 0.62, p2) * 0.18;
+    s2WaterG.gain.setTargetAtTime((waterBase + channelBoost) * s2a, t, 0.8);
+  }
+  if (s2InsectG) {
+    const insect = window01(0.28, 0.42, 0.68, 0.80, p2) * 0.08;
+    const mod = 0.7 + Math.sin(now * 0.0006) * 0.3;
+    s2InsectG.gain.setTargetAtTime(insect * mod * s2a, t, 1.5);
+  }
+  if (s2BirdG) {
+    const birdPresence = window01(0.10, 0.20, 0.75, 0.88, p2) * 0.45 * s2a;
+    s2BirdG.gain.setTargetAtTime(birdPresence, t, 0.8);
+    if (now > nextBirdTime && birdPresence > 0.04) {
+      triggerBirdCall();
+      nextBirdTime = now + 5000 + Math.random() * 16000;
+    }
+  }
+  if (s2DripG) {
+    const dripPresence = window01(0.35, 0.45, 0.65, 0.75, p2) * 0.50 * s2a;
+    s2DripG.gain.setTargetAtTime(dripPresence, t, 0.6);
+    if (now > nextDripTime && dripPresence > 0.05) {
+      triggerDrip();
+      nextDripTime = now + 1500 + Math.random() * 6000;
+    }
+  }
+
+  // ── Scene 3 audio ──
+  if (s3ForestG) {
+    const fa3 = window01(0.08, 0.18, 0.65, 0.82, p3);
+    s3ForestG.gain.setTargetAtTime(fa3 * 0.58 * s3a, t, 1.4);
+  }
+  if (s3WaterG) {
+    const w3Base = fadeIn(0.14, 0.35, p3) * fadeOut(0.70, 0.88, p3) * 0.38;
+    s3WaterG.gain.setTargetAtTime(w3Base * s3a, t, 0.8);
+  }
+  if (s3DripG) {
+    const drip3 = window01(0.18, 0.30, 0.60, 0.75, p3) * 0.55 * s3a;
+    s3DripG.gain.setTargetAtTime(drip3, t, 0.6);
+    if (now > nextS3DripTime && drip3 > 0.04) {
+      triggerS3Drip();
+      nextS3DripTime = now + 800 + Math.random() * 3500;
+    }
+  }
+  if (s3ResonanceG) {
+    // Clearing wind: air moving through the gap in canopy
+    const res = window01(0.20, 0.28, 0.48, 0.58, p3) * 0.10 * s3a;
+    s3ResonanceG.gain.setTargetAtTime(res, t, 0.5);
+  }
+
+  // ── Scene 4 audio ──
+  if (s4WindG) {
+    // Soft dampened wind: peaks during weather veil, gentler than S2/S3
+    const w4 = window01(0.12, 0.25, 0.72, 0.88, p4) * 0.28 * s4a;
+    s4WindG.gain.setTargetAtTime(w4, t, 1.5);
+  }
+  if (s4ForestG) {
+    // Returning forest: absent early, builds in late section
+    const f4 = fadeIn(0.55, 0.75, p4) * 0.42 * s4a;
+    s4ForestG.gain.setTargetAtTime(f4, t, 1.8);
+  }
+  if (s4RainHissG) {
+    // Rain-on-foliage hiss: weather veil zone, quieter than real rain
+    const rh = window01(0.22, 0.35, 0.62, 0.78, p4) * 0.18 * s4a;
+    s4RainHissG.gain.setTargetAtTime(rh, t, 1.0);
+  }
+  if (s4DripG) {
+    const drip4 = window01(0.28, 0.40, 0.70, 0.85, p4) * 0.35 * s4a;
+    s4DripG.gain.setTargetAtTime(drip4, t, 0.6);
+    if (now > nextS4DripTime && drip4 > 0.03) {
+      triggerS4Drip();
+      nextS4DripTime = now + 2000 + Math.random() * 8000;
+    }
+  }
+}
+
+
+// =============================================================================
+// INPUT
+// =============================================================================
+
 function advance(delta) {
   bootAudio();
-  targetX = clamp(targetX + delta, 0, WORLD - W);
+  // Scene 2 + Scene 3 scroll resistance during close passages
+  let resistance = 1.0;
+  const s2Alpha = seamT * (1 - seamT2);
+  if (s2Alpha > 0) {
+    const passage = window01(0.35, 0.45, 0.60, 0.72, p2);
+    resistance -= passage * 0.25 * s2Alpha;
+  }
+  if (seamT2 > 0) {
+    // Clearing: slight slowing to register the stumps, lighter than enclosed passage
+    const passage3 = window01(0.20, 0.28, 0.46, 0.56, p3);
+    resistance -= passage3 * 0.15 * seamT2 * (1 - seamT3);
+  }
+  if (seamT3 > 0) {
+    // Weather veil: slowing through the thickest weather, easing as forest returns
+    const weatherDrag = window01(0.25, 0.38, 0.58, 0.72, p4);
+    resistance -= weatherDrag * 0.20 * seamT3;
+  }
+  resistance = Math.max(resistance, 0.50);
+  targetX = clamp(targetX + delta * resistance, 0, WORLD_TOTAL - W);
 }
 
 window.addEventListener('wheel', e => {
@@ -530,59 +3311,269 @@ window.addEventListener('keydown', e => {
 });
 
 let tPrev = null;
-window.addEventListener('touchstart', e => {
-  tPrev = e.touches[0].clientX; bootAudio();
-}, { passive: true });
+window.addEventListener('touchstart', e => { tPrev = e.touches[0].clientX; bootAudio(); }, { passive: true });
 window.addEventListener('touchmove', e => {
   e.preventDefault();
-  if (tPrev !== null) {
-    advance((tPrev - e.touches[0].clientX) * 2.4);
-    tPrev = e.touches[0].clientX;
-  }
+  if (tPrev !== null) { advance((tPrev - e.touches[0].clientX) * 2.4); tPrev = e.touches[0].clientX; }
 }, { passive: false });
 window.addEventListener('touchend', () => { tPrev = null; });
 
-// ── Main render + loop ────────────────────────────────────────────────────────
+
+// =============================================================================
+// MAIN RENDER LOOP
+// =============================================================================
+
 function render(now) {
-  scrollX = lerp(scrollX, targetX, 0.085);
-  const p = clamp(scrollX / (WORLD - W), 0, 1);
+  // Compute seam from previous frame for easing interpolation
+  const prevSeamT = smooth(clamp((scrollX - SEAM_START) / (SEAM_END - SEAM_START), 0, 1));
+  const prevSeamT2 = smooth(clamp((scrollX - SEAM2_START) / (SEAM2_END - SEAM2_START), 0, 1));
+  const prevSeamT3 = smooth(clamp((scrollX - SEAM3_START) / (SEAM3_END - SEAM3_START), 0, 1));
+  const maxPrevSeam = Math.max(prevSeamT, prevSeamT2, prevSeamT3);
+  scrollX = lerp(scrollX, targetX, lerp(0.085, 0.065, maxPrevSeam));
 
-  // — Sky
-  drawSky(p);
+  // Frame state
+  p1 = clamp(scrollX / (S1_WORLD - W), 0, 1);
+  s2sx = scrollX - S2_OFFSET;
+  p2 = clamp(s2sx / (S2_WORLD - W), 0, 1);
+  s3sx = scrollX - S3_OFFSET;
+  p3 = clamp(s3sx / (S3_WORLD - W), 0, 1);
+  s4sx = scrollX - S4_OFFSET;
+  p4 = clamp(s4sx / (S4_WORLD - W), 0, 1);
+  seamT = smooth(clamp((scrollX - SEAM_START) / (SEAM_END - SEAM_START), 0, 1));
+  seamT2 = smooth(clamp((scrollX - SEAM2_START) / (SEAM2_END - SEAM2_START), 0, 1));
+  seamT3 = smooth(clamp((scrollX - SEAM3_START) / (SEAM3_END - SEAM3_START), 0, 1));
+  s4pw = s4PerceptualWeather(now);
 
-  // — Distant hills + shelter (far background)
-  drawHills(p);
-  drawShelter(p);
+  const s1Active = seamT < 1;
+  const s2Active = seamT > 0 && seamT2 < 1;
+  const s3Active = seamT2 > 0 && seamT3 < 1;
+  const s4Active = seamT3 > 0;
+  const s2EffAlpha = seamT * (1 - seamT2);
 
-  // — Far & mid trees (painted before ground so ground clips lower trunks)
-  TREES.filter(t => t.layer <= 2).forEach(t => drawOneTree(t));
+  // ── Sky (blended) ──
+  drawBlendedSky();
 
-  // — Ground surface
-  drawGround(p);
-  drawOrchardBoundary(p);
+  // ── Scene 1 background ──
+  if (s1Active) {
+    sceneAlpha = 1 - seamT;
+    ctx.globalAlpha = sceneAlpha;
+    s1DrawHills();
+    s1DrawShelter();
+    ctx.globalAlpha = 1;
+  }
 
-  // — Near trees (above ground)
-  TREES.filter(t => t.layer >= 3).forEach(t => drawOneTree(t));
+  // ── Scene 2 background ──
+  if (s2Active) {
+    sceneAlpha = s2EffAlpha;
+    ctx.globalAlpha = sceneAlpha;
+    s2DrawDistantTreeline(now);
+    ctx.globalAlpha = 1;
+  }
 
-  // — Ridge open-air haze
-  drawRidgeHaze(p);
+  // ── Scene 3 background ──
+  if (s3Active) {
+    sceneAlpha = seamT2 * (1 - seamT3);
+    ctx.globalAlpha = sceneAlpha;
+    s3DrawDistantTreeline(now);
+    ctx.globalAlpha = 1;
+  }
 
-  // — Forest overhead canopy
-  drawCanopy(p);
+  // ── Scene 4 background ──
+  if (s4Active) {
+    sceneAlpha = seamT3;
+    ctx.globalAlpha = sceneAlpha;
+    s4DrawDistantTreeline(now);
+    ctx.globalAlpha = 1;
+  }
 
-  // — Edge darkening
-  drawVignette();
+  // ── Scene 2 atmosphere (behind vegetation) ──
+  if (s2Active) {
+    sceneAlpha = s2EffAlpha;
+    s2DrawAtmosphere();
+    s2DrawSkyCorridors(now);
+  }
 
-  // — Opening / closing dark
-  drawDark(p);
+  // ── Scene 3 atmosphere (behind vegetation) ──
+  if (s3Active) {
+    sceneAlpha = seamT2 * (1 - seamT3);
+    s3DrawAtmosphere();
+    s3DrawSkyCorridors(now);
+  }
 
-  // — Text fragment
-  checkFrags(p);
+  // ── Scene 4 atmosphere (behind vegetation) ──
+  if (s4Active) {
+    sceneAlpha = seamT3;
+    s4DrawAtmosphere();
+    s4DrawSkyCorridors(now);
+  }
+
+  // ── Far trees/vegetation (layers 0-2) ──
+  if (s1Active) {
+    sceneAlpha = 1 - seamT;
+    ctx.globalAlpha = sceneAlpha;
+    S1_TREES.forEach(t => { if (t.layer <= 2) s1DrawOneTree(t); });
+    ctx.globalAlpha = 1;
+  }
+  if (s2Active) {
+    sceneAlpha = s2EffAlpha;
+    ctx.globalAlpha = sceneAlpha;
+    S2_VEG.forEach(v => { if (v.layer <= 2) s2DrawOneVeg(v, now); });
+    ctx.globalAlpha = 1;
+  }
+  if (s3Active) {
+    sceneAlpha = seamT2 * (1 - seamT3);
+    ctx.globalAlpha = sceneAlpha;
+    S3_VEG.forEach(v => { if (v.layer <= 2) s3DrawOneVeg(v, now); });
+    ctx.globalAlpha = 1;
+  }
+  if (s4Active) {
+    sceneAlpha = seamT3;
+    ctx.globalAlpha = sceneAlpha;
+    S4_VEG.forEach(v => { if (v.layer <= 2) s4DrawOneVeg(v, now); });
+    ctx.globalAlpha = 1;
+  }
+
+  // ── Ground (blended) ──
+  sceneAlpha = 1;
+  drawBlendedGround();
+
+  // ── Scene 1 ground features ──
+  if (s1Active) {
+    sceneAlpha = 1 - seamT;
+    s1DrawOrchardBoundary();
+    sceneAlpha = 1;
+  }
+
+  // ── Scene 2 water + trunk ──
+  if (s2Active) {
+    sceneAlpha = s2EffAlpha;
+    s2DrawWater(now);
+    s2DrawFallenTrunk(now);
+    sceneAlpha = 1;
+  }
+
+  // ── Scene 3 water + infrastructure ──
+  if (s3Active) {
+    sceneAlpha = seamT2 * (1 - seamT3);
+    s3DrawWater(now);
+    s3DrawStumpClearing(now);
+    sceneAlpha = 1;
+  }
+
+  // ── Scene 4 water ──
+  if (s4Active) {
+    sceneAlpha = seamT3;
+    s4DrawWater(now);
+    sceneAlpha = 1;
+  }
+
+  // ── Near trees/vegetation (layer 3) ──
+  if (s1Active) {
+    sceneAlpha = 1 - seamT;
+    ctx.globalAlpha = sceneAlpha;
+    S1_TREES.forEach(t => { if (t.layer >= 3) s1DrawOneTree(t); });
+    ctx.globalAlpha = 1;
+  }
+  if (s2Active) {
+    sceneAlpha = s2EffAlpha;
+    ctx.globalAlpha = sceneAlpha;
+    S2_VEG.forEach(v => { if (v.layer === 3) s2DrawOneVeg(v, now); });
+    ctx.globalAlpha = 1;
+  }
+  if (s3Active) {
+    sceneAlpha = seamT2 * (1 - seamT3);
+    ctx.globalAlpha = sceneAlpha;
+    S3_VEG.forEach(v => { if (v.layer === 3) s3DrawOneVeg(v, now); });
+    ctx.globalAlpha = 1;
+  }
+  if (s4Active) {
+    sceneAlpha = seamT3;
+    ctx.globalAlpha = sceneAlpha;
+    S4_VEG.forEach(v => { if (v.layer === 3) s4DrawOneVeg(v, now); });
+    ctx.globalAlpha = 1;
+  }
+
+  // ── Scene 2 fog ──
+  if (s2Active) {
+    sceneAlpha = s2EffAlpha;
+    s2DrawFog(now);
+  }
+
+  // ── Scene 3 fog ──
+  if (s3Active) {
+    sceneAlpha = seamT2 * (1 - seamT3);
+    s3DrawFog(now);
+  }
+
+  // ── Scene 4 fog + weather veil ──
+  if (s4Active) {
+    sceneAlpha = seamT3;
+    s4DrawFog(now);
+    s4DrawWeatherVeil(now);
+  }
+
+  // ── Atmospheric overlays ──
+  if (s1Active) {
+    sceneAlpha = 1 - seamT;
+    s1DrawRidgeHaze();
+    s1DrawCanopy();
+  }
+  if (s2Active) {
+    sceneAlpha = s2EffAlpha;
+    s2DrawOverheadVegetation(now);
+    s2DrawSideEnclosure();
+  }
+  if (s3Active) {
+    sceneAlpha = seamT2 * (1 - seamT3);
+    s3DrawOverheadVegetation(now);
+    s3DrawSideEnclosure();
+  }
+  if (s4Active) {
+    sceneAlpha = seamT3;
+    s4DrawOverheadVegetation(now);
+    s4DrawSideEnclosure();
+  }
+
+  // ── Scene 2 foreground interrupters (layer 4+) ──
+  if (s2Active) {
+    sceneAlpha = s2EffAlpha;
+    ctx.globalAlpha = sceneAlpha;
+    S2_VEG.forEach(v => { if (v.layer >= 4) s2DrawOneVeg(v, now); });
+    ctx.globalAlpha = 1;
+  }
+
+  // ── Scene 3 foreground interrupters (layer 4+) ──
+  if (s3Active) {
+    sceneAlpha = seamT2 * (1 - seamT3);
+    ctx.globalAlpha = sceneAlpha;
+    S3_VEG.forEach(v => { if (v.layer >= 4) s3DrawOneVeg(v, now); });
+    ctx.globalAlpha = 1;
+  }
+
+  // ── Scene 4 foreground interrupters (layer 4+) ──
+  if (s4Active) {
+    sceneAlpha = seamT3;
+    ctx.globalAlpha = sceneAlpha;
+    S4_VEG.forEach(v => { if (v.layer >= 4) s4DrawOneVeg(v, now); });
+    ctx.globalAlpha = 1;
+  }
+
+  // ── Vignette (blended) ──
+  sceneAlpha = 1;
+  drawBlendedVignette();
+
+  // ── Dark (opening + closing only) ──
+  drawDark();
+
+  // ── Fragment ──
+  checkFrags();
   tickFrag(now);
 
-  // — Audio
-  tickAudio(p);
+  // ── Audio ──
+  tickAudio(now);
 
+  ctx.globalAlpha = 1;
+  sceneAlpha = 1;
   requestAnimationFrame(render);
 }
 
