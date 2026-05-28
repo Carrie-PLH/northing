@@ -172,7 +172,7 @@ canvas {
 <div id="s1-yt-cue" aria-hidden="true">
   <a href="https://www.youtube.com/@northingland" target="_blank" rel="noopener">
     <img src="sm-icons/youtube.png" alt="">
-    <span>@northingland</span>
+    <span>YouTube @northingland</span>
   </a>
 </div>
 <script>
@@ -3179,7 +3179,18 @@ let s4WindG, s4DripG, s4RainHissG, s4ForestG;
 let audioLive = false, nextBirdTime = 0, nextDripTime = 0, nextS3DripTime = 0, nextS4DripTime = 0;
 
 function tryResumeAudio() {
-  if (ac && ac.state === 'suspended') ac.resume().catch(() => {});
+  // Handle 'suspended' AND 'interrupted' (iOS Safari) — anything that isn't running
+  if (ac && ac.state !== 'running') ac.resume().catch(() => {});
+}
+
+let lastAutoResume = 0;
+function tickAutoResume(now) {
+  // Keep trying to resume every 2 s regardless of gesture — handles edge cases
+  // where the context was suspended mid-session (tab switch, browser throttle, etc.)
+  if (ac && ac.state !== 'running' && now - lastAutoResume > 2000) {
+    lastAutoResume = now;
+    ac.resume().catch(() => {});
+  }
 }
 
 function bootAudio() {
@@ -3187,6 +3198,7 @@ function bootAudio() {
   audioLive = true;
   try {
     ac = new (window.AudioContext || window.webkitAudioContext)();
+    ac.onstatechange = () => { if (ac.state === 'suspended') ac.resume().catch(() => {}); };
     ac.resume().catch(() => {}); // browsers often start suspended
     const master = ac.createGain();
     master.gain.value = 0.20;
@@ -3556,9 +3568,8 @@ window.addEventListener('keydown', e => {
   if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   { advance(-step); tryResumeAudio(); }
 });
 
-// Any pointer/click event unlocks audio context
-window.addEventListener('pointerdown', () => { bootAudio(); tryResumeAudio(); });
-window.addEventListener('click',       () => { bootAudio(); tryResumeAudio(); });
+// Any discrete user gesture unlocks audio context
+window.addEventListener('click', () => { bootAudio(); tryResumeAudio(); });
 
 let tPrev = null;
 window.addEventListener('touchstart', e => { tPrev = e.touches[0].clientX; bootAudio(); tryResumeAudio(); }, { passive: true });
@@ -3842,6 +3853,7 @@ function render(now) {
   tickFrag(now);
 
   // ── Audio ──
+  tickAutoResume(now);
   tickAudio(now);
 
   ctx.globalAlpha = 1;
