@@ -3217,10 +3217,11 @@ function bootAudio() {
     const noise = ac.createBufferSource();
     noise.buffer = buf; noise.loop = true;
 
-    // S1: Forest rumble
+    // S1: Forest air — bandpass centred in laptop-speaker range so it's actually audible
     s1ForestG = ac.createGain(); s1ForestG.gain.value = 0;
-    const ff = ac.createBiquadFilter(); ff.type = 'lowpass'; ff.frequency.value = 260; ff.Q.value = 1.4;
-    noise.connect(ff); ff.connect(s1ForestG); s1ForestG.connect(master);
+    const ff  = ac.createBiquadFilter(); ff.type  = 'bandpass'; ff.frequency.value = 520; ff.Q.value = 0.55;
+    const ff2 = ac.createBiquadFilter(); ff2.type = 'lowpass';  ff2.frequency.value = 900; ff2.Q.value = 0.8;
+    noise.connect(ff); ff.connect(ff2); ff2.connect(s1ForestG); s1ForestG.connect(master);
 
     // S1: Wind
     s1WindG = ac.createGain(); s1WindG.gain.value = 0;
@@ -3386,17 +3387,17 @@ function tickAudio(now) {
   const s4a = seamT3;
 
   if (s1ForestG) {
-    // Sustained low rumble throughout S1 — no dead zone at the ridge
-    const base = fadeIn(0.06, 0.18, p1) * fadeOut(0.88, 0.96, p1) * 0.26;
-    const fa   = window01(0.06, 0.14, 0.30, 0.44, p1) * 0.26;  // approach boost
-    const fd   = window01(0.66, 0.72, 0.82, 0.92, p1) * 0.26;  // descent boost
-    s1ForestG.gain.setTargetAtTime((base + Math.max(fa, fd)) * s1a, t, 1.2);
+    // Sustained air presence throughout S1; now in a laptop-audible band (520Hz)
+    const base = fadeIn(0.04, 0.14, p1) * fadeOut(0.88, 0.96, p1) * 0.48;
+    const fa   = window01(0.04, 0.12, 0.30, 0.44, p1) * 0.22;  // approach lift
+    const fd   = window01(0.62, 0.70, 0.82, 0.92, p1) * 0.22;  // descent lift
+    s1ForestG.gain.setTargetAtTime((base + Math.max(fa, fd)) * s1a, t, 0.6);
   }
   if (s1WindG) {
-    // Soft ambient breeze throughout + ridge emphasis on top
-    const breeze = fadeIn(0.10, 0.22, p1) * fadeOut(0.84, 0.94, p1) * 0.09;
-    const ridge  = window01(0.44, 0.55, 0.64, 0.78, p1) * 0.28;
-    s1WindG.gain.setTargetAtTime((breeze + ridge) * s1a, t, 1.2);
+    // Breeze from the first scroll; ridge emphasis on top
+    const breeze = fadeIn(0.04, 0.16, p1) * fadeOut(0.84, 0.94, p1) * 0.22;
+    const ridge  = window01(0.44, 0.55, 0.64, 0.78, p1) * 0.38;
+    s1WindG.gain.setTargetAtTime((breeze + ridge) * s1a, t, 0.6);
   }
   if (s2WindG) {
     const wind = (fadeOut(0.25, 0.55, p2) * fadeIn(0.04, 0.12, p2)
@@ -3418,7 +3419,7 @@ function tickAudio(now) {
   }
   if (s2BirdG) {
     // Birds in any open/bright section
-    const b1 = window01(0.18, 0.32, 0.68, 0.82, p1) * 0.22 * (1 - seamT);   // S1 full daytime
+    const b1 = window01(0.05, 0.14, 0.72, 0.86, p1) * 0.28 * (1 - seamT);   // S1: starts early, higher gain
     const b2 = window01(0.10, 0.20, 0.75, 0.88, p2) * 0.45 * s2a;            // S2 passage
     const b3 = window01(0.15, 0.28, 0.52, 0.68, p3) * 0.18 * s3a;            // S3 clearing
     const birdPresence = b1 + b2 + b3;
