@@ -114,6 +114,31 @@ canvas {
 .soc-main:hover span { color: rgba(212, 200, 178, 1); }
 .soc-sub:hover span  { color: rgba(212, 200, 178, 0.80); }
 
+/* ── Audio unlock prompt ────────────────────────────────────────────────── */
+#audio-cue {
+  position: fixed;
+  bottom: 4%;
+  right: 4%;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: clamp(10px, 1vw, 12px);
+  font-weight: 400;
+  letter-spacing: 0.14em;
+  color: rgba(212, 200, 178, 0);
+  pointer-events: none;
+  z-index: 15;
+  transition: color 0.8s ease;
+  cursor: pointer;
+}
+#audio-cue.visible {
+  color: rgba(212, 200, 178, 0.45);
+  pointer-events: auto;
+}
+#audio-cue.dismissed {
+  color: rgba(212, 200, 178, 0);
+  pointer-events: none;
+  transition: color 1.5s ease;
+}
+
 /* ── Scene 1 YouTube environmental cue ──────────────────────────────────── */
 #s1-yt-cue {
   position: fixed;
@@ -175,6 +200,7 @@ canvas {
     </a>
   </div>
 </div>
+<div id="audio-cue">click for sound</div>
 <div id="s1-yt-cue" aria-hidden="true">
   <a href="https://www.youtube.com/@northingland" target="_blank" rel="noopener">
     <img src="sm-icons/youtube.png" alt="">
@@ -3187,18 +3213,35 @@ let nextBirdTime = 0, nextDripTime = 0, nextS3DripTime = 0, nextS4DripTime = 0;
 // Gesture-driven audio boot: only real user gestures can unlock AudioContext.
 // wheel/scroll do NOT count in Safari. We listen on every qualifying event type
 // and keep retrying until the context reaches 'running'.
+const audioCueEl = document.getElementById('audio-cue');
+let hasScrolled = false;
+let audioCueShown = false;
+
 function gestureBootAudio() {
   bootAudio();
-  // Once running, stop listening — no more overhead
   if (ac && ac.state === 'running') {
+    // Audio unlocked — dismiss cue and stop listening
     ['mousedown', 'click', 'touchstart', 'keydown'].forEach(evt =>
       window.removeEventListener(evt, gestureBootAudio, true)
     );
+    if (audioCueEl) {
+      audioCueEl.classList.remove('visible');
+      audioCueEl.classList.add('dismissed');
+    }
   }
 }
 ['mousedown', 'click', 'touchstart', 'keydown'].forEach(evt =>
   window.addEventListener(evt, gestureBootAudio, true)
 );
+
+// Show "click for sound" after user has scrolled a bit but audio isn't running
+function checkAudioCue() {
+  if (audioCueShown || (ac && ac.state === 'running')) return;
+  if (hasScrolled && audioCueEl) {
+    audioCueEl.classList.add('visible');
+    audioCueShown = true;
+  }
+}
 
 function bootAudio() {
   // If we already have a running context, nothing to do
@@ -3565,6 +3608,7 @@ function advance(delta) {
 
 window.addEventListener('wheel', e => {
   e.preventDefault();
+  hasScrolled = true;
   const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
   advance(d * 1.65);
 }, { passive: false });
@@ -3888,6 +3932,7 @@ function render(now) {
   tickFrag(now);
 
   // ── Audio ──
+  checkAudioCue();
   tickAudio(now);
 
   ctx.globalAlpha = 1;
