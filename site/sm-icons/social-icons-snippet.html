@@ -1,0 +1,76 @@
+<!-- ============================================================
+  NORTHING — Social icon strip
+  Drop this <div> + <style> block into index.html.
+
+  Placement suggestion: inside <body>, before </body>.
+  Position: fixed, bottom-right, above canvas layer.
+  Adjust `bottom` / `right` values to taste.
+  ============================================================ -->
+
+<style>
+#social-strip {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  pointer-events: auto;
+}
+
+.social-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  text-decoration: none;
+}
+
+.social-item img {
+  width: 40px;
+  height: 40px;
+  display: block;
+  opacity: 0.72;
+  transition: opacity 0.25s ease;
+}
+
+.social-item:hover img {
+  opacity: 1;
+}
+
+.social-item span {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 9px;
+  font-weight: 400;
+  letter-spacing: 0.14em;
+  text-transform: lowercase;
+  color: rgba(212, 200, 178, 0.55);
+  transition: color 0.25s ease;
+  white-space: nowrap;
+}
+
+.social-item:hover span {
+  color: rgba(212, 200, 178, 0.9);
+}
+</style>
+
+<div id="social-strip">
+
+  <a class="social-item" href="https://www.are.na/northing" target="_blank" rel="noopener">
+    <img src="assets/sm-icons/are.na.png" alt="Are.na">
+    <span>are.na</span>
+  </a>
+
+  <a class="social-item" href="https://www.instagram.com/northing" target="_blank" rel="noopener">
+    <img src="assets/sm-icons/instagram.png" alt="Instagram">
+    <span>instagram</span>
+  </a>
+
+  <a class="social-item" href="https://www.youtube.com/@northing" target="_blank" rel="noopener">
+    <img src="assets/sm-icons/youtube.png" alt="YouTube">
+    <span>youtube</span>
+  </a>
+
+</div>
