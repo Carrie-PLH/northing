@@ -581,7 +581,7 @@ const S2_WATER = [];
     S2_WATER.push({ type: 'puddle', wx: 2800 + rand(i * 7) * 1600,
       w: 50 + rand(i * 11) * 80, depth: 0.25 + rand(i * 5) * 0.30 });
   }
-  S2_WATER.push({ type: 'channel', wx: 6400, w: 480, channelWidth: 38, depth: 0.90, angle: 0.12 });
+  S2_WATER.push({ type: 'channel', wx: 6400, w: 480, channelWidth: 38, depth: 0.90, angle: 0.02 });
   for (let i = 10; i < 22; i++) {
     S2_WATER.push({ type: 'puddle', wx: 5000 + rand(i * 7) * 4500,
       w: 60 + rand(i * 11) * 160, depth: 0.30 + rand(i * 5) * 0.45 });
@@ -800,7 +800,7 @@ function s2DrawWater(now) {
       if (sx < -wf.w * 0.7 || sx > W + wf.w * 0.7) return;
       const channelVis = window01(0.36, 0.42, 0.58, 0.66, p2);
       if (channelVis < 0.01) return;
-      const gy = s2GroundY(wf.wx);
+      const gy = s2GroundY(wf.wx) + wf.channelWidth * 0.9;
       const cw = wf.channelWidth;
       const channelAlpha = channelVis * 0.80 * sa;
       const cwg = ctx.createLinearGradient(0, gy - 6, 0, gy + 8);
