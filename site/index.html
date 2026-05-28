@@ -183,7 +183,7 @@ canvas {
 <div id="fragment"></div>
 <div id="social-strip">
   <div id="soc-primary">
-    <p id="soc-tagline">the observation continues</p>
+    <p id="soc-tagline">the observation expands</p>
     <a class="soc-item soc-main" href="https://www.youtube.com/@northingland" target="_blank" rel="noopener">
       <img src="sm-icons/youtube.png" alt="YouTube">
       <span>youtube</span>
@@ -3205,7 +3205,7 @@ function checkFrags() {
 // AUDIO — One AudioContext, all channels
 // =============================================================================
 
-let ac, s1ForestG, s1WindG, s2WindG, s2WaterG, s2InsectG, s2BirdG, s2DripG;
+let ac, ambientBedG, s1ForestG, s1WindG, s2WindG, s2WaterG, s2InsectG, s2BirdG, s2DripG;
 let s3ForestG, s3WaterG, s3DripG, s3ResonanceG;
 let s4WindG, s4DripG, s4RainHissG, s4ForestG;
 let nextBirdTime = 0, nextDripTime = 0, nextS3DripTime = 0, nextS4DripTime = 0;
@@ -3267,6 +3267,14 @@ function bootAudio() {
     }
     const noise = ac.createBufferSource();
     noise.buffer = buf; noise.loop = true;
+
+    // Continuous ambient bed — gentle air presence that never fully drops out,
+    // preventing dead silence during scene transitions. Bandpass in the
+    // laptop-audible range, low enough to sit under scene-specific audio.
+    ambientBedG = ac.createGain(); ambientBedG.gain.value = 0;
+    const abf1 = ac.createBiquadFilter(); abf1.type = 'bandpass'; abf1.frequency.value = 440; abf1.Q.value = 0.3;
+    const abf2 = ac.createBiquadFilter(); abf2.type = 'lowpass';  abf2.frequency.value = 700; abf2.Q.value = 0.6;
+    noise.connect(abf1); abf1.connect(abf2); abf2.connect(ambientBedG); ambientBedG.connect(master);
 
     // S1: Forest air — bandpass centred in laptop-speaker range so it's actually audible
     s1ForestG = ac.createGain(); s1ForestG.gain.value = 0;
@@ -3437,26 +3445,45 @@ function tickAudio(now) {
   const s3a = seamT2 * (1 - seamT3);
   const s4a = seamT3;
 
+  // Continuous ambient bed: low base that rises during seam transitions
+  // to cover the gap where scene-specific audio fades out before the next fades in
+  if (ambientBedG) {
+    // Base: always present once traversal starts (p1 > 0.02)
+    const started = fadeIn(0.02, 0.08, p1);
+    // Seam boost: rises when we're between scenes (seamT is mid-transition)
+    // seamT*(1-seamT) peaks at 0.25 when seamT=0.5; same for seamT2, seamT3
+    const seamGap1 = seamT * (1 - seamT) * 4;   // peaks at 1.0 mid-seam
+    const seamGap2 = seamT2 * (1 - seamT2) * 4;
+    const seamGap3 = seamT3 * (1 - seamT3) * 4;
+    const seamBoost = Math.max(seamGap1, seamGap2, seamGap3);
+    // Base level 0.12, rises to 0.32 during seam transitions
+    const bedGain = started * (0.12 + seamBoost * 0.20);
+    ambientBedG.gain.setTargetAtTime(bedGain, t, 0.8);
+  }
+
   if (s1ForestG) {
-    // Sustained air presence throughout S1; now in a laptop-audible band (520Hz)
-    const base = fadeIn(0.04, 0.14, p1) * fadeOut(0.88, 0.96, p1) * 0.48;
+    // Sustained air presence throughout S1 — extended to p1=1.0 so it persists
+    // into the seam zone (s1a handles the crossfade, not the position window)
+    const base = fadeIn(0.04, 0.14, p1) * 0.48;
     const fa   = window01(0.04, 0.12, 0.30, 0.44, p1) * 0.22;  // approach lift
     const fd   = window01(0.62, 0.70, 0.82, 0.92, p1) * 0.22;  // descent lift
     s1ForestG.gain.setTargetAtTime((base + Math.max(fa, fd)) * s1a, t, 0.6);
   }
   if (s1WindG) {
-    // Breeze from the first scroll; ridge emphasis on top
-    const breeze = fadeIn(0.04, 0.16, p1) * fadeOut(0.84, 0.94, p1) * 0.22;
+    // Breeze — extended to persist through end of S1 into seam
+    const breeze = fadeIn(0.04, 0.16, p1) * 0.22;
     const ridge  = window01(0.44, 0.55, 0.64, 0.78, p1) * 0.38;
     s1WindG.gain.setTargetAtTime((breeze + ridge) * s1a, t, 0.6);
   }
   if (s2WindG) {
-    const wind = (fadeOut(0.25, 0.55, p2) * fadeIn(0.04, 0.12, p2)
+    // Wind — starts immediately at p2=0 so it's present as seam opens
+    const wind = (fadeOut(0.25, 0.55, p2) * fadeIn(0.0, 0.06, p2)
                 + window01(0.78, 0.84, 0.90, 0.96, p2) * 0.5) * 0.30 * s2a;
     s2WindG.gain.setTargetAtTime(wind, t, 1.2);
   }
   if (s2WaterG) {
-    const waterBase = fadeIn(0.18, 0.40, p2) * fadeOut(0.82, 0.94, p2) * 0.32;
+    // Water — earlier fade-in, extended fade-out
+    const waterBase = fadeIn(0.08, 0.30, p2) * fadeOut(0.86, 0.98, p2) * 0.32;
     const channelBoost = window01(0.42, 0.48, 0.56, 0.62, p2) * 0.18;
     s2WaterG.gain.setTargetAtTime((waterBase + channelBoost) * s2a, t, 0.8);
   }
@@ -3493,11 +3520,13 @@ function tickAudio(now) {
 
   // ── Scene 3 audio ──
   if (s3ForestG) {
-    const fa3 = window01(0.08, 0.18, 0.65, 0.82, p3);
+    // Extended: starts at p3=0 (immediate presence as seam opens), persists to end
+    const fa3 = fadeIn(0.0, 0.10, p3) * fadeOut(0.75, 0.92, p3);
     s3ForestG.gain.setTargetAtTime(fa3 * 0.58 * s3a, t, 1.4);
   }
   if (s3WaterG) {
-    const w3Base = fadeIn(0.14, 0.35, p3) * fadeOut(0.70, 0.88, p3) * 0.38;
+    // Earlier start, later fade — water audible sooner
+    const w3Base = fadeIn(0.06, 0.25, p3) * fadeOut(0.78, 0.95, p3) * 0.38;
     s3WaterG.gain.setTargetAtTime(w3Base * s3a, t, 0.8);
   }
   if (s3DripG) {
@@ -3516,13 +3545,13 @@ function tickAudio(now) {
 
   // ── Scene 4 audio ──
   if (s4WindG) {
-    // Soft dampened wind: peaks during weather veil, gentler than S2/S3
-    const w4 = window01(0.12, 0.25, 0.72, 0.88, p4) * 0.28 * s4a;
+    // Wind present from p4=0 so it's audible as seam opens into S4
+    const w4 = window01(0.0, 0.10, 0.78, 0.92, p4) * 0.28 * s4a;
     s4WindG.gain.setTargetAtTime(w4, t, 1.5);
   }
   if (s4ForestG) {
-    // Returning forest: absent early, builds in late section
-    const f4 = fadeIn(0.55, 0.75, p4) * 0.42 * s4a;
+    // Returning forest: earlier presence, not just late section
+    const f4 = fadeIn(0.30, 0.55, p4) * 0.42 * s4a;
     s4ForestG.gain.setTargetAtTime(f4, t, 1.8);
   }
   if (s4RainHissG) {
