@@ -3209,6 +3209,7 @@ let ac, ambientBedG, s1ForestG, s1WindG, s2WindG, s2WaterG, s2InsectG, s2BirdG, 
 let s3ForestG, s3WaterG, s3DripG, s3ResonanceG;
 let s4WindG, s4DripG, s4RainHissG, s4ForestG;
 let nextBirdTime = 0, nextDripTime = 0, nextS3DripTime = 0, nextS4DripTime = 0;
+let thunderFired1 = false, thunderFired2 = false;
 
 // Gesture-driven audio boot: only real user gestures can unlock AudioContext.
 // wheel/scroll do NOT count in Safari. We listen on every qualifying event type
@@ -3437,6 +3438,68 @@ function triggerS4Drip() {
   osc.start(t); osc.stop(t + 0.08);
 }
 
+function triggerThunder() {
+  if (!ac) return;
+  const t = ac.currentTime;
+  const master = ac.destination;
+
+  // Distant thunder: layered low rumble + mid crack + noise tail
+  // Total duration ~4s, all very quiet (distant)
+
+  // Layer 1: Sub rumble (60-90Hz) — the body of the thunder
+  const rumble = ac.createOscillator();
+  const rumbleEnv = ac.createGain();
+  const rumbleFilter = ac.createBiquadFilter();
+  rumble.type = 'sawtooth';
+  rumble.frequency.setValueAtTime(70 + Math.random() * 25, t);
+  rumble.frequency.linearRampToValueAtTime(55 + Math.random() * 15, t + 3.5);
+  rumbleFilter.type = 'lowpass'; rumbleFilter.frequency.value = 140; rumbleFilter.Q.value = 0.8;
+  rumbleEnv.gain.setValueAtTime(0, t);
+  rumbleEnv.gain.linearRampToValueAtTime(0.04, t + 0.3);    // slow build
+  rumbleEnv.gain.linearRampToValueAtTime(0.06, t + 0.6);    // peak
+  rumbleEnv.gain.exponentialRampToValueAtTime(0.002, t + 3.8);
+  rumble.connect(rumbleFilter); rumbleFilter.connect(rumbleEnv); rumbleEnv.connect(master);
+  rumble.start(t); rumble.stop(t + 4.0);
+
+  // Layer 2: Mid crack (200-400Hz) — the initial break, very brief
+  const crack = ac.createOscillator();
+  const crackEnv = ac.createGain();
+  const crackFilter = ac.createBiquadFilter();
+  crack.type = 'square';
+  crack.frequency.setValueAtTime(280 + Math.random() * 120, t + 0.4);
+  crack.frequency.exponentialRampToValueAtTime(90, t + 1.2);
+  crackFilter.type = 'bandpass'; crackFilter.frequency.value = 300; crackFilter.Q.value = 0.5;
+  crackEnv.gain.setValueAtTime(0, t);
+  crackEnv.gain.linearRampToValueAtTime(0, t + 0.38);       // silent until the break
+  crackEnv.gain.linearRampToValueAtTime(0.035, t + 0.45);   // sharp onset
+  crackEnv.gain.exponentialRampToValueAtTime(0.001, t + 1.4);
+  crack.connect(crackFilter); crackFilter.connect(crackEnv); crackEnv.connect(master);
+  crack.start(t); crack.stop(t + 1.6);
+
+  // Layer 3: Noise tail — distant rolling texture
+  const nLen = ac.sampleRate * 4;
+  const nBuf = ac.createBuffer(1, nLen, ac.sampleRate);
+  const nData = nBuf.getChannelData(0);
+  let prev = 0;
+  for (let i = 0; i < nLen; i++) {
+    const w = Math.random() * 2 - 1;
+    nData[i] = (prev + 0.06 * w) / 1.06;  // brownish noise
+    prev = nData[i];
+    nData[i] *= 2.5;
+  }
+  const nSrc = ac.createBufferSource(); nSrc.buffer = nBuf;
+  const nEnv = ac.createGain();
+  const nFilt = ac.createBiquadFilter();
+  nFilt.type = 'lowpass'; nFilt.frequency.value = 250; nFilt.Q.value = 0.6;
+  nEnv.gain.setValueAtTime(0, t);
+  nEnv.gain.linearRampToValueAtTime(0, t + 0.25);
+  nEnv.gain.linearRampToValueAtTime(0.025, t + 0.5);
+  nEnv.gain.exponentialRampToValueAtTime(0.001, t + 3.5);
+  nSrc.connect(nFilt); nFilt.connect(nEnv); nEnv.connect(master);
+  nSrc.start(t); nSrc.stop(t + 4.0);
+}
+
+
 function tickAudio(now) {
   if (!ac) return;
   const t = ac.currentTime;
@@ -3554,6 +3617,21 @@ function tickAudio(now) {
     const f4 = fadeIn(0.30, 0.55, p4) * 0.42 * s4a;
     s4ForestG.gain.setTargetAtTime(f4, t, 1.8);
   }
+  // Thunder: distant rumble before rain arrives, fires once per traversal
+  if (s4a > 0.3) {
+    if (!thunderFired1 && p4 >= 0.12 && p4 < 0.20) {
+      thunderFired1 = true;
+      triggerThunder();
+    }
+    if (!thunderFired2 && p4 >= 0.19 && p4 < 0.26) {
+      thunderFired2 = true;
+      // Slight delay so it doesn't stack on the first
+      setTimeout(triggerThunder, 800 + Math.random() * 1200);
+    }
+  }
+  // Reset if user scrolls back before the rain zone
+  if (p4 < 0.08) { thunderFired1 = false; thunderFired2 = false; }
+
   if (s4RainHissG) {
     // Rain-on-foliage hiss: weather veil zone, quieter than real rain
     const rh = window01(0.22, 0.35, 0.62, 0.78, p4) * 0.18 * s4a;
