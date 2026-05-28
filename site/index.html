@@ -876,11 +876,59 @@ function s2DrawWater(now) {
         }
       }
 
-      ctx.fillStyle = `rgba(56,54,44,${channelAlpha * 0.3})`;
+      // ── Earth banks: muddy edges tapering from ground into the water ──
+      // Near bank (bottom edge, closer to viewer — wider, more visible)
+      const bankW = cw * 0.55;  // how far the bank extends beyond the water edge
+      const nearBankGrad = ctx.createLinearGradient(0, gy + cw * 0.6 - 2, 0, gy + cw * 0.6 + bankW);
+      nearBankGrad.addColorStop(0, `rgba(42,40,32,${channelAlpha * 0.70})`);   // dark wet earth at water edge
+      nearBankGrad.addColorStop(0.3, `rgba(48,44,36,${channelAlpha * 0.55})`);  // damp earth
+      nearBankGrad.addColorStop(0.7, `rgba(56,52,42,${channelAlpha * 0.30})`);  // drier earth
+      nearBankGrad.addColorStop(1, `rgba(62,58,48,0)`);                         // blends to ground
+      ctx.fillStyle = nearBankGrad;
+      ctx.beginPath();
+      ctx.moveTo(channelLeft - 10, gy + cw * 0.6 + wf.angle * (channelLeft - sx));
+      for (let x = channelLeft - 10; x <= channelRight + 10; x += 6) {
+        const yOff = wf.angle * (x - sx);
+        const irregularity = Math.sin(x * 0.018 + 2.7) * 2.5 + Math.sin(x * 0.045 + 0.5) * 1.2;
+        ctx.lineTo(x, gy + cw * 0.6 + yOff + irregularity);
+      }
+      for (let x = channelRight + 10; x >= channelLeft - 10; x -= 6) {
+        const yOff = wf.angle * (x - sx);
+        const irregularity = Math.sin(x * 0.015 + 1.4) * 1.8;
+        ctx.lineTo(x, gy + cw * 0.6 + bankW + yOff + irregularity);
+      }
+      ctx.closePath(); ctx.fill();
+
+      // Far bank (top edge, further from viewer — narrower)
+      const farBankW = cw * 0.40;
+      const farBankGrad = ctx.createLinearGradient(0, gy - cw * 0.4 - farBankW, 0, gy - cw * 0.4 + 2);
+      farBankGrad.addColorStop(0, `rgba(62,58,48,0)`);
+      farBankGrad.addColorStop(0.4, `rgba(52,48,38,${channelAlpha * 0.25})`);
+      farBankGrad.addColorStop(0.75, `rgba(46,42,34,${channelAlpha * 0.45})`);
+      farBankGrad.addColorStop(1, `rgba(40,38,30,${channelAlpha * 0.60})`);
+      ctx.fillStyle = farBankGrad;
+      ctx.beginPath();
+      ctx.moveTo(channelLeft - 10, gy - cw * 0.4 - farBankW + wf.angle * (channelLeft - sx));
+      for (let x = channelLeft - 10; x <= channelRight + 10; x += 6) {
+        const yOff = wf.angle * (x - sx);
+        const irregularity = Math.sin(x * 0.02 + 0.8) * 1.5;
+        ctx.lineTo(x, gy - cw * 0.4 - farBankW + yOff + irregularity);
+      }
+      for (let x = channelRight + 10; x >= channelLeft - 10; x -= 6) {
+        const yOff = wf.angle * (x - sx);
+        const irregularity = Math.sin(x * 0.022 + 1.3) * 2.0 + Math.sin(x * 0.05) * 1.0;
+        ctx.lineTo(x, gy - cw * 0.4 + yOff + irregularity);
+      }
+      ctx.closePath(); ctx.fill();
+
+      // Exposed earth/mud detail along the banks
+      ctx.fillStyle = `rgba(38,36,28,${channelAlpha * 0.35})`;
       for (let x = channelLeft + 10; x < channelRight - 10; x += 14) {
         const yOff = wf.angle * (x - sx);
-        ctx.fillRect(x, gy - cw * 0.4 + yOff - 2 + rand(x) * 2, 8, 2);
-        ctx.fillRect(x + 3, gy + cw * 0.6 + yOff + rand(x + 99) * 2, 7, 1.5);
+        // Near bank mud spots
+        ctx.fillRect(x, gy + cw * 0.6 + yOff + rand(x) * bankW * 0.4, 6 + rand(x+7) * 8, 2 + rand(x+3) * 2);
+        // Far bank mud spots
+        ctx.fillRect(x + 3, gy - cw * 0.4 + yOff - rand(x + 99) * farBankW * 0.3 - 3, 5 + rand(x+50) * 6, 1.5);
       }
     }
 
