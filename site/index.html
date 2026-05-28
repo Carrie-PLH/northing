@@ -3442,61 +3442,62 @@ function triggerThunder() {
   if (!ac) return;
   const t = ac.currentTime;
   const master = ac.destination;
+  const sr = ac.sampleRate;
 
-  // Distant thunder: layered low rumble + mid crack + noise tail
-  // Total duration ~4s, all very quiet (distant)
+  // Distant thunder: entirely noise-based, no oscillators.
+  // Two layers of shaped brownian noise at different filter bands,
+  // with irregular amplitude bumps baked into the buffer to simulate
+  // the multiple-reflection character of distant rolling thunder.
 
-  // Layer 1: Sub rumble (60-90Hz) — the body of the thunder
-  const rumble = ac.createOscillator();
-  const rumbleEnv = ac.createGain();
-  const rumbleFilter = ac.createBiquadFilter();
-  rumble.type = 'sawtooth';
-  rumble.frequency.setValueAtTime(70 + Math.random() * 25, t);
-  rumble.frequency.linearRampToValueAtTime(55 + Math.random() * 15, t + 3.5);
-  rumbleFilter.type = 'lowpass'; rumbleFilter.frequency.value = 140; rumbleFilter.Q.value = 0.8;
-  rumbleEnv.gain.setValueAtTime(0, t);
-  rumbleEnv.gain.linearRampToValueAtTime(0.04, t + 0.3);    // slow build
-  rumbleEnv.gain.linearRampToValueAtTime(0.06, t + 0.6);    // peak
-  rumbleEnv.gain.exponentialRampToValueAtTime(0.002, t + 3.8);
-  rumble.connect(rumbleFilter); rumbleFilter.connect(rumbleEnv); rumbleEnv.connect(master);
-  rumble.start(t); rumble.stop(t + 4.0);
+  const dur = 4.5 + Math.random() * 1.5;  // 4.5–6s total
+  const len = Math.floor(sr * dur);
 
-  // Layer 2: Mid crack (200-400Hz) — the initial break, very brief
-  const crack = ac.createOscillator();
-  const crackEnv = ac.createGain();
-  const crackFilter = ac.createBiquadFilter();
-  crack.type = 'square';
-  crack.frequency.setValueAtTime(280 + Math.random() * 120, t + 0.4);
-  crack.frequency.exponentialRampToValueAtTime(90, t + 1.2);
-  crackFilter.type = 'bandpass'; crackFilter.frequency.value = 300; crackFilter.Q.value = 0.5;
-  crackEnv.gain.setValueAtTime(0, t);
-  crackEnv.gain.linearRampToValueAtTime(0, t + 0.38);       // silent until the break
-  crackEnv.gain.linearRampToValueAtTime(0.035, t + 0.45);   // sharp onset
-  crackEnv.gain.exponentialRampToValueAtTime(0.001, t + 1.4);
-  crack.connect(crackFilter); crackFilter.connect(crackEnv); crackEnv.connect(master);
-  crack.start(t); crack.stop(t + 1.6);
-
-  // Layer 3: Noise tail — distant rolling texture
-  const nLen = ac.sampleRate * 4;
-  const nBuf = ac.createBuffer(1, nLen, ac.sampleRate);
-  const nData = nBuf.getChannelData(0);
+  // Generate brownian noise with embedded amplitude bumps
+  const buf = ac.createBuffer(1, len, sr);
+  const data = buf.getChannelData(0);
   let prev = 0;
-  for (let i = 0; i < nLen; i++) {
-    const w = Math.random() * 2 - 1;
-    nData[i] = (prev + 0.06 * w) / 1.06;  // brownish noise
-    prev = nData[i];
-    nData[i] *= 2.5;
+  // Pre-compute 2-4 random "bump" positions (sub-events within the roll)
+  const bumpCount = 2 + Math.floor(Math.random() * 3);
+  const bumps = [];
+  for (let b = 0; b < bumpCount; b++) {
+    bumps.push({
+      center: (0.08 + Math.random() * 0.5) * len,   // within first 60%
+      width: (0.03 + Math.random() * 0.06) * len,    // each bump 3-9% of duration
+      strength: 1.5 + Math.random() * 2.0
+    });
   }
-  const nSrc = ac.createBufferSource(); nSrc.buffer = nBuf;
-  const nEnv = ac.createGain();
-  const nFilt = ac.createBiquadFilter();
-  nFilt.type = 'lowpass'; nFilt.frequency.value = 250; nFilt.Q.value = 0.6;
-  nEnv.gain.setValueAtTime(0, t);
-  nEnv.gain.linearRampToValueAtTime(0, t + 0.25);
-  nEnv.gain.linearRampToValueAtTime(0.025, t + 0.5);
-  nEnv.gain.exponentialRampToValueAtTime(0.001, t + 3.5);
-  nSrc.connect(nFilt); nFilt.connect(nEnv); nEnv.connect(master);
-  nSrc.start(t); nSrc.stop(t + 4.0);
+  for (let i = 0; i < len; i++) {
+    const w = Math.random() * 2 - 1;
+    prev = (prev + 0.04 * w) / 1.04;  // brownian walk
+    let amp = 1.0;
+    for (let b = 0; b < bumpCount; b++) {
+      const dist = Math.abs(i - bumps[b].center) / bumps[b].width;
+      if (dist < 1) amp += bumps[b].strength * (1 - dist * dist);
+    }
+    data[i] = prev * amp * 3.0;
+  }
+
+  // Layer 1: Sub rumble — heavy lowpass, the felt-not-heard body
+  const src1 = ac.createBufferSource(); src1.buffer = buf;
+  const lp1 = ac.createBiquadFilter(); lp1.type = 'lowpass'; lp1.frequency.value = 120; lp1.Q.value = 0.5;
+  const env1 = ac.createGain();
+  env1.gain.setValueAtTime(0, t);
+  env1.gain.linearRampToValueAtTime(0.06, t + 0.4);
+  env1.gain.linearRampToValueAtTime(0.07, t + 0.8);
+  env1.gain.setTargetAtTime(0.001, t + dur * 0.35, dur * 0.22);
+  src1.connect(lp1); lp1.connect(env1); env1.connect(master);
+  src1.start(t); src1.stop(t + dur);
+
+  // Layer 2: Mid rumble — bandpass 100-350Hz, the audible rolling character
+  const src2 = ac.createBufferSource(); src2.buffer = buf;
+  const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 180 + Math.random() * 80; bp.Q.value = 0.4;
+  const env2 = ac.createGain();
+  env2.gain.setValueAtTime(0, t);
+  env2.gain.linearRampToValueAtTime(0.035, t + 0.3);
+  env2.gain.linearRampToValueAtTime(0.05, t + 0.7);
+  env2.gain.setTargetAtTime(0.001, t + dur * 0.3, dur * 0.25);
+  src2.connect(bp); bp.connect(env2); env2.connect(master);
+  src2.start(t); src2.stop(t + dur);
 }
 
 
