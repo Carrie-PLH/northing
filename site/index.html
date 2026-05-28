@@ -34,11 +34,147 @@ canvas {
   white-space: nowrap;
   z-index: 10;
 }
+#social-strip {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(28px, 4vw, 48px);
+  pointer-events: none;
+  z-index: 20;
+}
+#soc-primary {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  opacity: 0;
+}
+#soc-tagline {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: clamp(10px, 1.3vw, 14px);
+  font-weight: 400;
+  letter-spacing: 0.14em;
+  color: rgba(212, 200, 178, 0.65);
+  white-space: nowrap;
+  margin-bottom: 6px;
+}
+#soc-secondary {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: clamp(32px, 5vw, 60px);
+  opacity: 0;
+}
+.soc-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  cursor: pointer;
+}
+.soc-main img {
+  width: clamp(38px, 5vw, 52px);
+  height: clamp(38px, 5vw, 52px);
+  display: block;
+  opacity: 0.88;
+  transition: opacity 0.2s ease;
+}
+.soc-sub img {
+  width: clamp(24px, 3vw, 34px);
+  height: clamp(24px, 3vw, 34px);
+  display: block;
+  opacity: 0.70;
+  transition: opacity 0.2s ease;
+}
+.soc-main:hover img { opacity: 1; }
+.soc-sub:hover img  { opacity: 0.90; }
+.soc-item span {
+  font-family: 'Courier New', Courier, monospace;
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  text-transform: lowercase;
+  white-space: nowrap;
+  transition: color 0.2s ease;
+}
+.soc-main span {
+  font-size: clamp(9px, 1.1vw, 12px);
+  color: rgba(212, 200, 178, 0.70);
+}
+.soc-sub span {
+  font-size: clamp(8px, 0.9vw, 10px);
+  color: rgba(212, 200, 178, 0.50);
+}
+.soc-main:hover span { color: rgba(212, 200, 178, 1); }
+.soc-sub:hover span  { color: rgba(212, 200, 178, 0.80); }
+
+/* ── Scene 1 YouTube environmental cue ──────────────────────────────────── */
+#s1-yt-cue {
+  position: fixed;
+  bottom: 6%;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: 15;
+  text-align: center;
+}
+#s1-yt-cue a {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  text-decoration: none;
+  cursor: pointer !important;
+}
+#s1-yt-cue img {
+  width: clamp(26px, 3.2vw, 38px);
+  height: clamp(26px, 3.2vw, 38px);
+  display: block;
+  opacity: 0;
+  will-change: opacity;
+}
+#s1-yt-cue span {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: clamp(8px, 0.95vw, 11px);
+  font-weight: 400;
+  letter-spacing: 0.14em;
+  color: rgba(212, 200, 178, 0);
+  white-space: nowrap;
+  will-change: color;
+}
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
 <div id="fragment"></div>
+<div id="social-strip">
+  <div id="soc-primary">
+    <p id="soc-tagline">the observation continues</p>
+    <a class="soc-item soc-main" href="https://www.youtube.com/@northingland" target="_blank" rel="noopener">
+      <img src="../assets/sm-icons/youtube.png" alt="YouTube">
+      <span>youtube</span>
+    </a>
+  </div>
+  <div id="soc-secondary">
+    <a class="soc-item soc-sub" href="https://www.instagram.com/northingland" target="_blank" rel="noopener">
+      <img src="../assets/sm-icons/instagram.png" alt="Instagram">
+      <span>instagram</span>
+    </a>
+    <a class="soc-item soc-sub" href="https://www.are.na/northing-land/channels" target="_blank" rel="noopener">
+      <img src="../assets/sm-icons/are.na.png" alt="Are.na">
+      <span>are.na</span>
+    </a>
+  </div>
+</div>
+<div id="s1-yt-cue" aria-hidden="true">
+  <a href="https://www.youtube.com/@northingland" target="_blank" rel="noopener">
+    <img src="../assets/sm-icons/youtube.png" alt="">
+    <span>@northingland</span>
+  </a>
+</div>
 <script>
 // =============================================================================
 // NORTHING — Combined Traversal
@@ -2867,28 +3003,79 @@ function drawBlendedVignette() {
 }
 
 let loopCooldown = 0;
+let blackoutHeldSince = 0;  // timestamp when scene reached full black
+const socPrimary   = document.getElementById('soc-primary');
+const socSecondary = document.getElementById('soc-secondary');
+
+// Social icon persistence — slow decay so icons survive backward scrolls and loop
+let socialOpacityA = 0, socialOpacityB = 0;
+
+// Scene 1 YouTube cue — position-based, no state machine
+const s1CueRoot = document.getElementById('s1-yt-cue');
+const s1CueImg  = s1CueRoot.querySelector('img');
+const s1CueSpan = s1CueRoot.querySelector('span');
+let s1CueHovered = false;
+
+function tickSocial() {
+  // Emerge earlier in S4 — long before the blackout, giving a real window to interact
+  const tA = smooth(clamp((p4 - 0.72) / (0.84 - 0.72), 0, 1));
+  const tB = smooth(clamp((p4 - 0.76) / (0.88 - 0.76), 0, 1));
+
+  // Fast ramp up, slow decay (~4s) — icons survive backward scroll and loop-back
+  socialOpacityA = tA > socialOpacityA ? tA : Math.max(tA, socialOpacityA - 0.004);
+  socialOpacityB = tB > socialOpacityB ? tB : Math.max(tB, socialOpacityB - 0.003);
+
+  socPrimary.style.opacity   = socialOpacityA;
+  socSecondary.style.opacity = socialOpacityB;
+  socPrimary.style.pointerEvents   = socialOpacityA > 0.4 ? 'auto' : 'none';
+  socSecondary.style.pointerEvents = socialOpacityB > 0.4 ? 'auto' : 'none';
+}
+
+function tickS1Cue() {
+  // Pure position-based — emerges at end of S1, persists through S2 and S3,
+  // dissolves into the Scene 4 fog well before the social icons appear
+  const emerge   = smooth(clamp((p1 - 0.87) / (0.96 - 0.87), 0, 1));
+  const dissolve = 1 - smooth(clamp((p4 - 0.10) / (0.38 - 0.10), 0, 1));
+  const base     = emerge * dissolve;
+
+  const boost = s1CueHovered ? 1.65 : 1.0;
+  const fi = Math.min(base * 0.42 * boost, 1);
+  const ft = Math.min(base * 0.50 * boost, 1);
+
+  s1CueImg.style.opacity = fi;
+  s1CueSpan.style.color  = `rgba(212,200,178,${ft})`;
+  s1CueRoot.style.pointerEvents = fi > 0.04 ? 'auto' : 'none';
+}
 
 function drawDark() {
   let d = 0;
   // Scene 1 opening: fade from black
   if (p1 < 0.10) d = Math.max(d, fadeOut(0, 0.06, p1));
-  // Scene 4 closing: fade to black (end of traversal, triggers loop)
+  // Scene 4 closing: fade to black
   if (p4 > 0.85) d = Math.max(d, fadeIn(0.90, 0.98, p4));
-  if (d < 0.003) return;
+  if (d < 0.003) { blackoutHeldSince = 0; return; }
   ctx.fillStyle = `rgba(0,0,0,${d})`;
   ctx.fillRect(0, 0, W, H);
 
-  // Loop-back: when fully black at end of S4, reset to beginning
-  if (d > 0.97 && p4 > 0.95 && performance.now() > loopCooldown) {
-    scrollX = 0;
-    targetX = 0;
-    loopCooldown = performance.now() + 2000;
-    // Reset all fragment triggers
-    S1_FRAGS.forEach(f => f.done = false);
-    S2_FRAGS.forEach(f => f.done = false);
-    S3_FRAGS.forEach(f => f.done = false);
-    S4_FRAGS.forEach(f => f.done = false);
-    fragPhase = 'idle';
+  // Loop-back: hold at full black for 3s (social icons stay clickable above the canvas),
+  // then reset. Social opacity is NOT zeroed — icons decay naturally into the new cycle.
+  if (d > 0.97 && p4 > 0.95) {
+    if (!blackoutHeldSince) blackoutHeldSince = performance.now();
+    if (performance.now() - blackoutHeldSince > 3000 && performance.now() > loopCooldown) {
+      scrollX = 0;
+      targetX = 0;
+      loopCooldown = performance.now() + 2000;
+      blackoutHeldSince = 0;
+      S1_FRAGS.forEach(f => f.done = false);
+      S2_FRAGS.forEach(f => f.done = false);
+      S3_FRAGS.forEach(f => f.done = false);
+      S4_FRAGS.forEach(f => f.done = false);
+      fragPhase = 'idle';
+      // s1 cue resets naturally through position (p1 drops to 0)
+      // social icons left to decay on their own — persist briefly into new Scene 1
+    }
+  } else {
+    blackoutHeldSince = 0;
   }
 }
 
@@ -2935,8 +3122,8 @@ function tickFrag(now) {
   const el = now - fragStart;
   const col = fragScene === 1 ? 'rgba(212,200,178,' : (fragScene === 2 ? 'rgba(200,198,186,' : (fragScene === 3 ? 'rgba(196,192,180,' : 'rgba(194,196,188,'));
   // S4 fragments partially obscured by perceptual weather — text encountered through conditions
-  const baseMaxA = fragScene === 1 ? 0.82 : (fragScene === 2 ? 0.72 : (fragScene === 3 ? 0.68 : 0.64));
-  const maxA = fragScene === 4 ? baseMaxA * (1 - s4pw * 0.40) : baseMaxA;
+  const baseMaxA = fragScene === 1 ? 0.82 : (fragScene === 2 ? 0.72 : (fragScene === 3 ? 0.68 : 0.72));
+  const maxA = fragScene === 4 ? baseMaxA * (1 - s4pw * 0.20) : baseMaxA;
   const fadeInT = fragScene === 1 ? 1500 : (fragScene === 2 ? 2000 : (fragScene === 3 ? 2200 : 2800));
   const holdT = fragScene === 1 ? 3000 : (fragScene === 2 ? 3800 : (fragScene === 3 ? 4000 : 4500));
   const fadeOutT = fragScene === 1 ? 1800 : (fragScene === 2 ? 2400 : (fragScene === 3 ? 2600 : 3000));
@@ -2991,11 +3178,16 @@ let s3ForestG, s3WaterG, s3DripG, s3ResonanceG;
 let s4WindG, s4DripG, s4RainHissG, s4ForestG;
 let audioLive = false, nextBirdTime = 0, nextDripTime = 0, nextS3DripTime = 0, nextS4DripTime = 0;
 
+function tryResumeAudio() {
+  if (ac && ac.state === 'suspended') ac.resume().catch(() => {});
+}
+
 function bootAudio() {
   if (audioLive) return;
   audioLive = true;
   try {
     ac = new (window.AudioContext || window.webkitAudioContext)();
+    ac.resume().catch(() => {}); // browsers often start suspended
     const master = ac.createGain();
     master.gain.value = 0.20;
     master.connect(ac.destination);
@@ -3094,7 +3286,7 @@ function bootAudio() {
     sub.connect(subG); subG.connect(master); sub.start();
 
     noise.start();
-  } catch(e) {}
+  } catch(e) { audioLive = false; }
 }
 
 function triggerBirdCall() {
@@ -3200,16 +3392,23 @@ function tickAudio(now) {
     s2WaterG.gain.setTargetAtTime((waterBase + channelBoost) * s2a, t, 0.8);
   }
   if (s2InsectG) {
-    const insect = window01(0.28, 0.42, 0.68, 0.80, p2) * 0.08;
     const mod = 0.7 + Math.sin(now * 0.0006) * 0.3;
-    s2InsectG.gain.setTargetAtTime(insect * mod * s2a, t, 1.5);
+    // Insects present in any bright/open section across all scenes
+    const i1 = window01(0.38, 0.52, 0.64, 0.80, p1) * 0.05 * (1 - seamT);   // S1 ridge
+    const i2 = window01(0.28, 0.42, 0.68, 0.80, p2) * 0.08 * s2a;            // S2 passage
+    const i3 = window01(0.20, 0.35, 0.50, 0.65, p3) * 0.04 * s3a;            // S3 clearing
+    s2InsectG.gain.setTargetAtTime((i1 + i2 + i3) * mod, t, 1.5);
   }
   if (s2BirdG) {
-    const birdPresence = window01(0.10, 0.20, 0.75, 0.88, p2) * 0.45 * s2a;
+    // Birds in any open/bright section
+    const b1 = window01(0.40, 0.52, 0.62, 0.76, p1) * 0.22 * (1 - seamT);   // S1 ridge
+    const b2 = window01(0.10, 0.20, 0.75, 0.88, p2) * 0.45 * s2a;            // S2 passage
+    const b3 = window01(0.15, 0.28, 0.52, 0.68, p3) * 0.18 * s3a;            // S3 clearing
+    const birdPresence = b1 + b2 + b3;
     s2BirdG.gain.setTargetAtTime(birdPresence, t, 0.8);
     if (now > nextBirdTime && birdPresence > 0.04) {
       triggerBirdCall();
-      nextBirdTime = now + 5000 + Math.random() * 16000;
+      nextBirdTime = now + 4000 + Math.random() * 14000;
     }
   }
   if (s2DripG) {
@@ -3272,6 +3471,45 @@ function tickAudio(now) {
 
 
 // =============================================================================
+// INSECT SPECKS
+// =============================================================================
+
+const INSECT_DATA = [];
+(function buildInsects() {
+  for (let i = 0; i < 90; i++) {
+    INSECT_DATA.push({
+      rx:    rand(i * 7  + 1),                        // screen-relative x 0–1
+      ry:    0.18 + rand(i * 11 + 2) * 0.58,          // y in clear-air zone
+      speed: 0.3 + rand(i * 29 + 6) * 1.4,
+      phase: rand(i * 23 + 5) * Math.PI * 2,
+      px:    (rand(i * 13 + 3) - 0.5) * 0.06,         // slow horizontal drift
+      py:    (rand(i * 17 + 4) - 0.5) * 0.03,
+      size:  0.7 + rand(i * 31 + 7) * 1.1
+    });
+  }
+})();
+
+function drawInsects(now, vis) {
+  if (vis < 0.01) return;
+  const t = now * 0.001;
+  ctx.save();
+  INSECT_DATA.forEach((ins, i) => {
+    const tx = ((ins.rx + Math.sin(t * ins.speed + ins.phase) * 0.018
+                        + ins.px * t * 0.4) % 1 + 1) % 1;
+    const ty = ins.ry + Math.sin(t * ins.speed * 0.7 + ins.phase * 1.3) * 0.022
+                      + ins.py * t * 0.3;
+    if (ty < 0.10 || ty > 0.82) return;
+    const alpha = vis * (0.18 + rand(i * 3 + 99) * 0.28);
+    ctx.fillStyle = `rgba(22,20,14,${alpha})`;
+    ctx.beginPath();
+    ctx.arc(tx * W, ty * H, ins.size, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  ctx.restore();
+}
+
+
+// =============================================================================
 // INPUT
 // =============================================================================
 
@@ -3300,23 +3538,32 @@ function advance(delta) {
 
 window.addEventListener('wheel', e => {
   e.preventDefault();
+  tryResumeAudio();
   const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
   advance(d * 1.65);
 }, { passive: false });
 
 window.addEventListener('keydown', e => {
+  tryResumeAudio();
   const step = 65;
   if (e.key === 'ArrowRight' || e.key === 'ArrowDown') advance(step);
   if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   advance(-step);
 });
 
+// Click also unlocks audio on browsers that require it
+window.addEventListener('click', () => { bootAudio(); tryResumeAudio(); }, { once: false });
+
 let tPrev = null;
-window.addEventListener('touchstart', e => { tPrev = e.touches[0].clientX; bootAudio(); }, { passive: true });
+window.addEventListener('touchstart', e => { tPrev = e.touches[0].clientX; bootAudio(); tryResumeAudio(); }, { passive: true });
 window.addEventListener('touchmove', e => {
   e.preventDefault();
   if (tPrev !== null) { advance((tPrev - e.touches[0].clientX) * 2.4); tPrev = e.touches[0].clientX; }
 }, { passive: false });
 window.addEventListener('touchend', () => { tPrev = null; });
+
+// S1 cue hover — resolves clarity without changing visual language
+s1CueRoot.addEventListener('mouseenter', () => { s1CueHovered = true; });
+s1CueRoot.addEventListener('mouseleave', () => { s1CueHovered = false; });
 
 
 // =============================================================================
@@ -3558,12 +3805,30 @@ function render(now) {
     ctx.globalAlpha = 1;
   }
 
+  // ── Insect specks (bright/open scenes) ──
+  sceneAlpha = 1;
+  ctx.globalAlpha = 1;
+  {
+    const insectVis = Math.max(
+      window01(0.38, 0.52, 0.64, 0.80, p1) * (1 - seamT),
+      window01(0.28, 0.42, 0.68, 0.80, p2) * s2EffAlpha,
+      window01(0.20, 0.35, 0.50, 0.65, p3) * seamT2 * (1 - seamT3)
+    );
+    drawInsects(now, insectVis);
+  }
+
   // ── Vignette (blended) ──
   sceneAlpha = 1;
   drawBlendedVignette();
 
   // ── Dark (opening + closing only) ──
   drawDark();
+
+  // ── Social icons (end-of-traversal overlay) ──
+  tickSocial();
+
+  // ── Scene 1 YouTube environmental cue ──
+  tickS1Cue();
 
   // ── Fragment ──
   checkFrags();
