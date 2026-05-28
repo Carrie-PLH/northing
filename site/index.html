@@ -154,24 +154,24 @@ canvas {
   <div id="soc-primary">
     <p id="soc-tagline">the observation continues</p>
     <a class="soc-item soc-main" href="https://www.youtube.com/@northingland" target="_blank" rel="noopener">
-      <img src="../assets/sm-icons/youtube.png" alt="YouTube">
+      <img src="sm-icons/youtube.png" alt="YouTube">
       <span>youtube</span>
     </a>
   </div>
   <div id="soc-secondary">
     <a class="soc-item soc-sub" href="https://www.instagram.com/northingland" target="_blank" rel="noopener">
-      <img src="../assets/sm-icons/instagram.png" alt="Instagram">
+      <img src="sm-icons/instagram.png" alt="Instagram">
       <span>instagram</span>
     </a>
     <a class="soc-item soc-sub" href="https://www.are.na/northing-land/channels" target="_blank" rel="noopener">
-      <img src="../assets/sm-icons/are.na.png" alt="Are.na">
+      <img src="sm-icons/are.na.png" alt="Are.na">
       <span>are.na</span>
     </a>
   </div>
 </div>
 <div id="s1-yt-cue" aria-hidden="true">
   <a href="https://www.youtube.com/@northingland" target="_blank" rel="noopener">
-    <img src="../assets/sm-icons/youtube.png" alt="">
+    <img src="sm-icons/youtube.png" alt="">
     <span>@northingland</span>
   </a>
 </div>
@@ -3374,12 +3374,17 @@ function tickAudio(now) {
   const s4a = seamT3;
 
   if (s1ForestG) {
-    const fa = window01(0.06, 0.14, 0.30, 0.44, p1);
-    const fd = window01(0.66, 0.72, 0.82, 0.92, p1);
-    s1ForestG.gain.setTargetAtTime(Math.max(fa, fd) * 0.52 * s1a, t, 1.2);
+    // Sustained low rumble throughout S1 — no dead zone at the ridge
+    const base = fadeIn(0.06, 0.18, p1) * fadeOut(0.88, 0.96, p1) * 0.26;
+    const fa   = window01(0.06, 0.14, 0.30, 0.44, p1) * 0.26;  // approach boost
+    const fd   = window01(0.66, 0.72, 0.82, 0.92, p1) * 0.26;  // descent boost
+    s1ForestG.gain.setTargetAtTime((base + Math.max(fa, fd)) * s1a, t, 1.2);
   }
   if (s1WindG) {
-    s1WindG.gain.setTargetAtTime(window01(0.44, 0.55, 0.64, 0.78, p1) * 0.38 * s1a, t, 1.2);
+    // Soft ambient breeze throughout + ridge emphasis on top
+    const breeze = fadeIn(0.10, 0.22, p1) * fadeOut(0.84, 0.94, p1) * 0.09;
+    const ridge  = window01(0.44, 0.55, 0.64, 0.78, p1) * 0.28;
+    s1WindG.gain.setTargetAtTime((breeze + ridge) * s1a, t, 1.2);
   }
   if (s2WindG) {
     const wind = (fadeOut(0.25, 0.55, p2) * fadeIn(0.04, 0.12, p2)
@@ -3394,21 +3399,23 @@ function tickAudio(now) {
   if (s2InsectG) {
     const mod = 0.7 + Math.sin(now * 0.0006) * 0.3;
     // Insects present in any bright/open section across all scenes
-    const i1 = window01(0.38, 0.52, 0.64, 0.80, p1) * 0.05 * (1 - seamT);   // S1 ridge
+    const i1 = window01(0.10, 0.24, 0.76, 0.90, p1) * 0.14 * (1 - seamT);   // S1 full daytime
     const i2 = window01(0.28, 0.42, 0.68, 0.80, p2) * 0.08 * s2a;            // S2 passage
     const i3 = window01(0.20, 0.35, 0.50, 0.65, p3) * 0.04 * s3a;            // S3 clearing
     s2InsectG.gain.setTargetAtTime((i1 + i2 + i3) * mod, t, 1.5);
   }
   if (s2BirdG) {
     // Birds in any open/bright section
-    const b1 = window01(0.40, 0.52, 0.62, 0.76, p1) * 0.22 * (1 - seamT);   // S1 ridge
+    const b1 = window01(0.18, 0.32, 0.68, 0.82, p1) * 0.22 * (1 - seamT);   // S1 full daytime
     const b2 = window01(0.10, 0.20, 0.75, 0.88, p2) * 0.45 * s2a;            // S2 passage
     const b3 = window01(0.15, 0.28, 0.52, 0.68, p3) * 0.18 * s3a;            // S3 clearing
     const birdPresence = b1 + b2 + b3;
     s2BirdG.gain.setTargetAtTime(birdPresence, t, 0.8);
     if (now > nextBirdTime && birdPresence > 0.04) {
       triggerBirdCall();
-      nextBirdTime = now + 4000 + Math.random() * 14000;
+      // Shorter interval in S1 (fewer competing sounds, birds more prominent)
+      const interval = s1a > 0.7 ? (2000 + Math.random() * 6000) : (4000 + Math.random() * 14000);
+      nextBirdTime = now + interval;
     }
   }
   if (s2DripG) {
@@ -3538,20 +3545,20 @@ function advance(delta) {
 
 window.addEventListener('wheel', e => {
   e.preventDefault();
-  tryResumeAudio();
   const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
-  advance(d * 1.65);
+  advance(d * 1.65);  // bootAudio() is inside advance(); tryResume must follow
+  tryResumeAudio();
 }, { passive: false });
 
 window.addEventListener('keydown', e => {
-  tryResumeAudio();
   const step = 65;
-  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') advance(step);
-  if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   advance(-step);
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { advance(step);  tryResumeAudio(); }
+  if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   { advance(-step); tryResumeAudio(); }
 });
 
-// Click also unlocks audio on browsers that require it
-window.addEventListener('click', () => { bootAudio(); tryResumeAudio(); }, { once: false });
+// Any pointer/click event unlocks audio context
+window.addEventListener('pointerdown', () => { bootAudio(); tryResumeAudio(); });
+window.addEventListener('click',       () => { bootAudio(); tryResumeAudio(); });
 
 let tPrev = null;
 window.addEventListener('touchstart', e => { tPrev = e.touches[0].clientX; bootAudio(); tryResumeAudio(); }, { passive: true });
@@ -3810,7 +3817,7 @@ function render(now) {
   ctx.globalAlpha = 1;
   {
     const insectVis = Math.max(
-      window01(0.38, 0.52, 0.64, 0.80, p1) * (1 - seamT),
+      window01(0.10, 0.24, 0.76, 0.90, p1) * (1 - seamT),   // S1 full daytime
       window01(0.28, 0.42, 0.68, 0.80, p2) * s2EffAlpha,
       window01(0.20, 0.35, 0.50, 0.65, p3) * seamT2 * (1 - seamT3)
     );
