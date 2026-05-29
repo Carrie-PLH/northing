@@ -176,6 +176,55 @@ const SEED_ARTIFACTS = [
   { location_id: '007', title: 'Interior ridge above fog: photograph', type: 'photograph', period: 'mid-20th century', arena_url: null, description: 'Photograph showing interior secondary ridge projecting above valley fog layer; eastern drainage fog-free.' },
   { location_id: '007', title: 'Orientation diagram: watershed features as seen from ridge', type: 'map / sketch', period: 'undated', arena_url: null, description: 'Hand-drawn panoramic diagram annotating tonal features visible from ridge: valley band, interior ridge, lower wetland.' },
   { location_id: '007', title: 'Winter visibility conditions: post-frontal clarity notes', type: 'observation record', period: 'undated', arena_url: null, description: 'Notes on exceptional winter visibility after cold-front passage; named structural features legible.' },
+
+  // ── COLOR / PERSONAL LAYER ────────────────────────────────────────────────
+  // 001 Tributary Confluence Wet Meadow
+  { location_id: '001', title: 'Wildflower study: wet meadow species', type: 'naturalist notebook', period: 'early 20th century', arena_url: null, description: 'Watercolor studies of five wet-meadow forbs; each plant shown in flower with a pressed specimen alongside. Painted in the field; color notes written in margin where pigment ran short.' },
+  { location_id: '001', title: 'Color slide: spring flood at confluence', type: 'color slide', period: '1950s', arena_url: null, description: 'Kodachrome slide showing the confluence at spring flood peak; brown water carrying ice fragments, far bank submerged to lower branches. Sky a pale cold blue.' },
+  { location_id: '001', title: 'Polaroid: autumn sedge margin', type: 'photograph', period: 'late 20th century', arena_url: null, description: 'Faded Polaroid of the sedge margin in October; warm amber against standing water reflecting a grey sky. Print slightly overexposed at center.' },
+  { location_id: '001', title: 'Nature journal page: frogs and herons', type: 'nature journal', period: 'undated', arena_url: null, description: "Child's journal page with pencil sketches of a green frog and a great blue heron, labeled in careful printing. A pressed cattail leaf taped to the bottom edge, now dried flat and pale." },
+  { location_id: '001', title: 'Postcard: confluence valley view', type: 'postcard', period: 'early 20th century', arena_url: null, description: 'Printed postcard showing the valley corridor from an elevated vantage; colors hand-tinted, sky lavender-blue, meadow a saturated green. No message on reverse.' },
+
+  // 002 Abandoned Hillside Orchard
+  { location_id: '002', title: 'Seed catalog page: apple varieties', type: 'seed catalog page', period: 'early 20th century', arena_url: null, description: "Single page from a regional nursery catalog showing six apple varieties in color illustration: McIntosh, Northern Spy, Wealthy, and three now-obscure names. Colors slightly garish; the Wealthy is a deep arterial red." },
+  { location_id: '002', title: 'Harvest ribbon: county fair, apple class', type: 'harvest ribbon', period: 'mid-20th century', arena_url: null, description: 'Second-place ribbon in deep blue and gold; printed with county name and year. Attached by a small pin that has left a rust mark on the fabric. Apple class lettered in gilt.' },
+  { location_id: '002', title: 'Painted crate label: variety name and orchard', type: 'crate label', period: 'early-to-mid 20th century', arena_url: null, description: 'Color-printed paper crate label with orchard name in bold serif type; apple illustration in red and green against a cream field. A faint blue border, slightly misregistered at one corner.' },
+  { location_id: '002', title: 'Color slide: orchard at full blossom', type: 'color slide', period: '1950s', arena_url: null, description: 'Kodachrome slide of the orchard clearing at peak blossom; white and pale pink bloom against the dark spruce wall at the clearing edge. Sky an oversaturated Kodachrome blue.' },
+  { location_id: '002', title: 'Orchard variety chart: hand-colored', type: 'orchard variety chart', period: 'early 20th century', arena_url: null, description: 'Hand-drawn grid showing each row, variety, and rootstock; variety names written in ink, each column headed with a small watercolor patch in approximate fruit color. Annotations added over multiple seasons in different hands.' },
+  { location_id: '002', title: 'Feed store advertisement: orchard spraying equipment', type: 'advertisement', period: 'mid-20th century', arena_url: null, description: 'Printed broadsheet advertising a regional feed and farm supply store; orchard spray rigs illustrated in line engraving. A handwritten note in the margin: "ask about the 40-gal."' },
+  { location_id: '002', title: 'Color slide: fruit accumulation on clearing floor', type: 'color slide', period: '1960s', arena_url: null, description: 'Slide showing windfallen apples covering the clearing floor in October; red and yellow against dark earth, some already browning. A deer track visible in the lower right corner.' },
+
+  // 003 Forest Crossing
+  { location_id: '003', title: 'Mushroom sketches: forest floor species', type: 'naturalist notebook', period: 'undated', arena_url: null, description: 'Notebook page with watercolor sketches of four mushroom species found near the crossing; one identified by common name only, one with a question mark. Spore print glued alongside, rust-brown on white paper.' },
+  { location_id: '003', title: 'Color slide: crossing in peak autumn', type: 'color slide', period: '1960s', arena_url: null, description: 'Kodachrome slide of the stone crossing in mid-October; yellow birch leaves banked against the upstream stones, water black in shadow. The flat above crossing visible and bright.' },
+  { location_id: '003', title: 'Camp pennant: watershed trail organization', type: 'camp pennant', period: 'mid-20th century', arena_url: null, description: 'Wool felt pennant in dark green with cream lettering; organization name and a stylized pine tree. Slightly moth-damaged at one edge. The kind issued for trail membership or canoe route completion.' },
+  { location_id: '003', title: 'Painted trail marker: close-up photograph', type: 'photograph', period: 'late 20th century', arena_url: null, description: 'Close-up photograph of a blaze on a birch trunk near the crossing approach; paint orange, applied in two coats, lower coat older and greyed. Bark has grown slightly around the older mark.' },
+
+  // 004 Beaver Meadow
+  { location_id: '004', title: 'Bird migration chart: waterfowl, eastern flyway', type: 'migration chart', period: 'mid-20th century', arena_url: null, description: 'Hand-colored chart showing migration timing for nine waterfowl species; arrival and departure bars filled in watercolor by species. Duck silhouettes printed in black; color added in pencil and wash over multiple seasons.' },
+  { location_id: '004', title: 'Color slide: waterfowl on open pond', type: 'color slide', period: '1950s–60s', arena_url: null, description: 'Kodachrome slide of the pond in early May; a small group of ring-necked ducks on the water surface, standing dead behind them silver-white. Ice remnant at far margin.' },
+  { location_id: '004', title: 'Insect collection card: dragonfly species', type: 'insect collection', period: 'late 20th century', arena_url: null, description: 'Mounting card with three pinned dragonfly specimens from the pond margin; species labels in small type below each. Wings intact and iridescent; one specimen slightly faded to amber.' },
+  { location_id: '004', title: 'Color snapshot: autumn colors at pond', type: 'photograph', period: '1970s', arena_url: null, description: 'Early color snapshot — slightly warm-shifted with age — showing the pond in mid-October; tamarack yellow and red maple reflected in still water. A handwritten date on the back.' },
+  { location_id: '004', title: 'Pressed sedge specimen: emergent species', type: 'naturalist notebook', period: 'undated', arena_url: null, description: 'Pressed and mounted sedge from the pond margin, glued to a notebook page with a penciled identification note. Stem flat and pale, seed head still intact.' },
+
+  // 005 Stone Foundation Clearing
+  { location_id: '005', title: 'Watercolor geological section: bench stratigraphy', type: 'geological section', period: 'mid-20th century', arena_url: null, description: 'Hand-drawn cross-section of the western bench stratigraphy; layers colored in watercolor wash — buff for till, grey-brown for organic layer, pale yellow for sand lens. Prepared for a regional survey; field notations in pencil below the finished color.' },
+  { location_id: '005', title: "Child's handmade map: clearing and surrounding forest", type: 'handmade map', period: 'undated', arena_url: null, description: "Hand-drawn on ruled notebook paper in pencil and crayon; the stone foundation labeled 'old house,' the trail in red, the forest in green scribble. A north arrow pointing roughly northeast. Distances labeled in minutes of walking." },
+  { location_id: '005', title: 'Pressed flower collection: clearing species', type: 'pressed flower collection', period: 'late 19th to early 20th century', arena_url: null, description: 'Small envelope containing four pressed flowers from the clearing interior; goldenrod, a hawkweed, something in the aster family. Colors faded to cream and pale ochre. No labels, but the envelope is initialed.' },
+  { location_id: '005', title: 'Color slide: clearing at peak autumn color', type: 'color slide', period: '1950s', arena_url: null, description: 'Kodachrome slide of the clearing in October; pioneer birch and aspen in full yellow, foundation stone grey beneath. The contrast between the lit clearing and the dark spruce margin is pronounced in the slide.' },
+
+  // 006 Headwater Spring
+  { location_id: '006', title: 'Naturalist notebook: spring wildflowers', type: 'naturalist notebook', period: 'early 20th century', arena_url: null, description: 'Two notebook pages of watercolor field sketches: marsh marigold in vivid yellow, blue violet, early trout lily. Each plant labeled in a neat hand; color applied quickly, still wet when the page was turned — faint ghost print on facing page.' },
+  { location_id: '006', title: 'Vegetation community diagram: spring zone', type: 'vegetation diagram', period: 'mid-20th century', arena_url: null, description: 'Hand-colored diagram showing plant community zones radiating from the spring emergence point; each zone labeled and colored in watercolor wash. Sphagnum in pale green, horsetail in grey-green, upland transition in buff.' },
+  { location_id: '006', title: 'Color slide: spring zone in early June', type: 'color slide', period: '1960s', arena_url: null, description: 'Kodachrome slide of the spring emergence zone at peak early-summer color; marsh marigold still in flower at margin, new growth vivid against the still-bare mineral soil around the pool.' },
+  { location_id: '006', title: 'Polaroid: spring emergence pool', type: 'photograph', period: 'late 20th century', arena_url: null, description: 'Polaroid of the emergence pool in summer; water surface clear, sandy upwelling point visible at bottom. Print slightly warm-shifted. The scale of the pool is difficult to read without context.' },
+
+  // 007 Ridge Overlook
+  { location_id: '007', title: 'Hand-colored survey map: watershed overview', type: 'hand-colored map', period: 'early 20th century', arena_url: null, description: 'Printed survey base map with hand-applied color washes; watershed boundary in red, drainage network in blue ink, forest cover in a pale green wash that has faded unevenly. Elevation contours in printed black.' },
+  { location_id: '007', title: 'Color slide: autumn valley from ridge', type: 'color slide', period: '1950s', arena_url: null, description: 'Kodachrome slide taken from the overlook looking down the valley corridor in full autumn color; the deciduous band through the valley floor orange and red, surrounding slopes darker. Sky overexposed.' },
+  { location_id: '007', title: 'Local fair program: watershed community', type: 'fair program', period: 'mid-20th century', arena_url: null, description: 'Folded paper program for an annual local fair; schedule of events includes agricultural classes, pie judging, and a "nature walk" entry. Printed in two colors — black and a dark red. One page detached.' },
+  { location_id: '007', title: 'Watercolor sketch: ridge view with cloud shadow', type: 'naturalist notebook', period: 'undated', arena_url: null, description: 'Small watercolor sketch made from the overlook; valley rendered in loose washes of grey-green and ochre, a cloud shadow crossing the middle distance in blue-grey. The ridge foreground left unpainted — white paper.' },
+  { location_id: '007', title: 'Bird migration chart: ridge hawk count', type: 'migration chart', period: 'mid-20th century', arena_url: null, description: 'Hand-colored chart recording daily hawk counts at the ridge over six autumn seasons; broad-winged hawk peak marked with a vertical red line. Columns for species, wind direction, temperature. A good day circled in pencil.' },
 ];
 
 // ─── are.na utilities ─────────────────────────────────────────────────────────
@@ -210,6 +259,8 @@ async function fetchArenaBlock(blockId) {
 
 // ─── Database initialization ──────────────────────────────────────────────────
 
+const SEED_VERSION = '2';
+
 async function initDB() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS artifacts (
@@ -232,9 +283,18 @@ async function initDB() {
     );
   `);
 
-  const { rows } = await pool.query("SELECT value FROM app_state WHERE key = 'seeded'");
-  if (rows.length === 0) {
-    console.log('Seeding artifact catalog...');
+  // Ensure unique index exists so ON CONFLICT works
+  await pool.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS artifacts_loc_title_unique
+    ON artifacts (location_id, title)
+  `);
+
+  const { rows } = await pool.query("SELECT value FROM app_state WHERE key = 'seed_version'");
+  const currentVersion = rows[0]?.value || '0';
+
+  if (currentVersion < SEED_VERSION) {
+    console.log(`Running seed v${SEED_VERSION} (additive — existing records preserved)...`);
+    let added = 0;
     for (const art of SEED_ARTIFACTS) {
       const blockId = extractArenaBlockId(art.arena_url);
       let imageUrl = null;
@@ -246,14 +306,20 @@ async function initDB() {
           fetched = true;
         }
       }
-      await pool.query(
+      const result = await pool.query(
         `INSERT INTO artifacts (location_id, title, type, period, arena_url, arena_block_id, arena_image_url, arena_fetched, description)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+         ON CONFLICT (location_id, title) DO NOTHING`,
         [art.location_id, art.title, art.type, art.period, art.arena_url, blockId, imageUrl, fetched, art.description]
       );
+      if (result.rowCount > 0) added++;
     }
-    await pool.query("INSERT INTO app_state (key, value) VALUES ('seeded', 'true')");
-    console.log(`Seeded ${SEED_ARTIFACTS.length} artifacts.`);
+    await pool.query(
+      `INSERT INTO app_state (key, value) VALUES ('seed_version', $1)
+       ON CONFLICT (key) DO UPDATE SET value = $1`,
+      [SEED_VERSION]
+    );
+    console.log(`Seed v${SEED_VERSION} complete: ${added} new artifacts added.`);
   }
 }
 
