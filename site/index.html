@@ -3190,9 +3190,15 @@ function tickLogo() {
 // frame. No instructions, no arrows — the world is simply already in progress.
 // =============================================================================
 function drawOpeningAtmosphere(now) {
-  // Active only during the title-card black; fades out before drawDark fully
-  // releases so it never competes with the emerging Scene 1.
-  const vis = smooth(clamp((0.060 - p1) / (0.060 - 0.025), 0, 1));
+  // Active during BOTH title cards:
+  //  - Opening: fades out before drawDark releases so it never competes with
+  //    the emerging Scene 1.
+  //  - Closing: fades in slightly behind drawDark's blackout ramp so it sits
+  //    over the closing black rather than over the still-visible Scene 4.
+  // Same drift mechanics on both ends — Northing's atmospheric signature.
+  const opening = smooth(clamp((0.060 - p1) / (0.060 - 0.025), 0, 1));
+  const closing = smooth(clamp((p4 - 0.86)  / (0.95  - 0.86),  0, 1));
+  const vis = Math.max(opening, closing);
   if (vis < 0.005) return;
 
   // After a short idle pause at the title card, the drift gently amplifies —
