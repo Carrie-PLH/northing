@@ -1,0 +1,15 @@
+# Ignore everything
+*
+
+# Except this file
+!/.gitignore
+
+# Except the site folder
+!/site
+!/site/**
+
+# System files
+**/.DS_Store
+
+# Keep .env out of git (contains secrets)
+/site/artifact-catalog/.env
