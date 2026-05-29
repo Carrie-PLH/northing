@@ -114,6 +114,18 @@ canvas {
 .soc-main:hover span { color: rgba(212, 200, 178, 1); }
 .soc-sub:hover span  { color: rgba(212, 200, 178, 0.80); }
 
+/* ── Title-card logo (white) ────────────────────────────────────────────── */
+#nl-logo {
+  width: clamp(180px, 22vw, 320px);
+  height: auto;
+  display: block;
+  opacity: 0;
+  pointer-events: none;
+  will-change: opacity;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
 /* ── Audio unlock prompt ────────────────────────────────────────────────── */
 #audio-cue {
   position: fixed;
@@ -182,6 +194,7 @@ canvas {
 <canvas id="c"></canvas>
 <div id="fragment"></div>
 <div id="social-strip">
+  <img id="nl-logo" src="logo-white.png" alt="Northing" draggable="false">
   <div id="soc-primary">
     <p id="soc-tagline">the observation expands</p>
     <a class="soc-item soc-main" href="https://www.youtube.com/@northingland" target="_blank" rel="noopener">
@@ -3104,9 +3117,13 @@ let loopCooldown = 0;
 let blackoutHeldSince = 0;  // timestamp when scene reached full black
 const socPrimary   = document.getElementById('soc-primary');
 const socSecondary = document.getElementById('soc-secondary');
+const nlLogo       = document.getElementById('nl-logo');
 
 // Social icon persistence — slow decay so icons survive backward scrolls and loop
 let socialOpacityA = 0, socialOpacityB = 0;
+
+// Logo persistence — same pattern. Smooth fade-in (title-card emerge), slow decay.
+let logoOpacity = 0;
 
 // Scene 1 YouTube cue — position-based, no state machine
 const s1CueRoot = document.getElementById('s1-yt-cue');
@@ -3143,6 +3160,26 @@ function tickS1Cue() {
   s1CueImg.style.opacity = fi;
   s1CueSpan.style.color  = `rgba(212,200,178,${ft})`;
   s1CueRoot.style.pointerEvents = fi > 0.04 ? 'auto' : 'none';
+}
+
+function tickLogo() {
+  // Opening — visible while Scene 1 is still in its opening blackout, fades out
+  // as the forest reveals. drawDark fades black 0 → 0.06 of p1, so the logo
+  // begins yielding to the scene right as it becomes visible.
+  const opening = smooth(clamp((0.085 - p1) / (0.085 - 0.050), 0, 1));
+  // Closing — fades back in alongside the social icons at the end of Scene 4.
+  const closing = smooth(clamp((p4 - 0.70) / (0.84 - 0.70), 0, 1));
+  const target  = Math.max(opening, closing);
+
+  // Smooth fade-in (~1.3s — title-card emerge), slow decay (~5s) so the logo
+  // survives backward scrolls and persists through the loop-back blackout into
+  // the next cycle without snapping.
+  if (target > logoOpacity) {
+    logoOpacity = Math.min(target, logoOpacity + 0.012);
+  } else {
+    logoOpacity = Math.max(target, logoOpacity - 0.003);
+  }
+  nlLogo.style.opacity = logoOpacity;
 }
 
 function drawDark() {
@@ -4097,6 +4134,9 @@ function render(now) {
 
   // ── Social icons (end-of-traversal overlay) ──
   tickSocial();
+
+  // ── Title-card logo (opening + closing overlay) ──
+  tickLogo();
 
   // ── Scene 1 YouTube environmental cue ──
   tickS1Cue();
