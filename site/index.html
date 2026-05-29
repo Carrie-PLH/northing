@@ -3219,23 +3219,38 @@ function drawOpeningAtmosphere(now) {
   ctx.closePath();
   ctx.fill();
 
-  // Cropped distant ridge — extends beyond the right edge, implying continuation
-  ctx.fillStyle = `rgba(62,68,76,${vis * 0.17})`;
-  ctx.beginPath();
-  const ridgeStartX = W * 0.56;
-  ctx.moveTo(ridgeStartX, H);
-  const ridgeDrift = now * 0.003 * boost;
-  for (let x = ridgeStartX; x <= W + 80; x += 5) {
-    const wx = x - ridgeStartX + ridgeDrift;
-    const ridge = H * 0.515
-                + Math.sin(wx * 0.0021 + 0.3) * 12
-                + Math.sin(wx * 0.0048)       * 20
-                + Math.sin(wx * 0.011 + 1.4)  * 8;
-    ctx.lineTo(x, ridge);
+  // Faint wavy tall grass — anchored along an implied low ground line, leaning
+  // leftward with the drift, density biased right and bleeding past the frame.
+  // Replaces the earlier ridge silhouette: organic, no rectangular footprint,
+  // and reinforces the same lateral airflow as the fog above.
+  const grassY = H * 0.78;
+  const grassPhase = now * 0.0008 * boost;
+  for (let i = 0; i < 88; i++) {
+    const xBias = Math.pow(rand(i * 7 + 3), 0.62);   // skew toward right edge
+    const baseX = W * 0.40 + xBias * W * 0.74;
+    if (baseX > W + 40) continue;
+
+    const r1 = rand(i * 11 + 1);
+    const h = 22 + r1 * 60;
+    const yBase = grassY + (rand(i * 13) - 0.5) * 20;
+    const yTip  = yBase - h;
+
+    // Per-blade sway, leftward bias — matches fog drift direction
+    const sway = Math.sin(grassPhase + i * 0.71) * 3.2
+               + Math.sin(grassPhase * 2.3 + i * 1.4) * 1.3
+               - 1.4;
+    const tipX  = baseX + sway;
+    const ctrlX = baseX + sway * 0.4;
+    const ctrlY = yBase - h * 0.55;
+
+    const a = vis * (0.16 + rand(i * 17 + 5) * 0.18);
+    ctx.strokeStyle = `rgba(82,88,86,${a})`;
+    ctx.lineWidth = 0.9 + rand(i * 19) * 0.4;
+    ctx.beginPath();
+    ctx.moveTo(baseX, yBase);
+    ctx.quadraticCurveTo(ctrlX, ctrlY, tipX, yTip);
+    ctx.stroke();
   }
-  ctx.lineTo(W + 80, H);
-  ctx.closePath();
-  ctx.fill();
 
   // Three depth-layered fog bands drifting leftward (camera moves rightward)
   const bands = [
