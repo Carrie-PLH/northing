@@ -1,0 +1,1170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Northing — Artifact Catalog</title>
+  <style>
+    :root {
+      --bg: #F2EFE9;
+      --card-bg: #FAFAF7;
+      --border: #D8D4CC;
+      --text: #1A1916;
+      --text-muted: #7A7670;
+      --text-faint: #ABA9A5;
+      --accent: #1A1916;
+
+      --c001: #3D5A8A;
+      --c001-light: #E8EDF5;
+      --c002: #4A6B46;
+      --c002-light: #E8F0E7;
+      --c003: #6B4A2E;
+      --c003-light: #F2EBE4;
+      --c004: #2E6B62;
+      --c004-light: #E3F0EE;
+      --c005: #7A6A56;
+      --c005-light: #F0EDE8;
+      --c006: #3A6E9A;
+      --c006-light: #E4EFF6;
+      --c007: #5A4A72;
+      --c007-light: #ECEAF4;
+
+      --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+      --font-serif: 'Georgia', 'Times New Roman', serif;
+      --radius: 4px;
+      --shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    /* ─── Header ─────────────────────────────────────────────── */
+
+    header {
+      background: var(--text);
+      color: #F2EFE9;
+      padding: 18px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-title {
+      font-family: var(--font-serif);
+      font-size: 15px;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+      opacity: 0.9;
+    }
+
+    .header-title span {
+      opacity: 0.5;
+      margin: 0 6px;
+    }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+      max-width: 640px;
+    }
+
+    .search-wrap {
+      flex: 1;
+      position: relative;
+    }
+
+    .search-wrap svg {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      opacity: 0.4;
+      pointer-events: none;
+    }
+
+    #search-input {
+      width: 100%;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: var(--radius);
+      padding: 7px 10px 7px 34px;
+      color: #F2EFE9;
+      font-size: 13px;
+      font-family: var(--font-sans);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    #search-input::placeholder { color: rgba(242,239,233,0.4); }
+    #search-input:focus { border-color: rgba(255,255,255,0.35); }
+
+    .btn-add {
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: var(--radius);
+      color: #F2EFE9;
+      font-size: 12px;
+      font-family: var(--font-sans);
+      padding: 7px 14px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s;
+      letter-spacing: 0.02em;
+    }
+    .btn-add:hover { background: rgba(255,255,255,0.2); }
+
+    /* ─── Location filter bar ─────────────────────────────────── */
+
+    .filter-bar {
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 32px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .filter-bar::-webkit-scrollbar { display: none; }
+
+    .filter-label {
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+      margin-right: 4px;
+      white-space: nowrap;
+    }
+
+    .loc-btn {
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      background: transparent;
+      font-size: 12px;
+      font-family: var(--font-sans);
+      padding: 4px 12px;
+      cursor: pointer;
+      color: var(--text-muted);
+      white-space: nowrap;
+      transition: all 0.12s;
+    }
+    .loc-btn:hover { border-color: #aaa; color: var(--text); }
+    .loc-btn.active {
+      color: #fff;
+      border-color: transparent;
+    }
+
+    .loc-btn[data-loc="all"].active   { background: var(--text); }
+    .loc-btn[data-loc="001"].active   { background: var(--c001); }
+    .loc-btn[data-loc="002"].active   { background: var(--c002); }
+    .loc-btn[data-loc="003"].active   { background: var(--c003); }
+    .loc-btn[data-loc="004"].active   { background: var(--c004); }
+    .loc-btn[data-loc="005"].active   { background: var(--c005); }
+    .loc-btn[data-loc="006"].active   { background: var(--c006); }
+    .loc-btn[data-loc="007"].active   { background: var(--c007); }
+
+    .filter-divider {
+      width: 1px;
+      height: 16px;
+      background: var(--border);
+      margin: 0 4px;
+      flex-shrink: 0;
+    }
+
+    #type-filter {
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      background: transparent;
+      font-size: 12px;
+      font-family: var(--font-sans);
+      padding: 4px 10px;
+      cursor: pointer;
+      color: var(--text-muted);
+      outline: none;
+      appearance: none;
+      -webkit-appearance: none;
+      padding-right: 20px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23aaa'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 8px center;
+    }
+    #type-filter:focus { border-color: #aaa; }
+
+    /* ─── Catalog count ──────────────────────────────────────── */
+
+    .catalog-meta {
+      padding: 12px 32px 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .catalog-count {
+      font-size: 12px;
+      color: var(--text-faint);
+      letter-spacing: 0.04em;
+    }
+
+    /* ─── Grid ───────────────────────────────────────────────── */
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 16px;
+      padding: 16px 32px 48px;
+    }
+
+    /* ─── Artifact card ──────────────────────────────────────── */
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      cursor: pointer;
+      transition: box-shadow 0.15s, transform 0.1s;
+    }
+    .card:hover {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+      transform: translateY(-1px);
+    }
+
+    .card-image {
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      object-fit: cover;
+      display: block;
+      background: var(--bg);
+    }
+
+    .card-placeholder {
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .card-placeholder-icon {
+      font-size: 28px;
+      opacity: 0.35;
+    }
+
+    .card-placeholder-type {
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      opacity: 0.4;
+    }
+
+    .card-body {
+      padding: 12px 14px 14px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .card-loc-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 3px;
+      align-self: flex-start;
+    }
+
+    .card-loc-badge[data-loc="001"] { background: var(--c001-light); color: var(--c001); }
+    .card-loc-badge[data-loc="002"] { background: var(--c002-light); color: var(--c002); }
+    .card-loc-badge[data-loc="003"] { background: var(--c003-light); color: var(--c003); }
+    .card-loc-badge[data-loc="004"] { background: var(--c004-light); color: var(--c004); }
+    .card-loc-badge[data-loc="005"] { background: var(--c005-light); color: var(--c005); }
+    .card-loc-badge[data-loc="006"] { background: var(--c006-light); color: var(--c006); }
+    .card-loc-badge[data-loc="007"] { background: var(--c007-light); color: var(--c007); }
+
+    .card-title {
+      font-size: 13px;
+      font-weight: 500;
+      line-height: 1.4;
+      color: var(--text);
+    }
+
+    .card-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      align-items: center;
+      margin-top: auto;
+    }
+
+    .card-type {
+      font-size: 11px;
+      color: var(--text-muted);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 1px 6px;
+    }
+
+    .card-period {
+      font-size: 11px;
+      color: var(--text-faint);
+      font-style: italic;
+    }
+
+    .card-arena-link {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      color: var(--text-faint);
+      text-decoration: none;
+      margin-top: 4px;
+      transition: color 0.12s;
+    }
+    .card-arena-link:hover { color: var(--text); }
+
+    /* ─── Empty state ────────────────────────────────────────── */
+
+    .empty-state {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 64px 32px;
+      color: var(--text-faint);
+    }
+    .empty-state p { margin-top: 8px; font-size: 13px; }
+
+    /* ─── Modal overlay ──────────────────────────────────────── */
+
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(20,18,15,0.6);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+    .modal-overlay.open {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .modal {
+      background: var(--card-bg);
+      border-radius: 8px;
+      width: 100%;
+      max-width: 520px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.25);
+      transform: translateY(8px);
+      transition: transform 0.2s;
+    }
+    .modal-overlay.open .modal { transform: translateY(0); }
+
+    .modal-header {
+      padding: 20px 24px 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .modal-title {
+      font-family: var(--font-serif);
+      font-size: 16px;
+      color: var(--text);
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text-faint);
+      font-size: 18px;
+      line-height: 1;
+      padding: 4px;
+      border-radius: 4px;
+      transition: color 0.12s;
+    }
+    .modal-close:hover { color: var(--text); }
+
+    .modal-body {
+      padding: 20px 24px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .form-label {
+      font-size: 11px;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .form-input,
+    .form-select,
+    .form-textarea {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 8px 10px;
+      font-size: 13px;
+      font-family: var(--font-sans);
+      color: var(--text);
+      outline: none;
+      width: 100%;
+      transition: border-color 0.15s;
+    }
+    .form-input:focus,
+    .form-select:focus,
+    .form-textarea:focus { border-color: #888; }
+
+    .form-textarea {
+      resize: vertical;
+      min-height: 72px;
+    }
+
+    .arena-preview {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px;
+      display: none;
+      gap: 10px;
+      align-items: flex-start;
+      background: var(--bg);
+    }
+    .arena-preview.visible { display: flex; }
+    .arena-preview img {
+      width: 60px;
+      height: 60px;
+      object-fit: cover;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+    .arena-preview-text {
+      flex: 1;
+      min-width: 0;
+    }
+    .arena-preview-title {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text);
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+    .arena-preview-type {
+      font-size: 11px;
+      color: var(--text-faint);
+      margin-top: 2px;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      padding-top: 4px;
+    }
+
+    .btn {
+      padding: 8px 18px;
+      border-radius: var(--radius);
+      font-size: 13px;
+      font-family: var(--font-sans);
+      cursor: pointer;
+      transition: all 0.12s;
+      border: 1px solid transparent;
+    }
+
+    .btn-primary {
+      background: var(--text);
+      color: var(--bg);
+      border-color: var(--text);
+    }
+    .btn-primary:hover { background: #333; }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--text-muted);
+      border-color: var(--border);
+    }
+    .btn-secondary:hover { border-color: #999; color: var(--text); }
+
+    .btn-danger {
+      background: transparent;
+      color: #c0392b;
+      border-color: transparent;
+      margin-right: auto;
+    }
+    .btn-danger:hover { background: #fdf0ef; }
+
+    /* ─── Detail modal ───────────────────────────────────────── */
+
+    .detail-image {
+      width: 100%;
+      max-height: 320px;
+      object-fit: cover;
+      border-radius: 4px;
+      display: block;
+    }
+
+    .detail-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .detail-description {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .detail-arena-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: var(--c006);
+      text-decoration: none;
+      padding: 6px 0;
+    }
+    .detail-arena-link:hover { text-decoration: underline; }
+
+    /* ─── Loading ────────────────────────────────────────────── */
+
+    .loading {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 64px 32px;
+      color: var(--text-faint);
+      font-size: 13px;
+    }
+
+    /* ─── Location group header ──────────────────────────────── */
+
+    .loc-group-header {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 4px 0 2px;
+    }
+
+    .loc-group-num {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+    }
+
+    .loc-group-name {
+      font-family: var(--font-serif);
+      font-size: 15px;
+      color: var(--text);
+    }
+
+    .loc-group-line {
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .loc-group-count {
+      font-size: 11px;
+      color: var(--text-faint);
+    }
+
+    /* ─── Responsive ─────────────────────────────────────────── */
+
+    @media (max-width: 640px) {
+      header { padding: 14px 16px; }
+      .header-title { display: none; }
+      .filter-bar { padding: 10px 16px; }
+      .grid { padding: 12px 16px 40px; gap: 12px; }
+      .catalog-meta { padding: 12px 16px 0; }
+      .form-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ─── Header ──────────────────────────────────────────────────── -->
+<header>
+  <div class="header-title">Northing <span>·</span> Artifact Catalog</div>
+  <div class="header-controls">
+    <div class="search-wrap">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <input id="search-input" type="search" placeholder="Search artifacts…" autocomplete="off" />
+    </div>
+    <button class="btn-add" id="btn-add-new">+ Add Artifact</button>
+  </div>
+</header>
+
+<!-- ─── Filter bar ───────────────────────────────────────────────── -->
+<div class="filter-bar">
+  <span class="filter-label">Location</span>
+  <button class="loc-btn active" data-loc="all">All</button>
+  <button class="loc-btn" data-loc="001">001 · Confluence</button>
+  <button class="loc-btn" data-loc="002">002 · Orchard</button>
+  <button class="loc-btn" data-loc="003">003 · Crossing</button>
+  <button class="loc-btn" data-loc="004">004 · Beaver Meadow</button>
+  <button class="loc-btn" data-loc="005">005 · Foundation</button>
+  <button class="loc-btn" data-loc="006">006 · Spring</button>
+  <button class="loc-btn" data-loc="007">007 · Ridge</button>
+  <div class="filter-divider"></div>
+  <select id="type-filter">
+    <option value="all">All types</option>
+  </select>
+</div>
+
+<!-- ─── Catalog meta ─────────────────────────────────────────────── -->
+<div class="catalog-meta">
+  <span class="catalog-count" id="catalog-count">Loading…</span>
+</div>
+
+<!-- ─── Grid ─────────────────────────────────────────────────────── -->
+<div class="grid" id="grid">
+  <div class="loading">Loading catalog…</div>
+</div>
+
+<!-- ─── Add/Edit Modal ───────────────────────────────────────────── -->
+<div class="modal-overlay" id="form-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title" id="form-modal-title">Add Artifact</h2>
+      <button class="modal-close" id="form-modal-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="edit-id" />
+
+      <div class="form-group">
+        <label class="form-label" for="f-location">Location</label>
+        <select class="form-select" id="f-location" required>
+          <option value="">— select location —</option>
+          <option value="001">001 · Tributary Confluence Wet Meadow</option>
+          <option value="002">002 · Abandoned Hillside Orchard</option>
+          <option value="003">003 · Forest Crossing</option>
+          <option value="004">004 · Beaver Meadow</option>
+          <option value="005">005 · Stone Foundation Clearing</option>
+          <option value="006">006 · Headwater Spring</option>
+          <option value="007">007 · Ridge Overlook</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="f-title">Title</label>
+        <input class="form-input" id="f-title" type="text" placeholder="e.g. Ice thickness record" required />
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" for="f-type">Type</label>
+          <input class="form-input" id="f-type" type="text" placeholder="e.g. measurement log" list="type-suggestions" />
+          <datalist id="type-suggestions"></datalist>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="f-period">Period</label>
+          <input class="form-input" id="f-period" type="text" placeholder="e.g. mid-20th century" />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="f-arena-url">Are.na URL</label>
+        <input class="form-input" id="f-arena-url" type="url" placeholder="https://www.are.na/block/…" />
+        <div class="arena-preview" id="arena-preview">
+          <img id="arena-preview-img" src="" alt="" />
+          <div class="arena-preview-text">
+            <div class="arena-preview-title" id="arena-preview-title"></div>
+            <div class="arena-preview-type" id="arena-preview-type"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="f-description">Notes <em style="font-weight:400;opacity:0.6;">(optional)</em></label>
+        <textarea class="form-textarea" id="f-description" placeholder="Brief description or context…"></textarea>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn btn-danger" id="btn-delete" style="display:none;">Delete</button>
+        <button class="btn btn-secondary" id="btn-cancel">Cancel</button>
+        <button class="btn btn-primary" id="btn-save">Save Artifact</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Detail Modal ─────────────────────────────────────────────── -->
+<div class="modal-overlay" id="detail-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title" id="detail-title">—</h2>
+      <button class="modal-close" id="detail-close">✕</button>
+    </div>
+    <div class="modal-body" id="detail-body">
+    </div>
+  </div>
+</div>
+
+<script>
+  // ─── State ────────────────────────────────────────────────────────────────
+
+  let allArtifacts = [];
+  let allTypes = [];
+  let activeLocation = 'all';
+  let activeType = 'all';
+  let searchQuery = '';
+  let arenaFetchTimer = null;
+
+  const TYPE_ICONS = {
+    'photograph': '📷',
+    'field notes': '📝',
+    'map / sketch': '🗺',
+    'map / survey': '🗺',
+    'measurement log': '📊',
+    'observation record': '🔍',
+    'administrative record': '📋',
+    'inventory / log': '📋',
+    'technical document': '📄',
+    'plan / drawing': '📐',
+    'print / illustration': '🖼',
+    'scrapbook page': '📸',
+    'correspondence': '✉',
+  };
+
+  const LOC_NAMES = {
+    '001': 'Tributary Confluence Wet Meadow',
+    '002': 'Abandoned Hillside Orchard',
+    '003': 'Forest Crossing',
+    '004': 'Beaver Meadow',
+    '005': 'Stone Foundation Clearing',
+    '006': 'Headwater Spring',
+    '007': 'Ridge Overlook',
+  };
+
+  // ─── Fetch ────────────────────────────────────────────────────────────────
+
+  async function loadArtifacts() {
+    const params = new URLSearchParams();
+    if (activeLocation !== 'all') params.set('location', activeLocation);
+    if (activeType !== 'all') params.set('type', activeType);
+    if (searchQuery) params.set('search', searchQuery);
+
+    const res = await fetch('/api/artifacts?' + params.toString());
+    const data = await res.json();
+    allArtifacts = data.artifacts;
+    render();
+  }
+
+  async function loadTypes() {
+    const res = await fetch('/api/types');
+    allTypes = await res.json();
+    const sel = document.getElementById('type-filter');
+    const datalist = document.getElementById('type-suggestions');
+    allTypes.forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = t; opt.textContent = t;
+      sel.appendChild(opt.cloneNode(true));
+      datalist.appendChild(opt);
+    });
+  }
+
+  // ─── Render ───────────────────────────────────────────────────────────────
+
+  function render() {
+    const grid = document.getElementById('grid');
+    const count = document.getElementById('catalog-count');
+
+    if (allArtifacts.length === 0) {
+      grid.innerHTML = `<div class="empty-state">
+        <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" style="margin:0 auto 12px;opacity:0.3">
+          <rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/>
+        </svg>
+        <strong>No artifacts found</strong>
+        <p>Try adjusting your search or filters.</p>
+      </div>`;
+      count.textContent = '0 artifacts';
+      return;
+    }
+
+    count.textContent = `${allArtifacts.length} artifact${allArtifacts.length !== 1 ? 's' : ''}`;
+
+    // Group by location if showing all
+    const grouped = {};
+    allArtifacts.forEach(a => {
+      if (!grouped[a.location_id]) grouped[a.location_id] = [];
+      grouped[a.location_id].push(a);
+    });
+
+    const showGroups = activeLocation === 'all' && !searchQuery && activeType === 'all';
+
+    let html = '';
+    if (showGroups) {
+      Object.keys(grouped).sort().forEach(locId => {
+        const items = grouped[locId];
+        html += `<div class="loc-group-header">
+          <span class="loc-group-num" style="color:var(--c${locId})">${locId}</span>
+          <span class="loc-group-name">${LOC_NAMES[locId] || locId}</span>
+          <div class="loc-group-line"></div>
+          <span class="loc-group-count">${items.length}</span>
+        </div>`;
+        items.forEach(a => { html += renderCard(a); });
+      });
+    } else {
+      allArtifacts.forEach(a => { html += renderCard(a); });
+    }
+
+    grid.innerHTML = html;
+
+    // Attach card click handlers
+    grid.querySelectorAll('.card').forEach(card => {
+      card.addEventListener('click', e => {
+        if (e.target.closest('a')) return;
+        const id = parseInt(card.dataset.id);
+        const artifact = allArtifacts.find(a => a.id === id);
+        if (artifact) openDetailModal(artifact);
+      });
+    });
+  }
+
+  function renderCard(a) {
+    const icon = TYPE_ICONS[a.type] || '📄';
+    const locColor = `var(--c${a.location_id})`;
+    const locLightColor = `var(--c${a.location_id}-light)`;
+
+    let imageHtml = '';
+    if (a.arena_image_url) {
+      imageHtml = `<img class="card-image" src="${escHtml(a.arena_image_url)}" alt="${escHtml(a.title)}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" />
+        <div class="card-placeholder" style="display:none;background:${locLightColor}">
+          <span class="card-placeholder-icon">${icon}</span>
+          <span class="card-placeholder-type">${escHtml(a.type || '')}</span>
+        </div>`;
+    } else {
+      imageHtml = `<div class="card-placeholder" style="background:${locLightColor}">
+        <span class="card-placeholder-icon">${icon}</span>
+        <span class="card-placeholder-type">${escHtml(a.type || '')}</span>
+      </div>`;
+    }
+
+    const arenaLink = a.arena_url
+      ? `<a class="card-arena-link" href="${escHtml(a.arena_url)}" target="_blank" rel="noopener">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+          </svg>
+          Are.na
+        </a>`
+      : '';
+
+    return `<div class="card" data-id="${a.id}">
+      ${imageHtml}
+      <div class="card-body">
+        <span class="card-loc-badge" data-loc="${a.location_id}">${a.location_id}</span>
+        <div class="card-title">${escHtml(a.title)}</div>
+        <div class="card-meta">
+          ${a.type ? `<span class="card-type">${escHtml(a.type)}</span>` : ''}
+          ${a.period ? `<span class="card-period">${escHtml(a.period)}</span>` : ''}
+        </div>
+        ${arenaLink}
+      </div>
+    </div>`;
+  }
+
+  // ─── Detail modal ─────────────────────────────────────────────────────────
+
+  function openDetailModal(a) {
+    const modal = document.getElementById('detail-modal');
+    document.getElementById('detail-title').textContent = a.title;
+
+    let html = '';
+
+    if (a.arena_image_url) {
+      html += `<img class="detail-image" src="${escHtml(a.arena_image_url)}" alt="${escHtml(a.title)}" />`;
+    }
+
+    html += `<div class="detail-meta">
+      <span class="card-loc-badge" data-loc="${a.location_id}">${a.location_id} · ${escHtml(LOC_NAMES[a.location_id] || '')}</span>
+      ${a.type ? `<span class="card-type">${escHtml(a.type)}</span>` : ''}
+      ${a.period ? `<span class="card-period" style="font-size:13px">${escHtml(a.period)}</span>` : ''}
+    </div>`;
+
+    if (a.description) {
+      html += `<p class="detail-description">${escHtml(a.description)}</p>`;
+    }
+
+    if (a.arena_url) {
+      html += `<a class="detail-arena-link" href="${escHtml(a.arena_url)}" target="_blank" rel="noopener">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+        </svg>
+        View on Are.na
+      </a>`;
+    }
+
+    html += `<div class="modal-actions">
+      <button class="btn btn-secondary" id="detail-edit-btn" data-id="${a.id}">Edit</button>
+    </div>`;
+
+    document.getElementById('detail-body').innerHTML = html;
+
+    document.getElementById('detail-edit-btn').addEventListener('click', () => {
+      closeDetailModal();
+      openEditModal(a);
+    });
+
+    modal.classList.add('open');
+  }
+
+  function closeDetailModal() {
+    document.getElementById('detail-modal').classList.remove('open');
+  }
+
+  // ─── Form modal ───────────────────────────────────────────────────────────
+
+  function openAddModal() {
+    document.getElementById('form-modal-title').textContent = 'Add Artifact';
+    document.getElementById('edit-id').value = '';
+    document.getElementById('f-location').value = '';
+    document.getElementById('f-title').value = '';
+    document.getElementById('f-type').value = '';
+    document.getElementById('f-period').value = '';
+    document.getElementById('f-arena-url').value = '';
+    document.getElementById('f-description').value = '';
+    document.getElementById('btn-delete').style.display = 'none';
+    hideArenaPreview();
+    document.getElementById('form-modal').classList.add('open');
+    setTimeout(() => document.getElementById('f-location').focus(), 100);
+  }
+
+  function openEditModal(a) {
+    document.getElementById('form-modal-title').textContent = 'Edit Artifact';
+    document.getElementById('edit-id').value = a.id;
+    document.getElementById('f-location').value = a.location_id;
+    document.getElementById('f-title').value = a.title;
+    document.getElementById('f-type').value = a.type || '';
+    document.getElementById('f-period').value = a.period || '';
+    document.getElementById('f-arena-url').value = a.arena_url || '';
+    document.getElementById('f-description').value = a.description || '';
+    document.getElementById('btn-delete').style.display = 'block';
+    if (a.arena_image_url) showArenaPreview(a.arena_image_url, a.title || '', a.type || '');
+    else hideArenaPreview();
+    document.getElementById('form-modal').classList.add('open');
+  }
+
+  function closeFormModal() {
+    document.getElementById('form-modal').classList.remove('open');
+  }
+
+  async function saveArtifact() {
+    const btn = document.getElementById('btn-save');
+    const id = document.getElementById('edit-id').value;
+    const payload = {
+      location_id: document.getElementById('f-location').value,
+      title: document.getElementById('f-title').value.trim(),
+      type: document.getElementById('f-type').value.trim() || null,
+      period: document.getElementById('f-period').value.trim() || null,
+      arena_url: document.getElementById('f-arena-url').value.trim() || null,
+      description: document.getElementById('f-description').value.trim() || null,
+    };
+
+    if (!payload.location_id || !payload.title) {
+      alert('Location and title are required.');
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+
+    try {
+      const url = id ? `/api/artifacts/${id}` : '/api/artifacts';
+      const method = id ? 'PUT' : 'POST';
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error('Save failed');
+      closeFormModal();
+      await loadArtifacts();
+      await loadTypes();
+    } catch (e) {
+      alert('Could not save artifact. Please try again.');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Save Artifact';
+    }
+  }
+
+  async function deleteArtifact() {
+    const id = document.getElementById('edit-id').value;
+    if (!id) return;
+    if (!confirm('Remove this artifact from the catalog?')) return;
+
+    try {
+      await fetch(`/api/artifacts/${id}`, { method: 'DELETE' });
+      closeFormModal();
+      await loadArtifacts();
+    } catch {
+      alert('Could not delete artifact.');
+    }
+  }
+
+  // ─── Are.na preview ───────────────────────────────────────────────────────
+
+  async function fetchArenaPreview(url) {
+    const match = url.match(/are\.na\/block\/(\d+)/);
+    if (!match) { hideArenaPreview(); return; }
+    const blockId = match[1];
+    try {
+      const res = await fetch(`/api/arena/block/${blockId}`);
+      if (!res.ok) { hideArenaPreview(); return; }
+      const data = await res.json();
+      if (data.imageUrl) {
+        showArenaPreview(data.imageUrl, data.title || 'Block #' + blockId, data.contentType || '');
+      } else {
+        showArenaPreview(null, data.title || 'Block #' + blockId, data.contentType || '');
+      }
+      // Auto-fill title if empty
+      if (!document.getElementById('f-title').value && data.title) {
+        document.getElementById('f-title').value = data.title;
+      }
+    } catch {
+      hideArenaPreview();
+    }
+  }
+
+  function showArenaPreview(imgUrl, title, type) {
+    const preview = document.getElementById('arena-preview');
+    const img = document.getElementById('arena-preview-img');
+    const titleEl = document.getElementById('arena-preview-title');
+    const typeEl = document.getElementById('arena-preview-type');
+    if (imgUrl) { img.src = imgUrl; img.style.display = 'block'; }
+    else { img.style.display = 'none'; }
+    titleEl.textContent = title;
+    typeEl.textContent = type;
+    preview.classList.add('visible');
+  }
+
+  function hideArenaPreview() {
+    document.getElementById('arena-preview').classList.remove('visible');
+  }
+
+  // ─── Utilities ────────────────────────────────────────────────────────────
+
+  function escHtml(str) {
+    if (!str) return '';
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function debounce(fn, ms) {
+    let t;
+    return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+  }
+
+  // ─── Event listeners ──────────────────────────────────────────────────────
+
+  // Search
+  document.getElementById('search-input').addEventListener('input', debounce(e => {
+    searchQuery = e.target.value.trim();
+    loadArtifacts();
+  }, 280));
+
+  // Location filter buttons
+  document.querySelectorAll('.loc-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.loc-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeLocation = btn.dataset.loc;
+      loadArtifacts();
+    });
+  });
+
+  // Type filter
+  document.getElementById('type-filter').addEventListener('change', e => {
+    activeType = e.target.value;
+    loadArtifacts();
+  });
+
+  // Add button
+  document.getElementById('btn-add-new').addEventListener('click', openAddModal);
+
+  // Form modal close
+  document.getElementById('form-modal-close').addEventListener('click', closeFormModal);
+  document.getElementById('btn-cancel').addEventListener('click', closeFormModal);
+  document.getElementById('btn-save').addEventListener('click', saveArtifact);
+  document.getElementById('btn-delete').addEventListener('click', deleteArtifact);
+
+  // Detail modal close
+  document.getElementById('detail-close').addEventListener('click', closeDetailModal);
+
+  // Close modals on overlay click
+  document.getElementById('form-modal').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeFormModal();
+  });
+  document.getElementById('detail-modal').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeDetailModal();
+  });
+
+  // Escape key
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { closeFormModal(); closeDetailModal(); }
+  });
+
+  // Are.na URL input — fetch preview on change
+  document.getElementById('f-arena-url').addEventListener('input', debounce(e => {
+    const url = e.target.value.trim();
+    if (url) fetchArenaPreview(url);
+    else hideArenaPreview();
+  }, 500));
+
+  // ─── Init ─────────────────────────────────────────────────────────────────
+
+  (async () => {
+    await Promise.all([loadArtifacts(), loadTypes()]);
+  })();
+</script>
+</body>
+</html>
