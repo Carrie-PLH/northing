@@ -176,20 +176,20 @@ canvas {
 }
 
 /* ── Scene 1 YouTube environmental cue ──────────────────────────────────── */
+/* Pinned to bottom-left corner (mirrors the audio cue at bottom-right) so it */
+/* never collides with the centered fragment captions on narrow viewports.    */
 #s1-yt-cue {
   position: fixed;
-  bottom: 6%;
-  left: 50%;
-  transform: translateX(-50%);
+  bottom: 4%;
+  left: 4%;
   pointer-events: none;
   z-index: 15;
-  text-align: center;
 }
 #s1-yt-cue a {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 7px;
+  gap: 10px;
   text-decoration: none;
   cursor: pointer !important;
   padding: 6px;
