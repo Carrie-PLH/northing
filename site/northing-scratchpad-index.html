@@ -14,6 +14,7 @@
   --accent: #7a9e7e;
   --accent-dim: #4a6e4e;
   --warn: #c9a227;
+  --link: #8ab4a0;
   --search-bg: #2a2a2a;
 }
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -86,70 +87,177 @@ section h2 {
   color: var(--accent-dim);
   margin-top: 0.3rem;
 }
+.xref {
+  font-size: 0.7rem;
+  color: var(--link);
+  margin-top: 0.25rem;
+  font-style: italic;
+}
 .tension {
   border-left-color: var(--warn);
 }
 .tension h2 { color: var(--warn); }
+.relationships {
+  border-left-color: var(--accent);
+}
+.rel-chain {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-bottom: 1rem;
+  padding: 0.8rem;
+  background: var(--surface);
+  border-radius: 3px;
+}
+.rel-chain .label {
+  font-size: 0.7rem;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.4rem;
+}
+.rel-chain .chain {
+  font-size: 0.8rem;
+  color: var(--text);
+  line-height: 1.7;
+}
+.rel-chain .arrow { color: var(--accent-dim); }
+.rel-chain .note {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-top: 0.3rem;
+  font-style: italic;
+}
 .hidden { display: none; }
 </style>
 </head>
 <body>
 
 <h1>Northing Scratchpad Index</h1>
-<p class="subtitle">Synthesized governance reference. Not an archive. Last updated: 2026-05-30.</p>
+<p class="subtitle">Synthesized governance document. Not an archive. Last updated: 2026-05-30.</p>
 
 <input type="text" id="search" placeholder="Search principles, decisions, questions..." autocomplete="off">
+
+<!-- CONCEPT RELATIONSHIPS -->
+<section class="relationships" data-section="concept-relationships">
+<h2>Concept Relationships</h2>
+
+<div class="rel-chain">
+<div class="label">The meaning chain</div>
+<div class="chain">
+Observation <span class="arrow">&rarr;</span> Encounter <span class="arrow">&rarr;</span> Familiarity <span class="arrow">&rarr;</span> Recognition <span class="arrow">&rarr;</span> Attachment <span class="arrow">&rarr;</span> Attunement
+</div>
+<div class="note">Each step requires recurrence. Skipping steps produces information, not relationship.</div>
+</div>
+
+<div class="rel-chain">
+<div class="label">The construction chain</div>
+<div class="chain">
+Evidence <span class="arrow">&rarr;</span> Encounter <span class="arrow">&rarr;</span> Interpretation <span class="arrow">&rarr;</span> Assembly <span class="arrow">&rarr;</span> Northing
+</div>
+<div class="note">The observer performs the final step. Without an observer, only evidence exists. The place is participatory.</div>
+</div>
+
+<div class="rel-chain">
+<div class="label">Platform attention modes</div>
+<div class="chain">
+YouTube <span class="arrow">&rarr;</span> Encounter (sensory presence, duration)<br>
+Website <span class="arrow">&rarr;</span> Orientation (structure, spatial understanding)<br>
+Instagram <span class="arrow">&rarr;</span> Curiosity (fragments, questions, sightings)<br>
+Are.na <span class="arrow">&rarr;</span> Investigation (evidence, conceptual sediment)
+</div>
+<div class="note">No single platform resolves Northing. Each generates a different construction.</div>
+</div>
+
+<div class="rel-chain">
+<div class="label">The generative hierarchy</div>
+<div class="chain">
+Canon (operating system) <span class="arrow">&rarr;</span> generates Encounters <span class="arrow">&rarr;</span> expressed as Evidence <span class="arrow">&rarr;</span> assembled into Place
+</div>
+<div class="note">Canon describes behavior. Evidence describes states. The place emerges from accumulated evidence.</div>
+</div>
+
+<div class="rel-chain">
+<div class="label">The consciousness structure</div>
+<div class="chain">
+Participatory Universe <span class="arrow">&rarr;</span> Distributed Consciousness <span class="arrow">&rarr;</span> Multiple Valid Northings
+</div>
+<div class="note">The viewer is the current observer, not the protagonist. Different routes through evidence produce different valid places.</div>
+</div>
+
+<div class="rel-chain">
+<div class="label">Key governing tension</div>
+<div class="chain">
+Evidence (increases understanding) <span class="arrow">&harr;</span> Ambiguity (preserves participation)
+</div>
+<div class="note">Too much evidence: the place becomes over-determined. Too little: the place dissolves. Northing lives within this tension.</div>
+</div>
+
+</section>
 
 <!-- 1. CORE PREMISES -->
 <section data-section="core-premises">
 <h2>1. Core Premises</h2>
 
+<div class="entry" data-keywords="encounter fundamental unit meaning place visitor medium relationship">
+<div class="entry-title">The Encounter as fundamental unit</div>
+<div class="entry-body">Northing documents encounters with places, not places themselves. An encounter is the unrepeatable relationship between place, observer, season, weather, accumulated memory, prior visits, current questions, and medium. It differs from a place (which persists independent of observation), a representation (which is static), an artifact (which is residue), and an observer (who is one variable among many). The encounter is the fundamental unit of meaning because meaning in Northing emerges only through specific contact between consciousness and environment. Places do not inherently demand treatments; encounters generate them. Different encounters with the same place produce different valid outputs without contradiction. Ethical consistency (sincere encounter) unifies the project where aesthetic consistency cannot.</div>
+<div class="source">encounter-interpretation-aesthetic-variation.md, PHILOSOPHICAL-THREADS.md</div>
+<div class="xref">Generates: aesthetic variation, environmental mood states, evidentiary modes. Constrains: DR-008, DR-009. Test: is the interpretation in service of the encounter, or is the encounter in service of the interpretation?</div>
+</div>
+
 <div class="entry" data-keywords="participatory wheeler observer assembly evidence construction">
 <div class="entry-title">The place is participatory, not presented</div>
 <div class="entry-body">Northing does not exist until observation assembles it. Evidence exists (observations, maps, artifacts, recordings). The watershed emerges as a mental construction from those fragments. Different observers encountering different evidence in different orders construct different valid Northings. The Wheeler connection: observation creates Northing.</div>
 <div class="source">participatory-universe.md, PHILOSOPHICAL-THREADS.md</div>
+<div class="xref">Supports: distributed consciousness, multiple valid Northings. Tension: the evidence-ambiguity balance.</div>
+</div>
+
+<div class="entry" data-keywords="familiarity mechanism attachment recurrence meaning">
+<div class="entry-title">Familiarity as the meaning-making mechanism</div>
+<div class="entry-body">The goal is not to teach information about a place but to create familiarity with it. Interest comes from variation; attachment comes from recurrence. Progression: Orientation (discovery, curiosity) to Familiarity (recognition, routine) to Attunement (continuity, anticipation, relationship). This emerges through repeated encounter, not narrative development.</div>
+<div class="source">familiarity.md, PHILOSOPHICAL-THREADS.md</div>
+<div class="xref">Operationalized by: O/F/A coordinate system. Requires: sediment-depth principle. Creates risk: DR-010 (baseline gravity).</div>
 </div>
 
 <div class="entry" data-keywords="sediment depth small world recursive">
 <div class="entry-title">Sediment-deep, not surface-wide</div>
 <div class="entry-body">Northing grows through recursive re-observation of constrained geography, not territorial expansion. A small number of deeply known places makes everything beyond them acquire ambiguity and implied continuity. New locations emerge because accumulated observation pressures outward, not because the project requires more surface area.</div>
 <div class="source">small-world-principle.md, PHILOSOPHICAL-THREADS.md</div>
+<div class="xref">Enables: familiarity mechanism. Constrains: DR-005 (coverage seeking). Supports: discovery-not-construction.</div>
 </div>
 
 <div class="entry" data-keywords="operating system generator framework system information">
 <div class="entry-title">Operating system, not database</div>
-<div class="entry-body">Canon documents describe how the world behaves, not what it contains. A map is information; a geographic framework is a system. Information describes states; systems generate states. The canon functions as generators rather than references. The videos are applications running on the operating system.</div>
+<div class="entry-body">Canon documents describe how the world behaves, not what it contains. Information describes states; systems generate states. The canon functions as generators rather than references. The videos are applications running on the operating system. The long-term asset is the system, not any individual output.</div>
 <div class="source">northing-as-operating-system.md</div>
-</div>
-
-<div class="entry" data-keywords="familiarity mechanism attachment recurrence">
-<div class="entry-title">Familiarity as the meaning-making mechanism</div>
-<div class="entry-body">The goal is not to teach information about a place but to create familiarity with it. Interest comes from variation; attachment comes from recurrence. Progression: Orientation (discovery, curiosity) to Familiarity (recognition, routine) to Attunement (continuity, anticipation, relationship). This progression emerges through repeated encounter, not narrative development.</div>
-<div class="source">familiarity.md, PHILOSOPHICAL-THREADS.md</div>
-</div>
-
-<div class="entry" data-keywords="nothing northing name title r presence relation">
-<div class="entry-title">Nothing / Northing</div>
-<div class="entry-body">The distinction is a single letter: r. "R" carries relational weight (we are, there are). A place that does not exist becomes a place through consciousness. At first encounter: almost nothing. With prolonged attention: increasing density. This should remain unstated and available for discovery, never explained as doctrine.</div>
-<div class="source">northing-name.md</div>
-</div>
-
-<div class="entry" data-keywords="documentary being observation events states">
-<div class="entry-title">What is here, not what happened here</div>
-<div class="entry-body">Northing is organized around states of being rather than events. Observation is the central act; attention is the central mechanism. A documentary about existence assembled from truthful relationships. The viewer's role is to observe, not to follow a plot.</div>
-<div class="source">northing-name.md, PHILOSOPHICAL-THREADS.md</div>
-</div>
-
-<div class="entry" data-keywords="affordance meaning location place">
-<div class="entry-title">Places provide affordances, not meanings</div>
-<div class="entry-body">A place becomes important because attention repeatedly returns to it, not because canon declares it important. Location documents establish what a place makes possible (affordances), not how it is used. Meaning emerges later through repeated engagement.</div>
-<div class="source">place-perspective-meaning.md, PHILOSOPHICAL-THREADS.md</div>
+<div class="xref">Tension: canon-as-executable-knowledge scope question (section 8). Risk: DR-007 (operationalization drift).</div>
 </div>
 
 <div class="entry" data-keywords="collective consciousness viewer protagonist distributed">
 <div class="entry-title">Distributed consciousness</div>
-<div class="entry-body">The hidden consciousness is not an individual but accumulated awareness. The viewer occupies the observational position a protagonist normally would. The landscape remains the subject; the viewer supplies consciousness. If you are viewing Northing, you are the current participant in a larger continuum of observation.</div>
+<div class="entry-body">The hidden consciousness is not an individual but accumulated awareness. The viewer occupies the observational position a protagonist normally would. The landscape remains the subject; the viewer supplies consciousness. Knowledge of the watershed emerges through repeated observation without any individual observer becoming central.</div>
 <div class="source">northing-name.md, PHILOSOPHICAL-THREADS.md</div>
+<div class="xref">Consequence of: participatory universe. Risk: DR-003 (protagonist formation). Enables: collective O/F/A progression.</div>
+</div>
+
+<div class="entry" data-keywords="documentary being observation events states what-is-here">
+<div class="entry-title">What is here, not what happened here</div>
+<div class="entry-body">Organized around states of being rather than events. Observation is the central act; attention is the central mechanism. A documentary about existence assembled from truthful relationships. The viewer's role is to observe, not to follow a plot.</div>
+<div class="source">northing-name.md, PHILOSOPHICAL-THREADS.md</div>
+<div class="xref">Constrains: DR-008 (narrative gravity). Supports: encounter as fundamental unit.</div>
+</div>
+
+<div class="entry" data-keywords="affordance meaning location place importance attention">
+<div class="entry-title">Places provide affordances, not meanings</div>
+<div class="entry-body">A place becomes important because attention repeatedly returns to it, not because canon declares it important. Location documents establish what a place makes possible, not how it is used. Meaning emerges through repeated engagement. Affordances invite certain forms of attention without forcing response.</div>
+<div class="source">place-perspective-meaning.md, PHILOSOPHICAL-THREADS.md</div>
+<div class="xref">Supports: encounter as fundamental unit (the affordance is realized differently by each encounter). Tension: interior spaces risk pre-assigning meaning.</div>
+</div>
+
+<div class="entry" data-keywords="nothing northing name title r presence relation">
+<div class="entry-title">Nothing / Northing</div>
+<div class="entry-body">The distinction is a single letter: r (relational weight: we are, there are). A place that does not exist becomes a place through consciousness. At first encounter: almost nothing. With prolonged attention: increasing density. Should remain unstated, available for discovery, never explained as doctrine.</div>
+<div class="source">northing-name.md</div>
 </div>
 
 </section>
@@ -160,26 +268,23 @@ section h2 {
 
 <div class="entry" data-keywords="youtube instagram arena website platform differentiation">
 <div class="entry-title">Platform differentiation as philosophical necessity</div>
-<div class="entry-body">Different platforms serve different forms of attention. YouTube: sensory encounter / the territory. Instagram: questions / sightings / memory fragments. Are.na: evidence / conceptual sediment / underlying geology. Website: representation of accumulated understanding / the map. No single platform fully explains Northing. The project deepens with repeated exposure rather than flattens into comprehension.</div>
+<div class="entry-body">Different platforms serve different forms of attention and generate different constructions of the place (see Concept Relationships). No single platform fully explains Northing. The project deepens with repeated cross-platform exposure rather than flattens into comprehension. The platform determines the prose pressure, as the place determines the prose pressure.</div>
 <div class="source">PHILOSOPHICAL-THREADS.md</div>
+<div class="xref">Consequence of: participatory universe (different entry sequences produce different valid Northings).</div>
 </div>
 
-<div class="entry" data-keywords="website representation map understanding abstraction">
-<div class="entry-title">Website as interpretation, not recreation</div>
-<div class="entry-body">The website should represent Northing, not recreate it. Videos provide experience; website provides understanding. Videos provide perception; website provides structure. The website is a constructed understanding derived from accumulated observation. Visitors enter a representation of how Northing is understood, not Northing itself.</div>
+<div class="entry" data-keywords="website representation map understanding abstraction traversal">
+<div class="entry-title">Website: interpretation through traversal</div>
+<div class="entry-body">The website represents Northing, not recreates it. Videos provide experience; website provides structure. The visual language is simplified, geometric, atmospheric, diagrammatic (resembling survey sketches, interpretive maps). Primary interaction: horizontal movement through four connected ~90-degree scenes forming an implied 360-degree environment. The visitor moves through a scene, not looks at one. Discovery occurs horizontally with continuous passage.</div>
 <div class="source">website/Northing Website Concept.md, website/website-development-prompts.md</div>
+<div class="xref">Governed by: Environmental Mood States (section 4). Production governed by: traversal scene principles (section 6).</div>
 </div>
 
-<div class="entry" data-keywords="traversal horizontal movement passage discovery">
-<div class="entry-title">Traversal as primary interaction</div>
-<div class="entry-body">The website functions as movement through a represented landscape, not browsing pages. Four connected ~90-degree scenes forming an implied 360-degree environment. The visitor is moving through a scene, not looking at one. Discovery occurs horizontally. Continuous movement; no cuts, page boundaries, or menu transitions.</div>
-<div class="source">website/Northing Website Concept.md, website/website-scene-math.md</div>
-</div>
-
-<div class="entry" data-keywords="text fragment observation field notebook philosophy">
+<div class="entry" data-keywords="text fragment observation field notebook philosophy two-scale">
 <div class="entry-title">Text fragments: observation carrying philosophical weight</div>
-<div class="entry-body">Text appears as brief observational fragments that emerge and dissolve. Must function at two scales: literal environmental observation and broader philosophical implication. Test: could this sentence plausibly have appeared in a field notebook? The philosophy emerges through inference, never instruction. Understanding should increase; ambiguity should remain.</div>
+<div class="entry-body">Brief observational fragments emerge and dissolve during traversal. Must function at two scales: literal environmental observation and broader philosophical implication. Test: could this sentence plausibly have appeared in a field notebook? Philosophy emerges through inference, never instruction. Understanding increases; ambiguity remains.</div>
 <div class="source">website/Northing Website Concept.md</div>
+<div class="xref">Constraint: when a fragment sounds like a philosopher, essayist, or manifesto, rewrite it as an observation.</div>
 </div>
 
 </section>
@@ -188,40 +293,39 @@ section h2 {
 <section data-section="observation-principles">
 <h2>3. Observation Principles</h2>
 
-<div class="entry" data-keywords="recursive attention observation future">
-<div class="entry-title">Observation changes future observation</div>
-<div class="entry-body">Every observation influences what becomes noticeable next. The process is recursive: observation changes attention, guides future observation, creates familiarity, changes interpretation, guides future observation again. The significance of an observation cannot always be known when first recorded.</div>
+<div class="entry" data-keywords="recursive attention observation future significance">
+<div class="entry-title">Observation is recursive</div>
+<div class="entry-body">Every observation changes attention, guides future observation, creates familiarity, changes interpretation. The significance of an observation cannot always be known when first recorded; importance becomes apparent through subsequent chains. The same location may generate entirely different trajectories (a hydrologic stream vs. a wildlife stream from the same spring). O/F/A progression applies to threads of recognition, not locations.</div>
 <div class="source">place-perspective-meaning.md, PHILOSOPHICAL-THREADS.md</div>
+<div class="xref">Operationalized by: O/F/A coordinate system. Creates risk: DR-010 (baseline gravity). Supports: familiarity mechanism.</div>
 </div>
 
-<div class="entry" data-keywords="uncertainty resolvable pre-categorical classification">
+<div class="entry" data-keywords="uncertainty resolvable pre-categorical classification durable">
 <div class="entry-title">Two classes of uncertainty</div>
-<div class="entry-body">Resolvable: question known, answer unknown. Future observation may answer directly. Pre-categorical: question unknown, answer unknown. The category itself is uncertain. Pre-categorical uncertainties are unusually durable: they resist Resolution Addiction, Narrative Gravity, and Coverage Seeking. They emerge through encounter rather than planned investigation.</div>
+<div class="entry-body">Resolvable: question known, answer unknown. Pre-categorical: question unknown, answer unknown (the category itself is uncertain). Pre-categorical uncertainties are unusually durable: they resist Resolution Addiction, Narrative Gravity, and Coverage Seeking. They emerge through encounter rather than planned investigation and may generate long-term understanding through repeated incidental contact.</div>
 <div class="source">classes-of-uncertainty.md, PHILOSOPHICAL-THREADS.md</div>
+<div class="xref">Pre-categorical uncertainty is what makes the evidence-ambiguity tension productive rather than merely frustrating.</div>
 </div>
 
-<div class="entry" data-keywords="human AI partnership bias perception significance">
+<div class="entry" data-keywords="human AI partnership bias perception significance discovery assignment">
 <div class="entry-title">Human-AI observation partnership</div>
-<div class="entry-body">Human strength: significance assignment (intuition as instrument). AI strength: significance discovery (importance through accumulation). Agreement confirms; disagreement discovers. The purpose is not to determine which observer is correct but to discover what neither would have seen alone. The AI's most interesting role: second observer attending differently, holding the entire corpus simultaneously.</div>
+<div class="entry-body">Human strength: significance assignment (intuition as instrument, importance felt before articulated). AI strength: significance discovery (importance through accumulation, corpus-wide pattern detection). Agreement confirms; disagreement discovers. The AI's role: second observer attending differently, holding the entire corpus simultaneously. Neither observer is objective; both carry systematic biases.</div>
 <div class="source">human-ai-observation-partnership.md</div>
+<div class="xref">Supports: distributed consciousness (multiple observational systems, no single authority).</div>
 </div>
 
 <div class="entry" data-keywords="OFA coordinate familiarity orientation attunement numbering">
-<div class="entry-title">O/F/A familiarity coordinate system</div>
-<div class="entry-body">Internal archival identifiers: O (Orientation), F (Familiarity), A (Attunement). Three-digit numbering in increments of ten with gaps for insertion. Coordinates represent position along the familiarity continuum, not publication order or chronology. Public-facing titles remain atmospheric. The system applies to threads of recognition, not locations themselves.</div>
+<div class="entry-title">O/F/A coordinate system</div>
+<div class="entry-body">Internal archival identifiers: O (Orientation), F (Familiarity), A (Attunement). Three-digit numbering in increments of ten with gaps for insertion. Represents position along the familiarity continuum, not publication order or chronology. Public-facing titles remain atmospheric.</div>
 <div class="source">file-naming.md, place-perspective-meaning.md</div>
+<div class="xref">Operationalizes: the meaning chain (Concept Relationships). Applies to threads of recognition, not locations.</div>
 </div>
 
-<div class="entry" data-keywords="multiple streams threads location trajectories">
-<div class="entry-title">Multiple streams from a single location</div>
-<div class="entry-body">The same location may generate entirely different trajectories of understanding. A hydrologic stream and a wildlife stream can originate at the same spring; neither is more correct. Each represents a different history of attention. O/F/A progression applies to threads of recognition rather than locations.</div>
-<div class="source">place-perspective-meaning.md, PHILOSOPHICAL-THREADS.md</div>
-</div>
-
-<div class="entry" data-keywords="discovery expansion differentiation awareness growth">
+<div class="entry" data-keywords="discovery expansion differentiation awareness growth construction">
 <div class="entry-title">Discovery rather than construction</div>
-<div class="entry-body">Northing grows through increasing differentiation of what is already present, not territorial expansion. New locations appear because existing observations reveal distinctions current canon cannot describe. Patterns become locations. Relationships become coordinates. The project is discovering a world, not constructing one.</div>
+<div class="entry-body">Northing grows through increasing differentiation of what is already present. New locations appear because existing observations reveal distinctions current canon cannot describe. Patterns become locations; relationships become coordinates. The project is discovering a world, not constructing one.</div>
 <div class="source">place-perspective-meaning.md, PHILOSOPHICAL-THREADS.md</div>
+<div class="xref">Consequence of: sediment-depth principle. Constrains: premature location creation.</div>
 </div>
 
 </section>
@@ -230,34 +334,25 @@ section h2 {
 <section data-section="encounter-interpretation">
 <h2>4. Encounter and Interpretation</h2>
 
-<div class="entry" data-keywords="encounter place visitor season weather medium">
-<div class="entry-title">Documents record encounters, not places</div>
-<div class="entry-body">Every visit emerges from a relationship between the place, the visitor, the season, the weather, accumulated memory, prior visits, current questions, and the medium of observation. No single encounter becomes definitive. The place remains larger than any representation.</div>
-<div class="source">encounter-interpretation-aesthetic-variation.md</div>
-</div>
-
-<div class="entry" data-keywords="aesthetic variation style encounter treatment">
-<div class="entry-title">Aesthetic variation is evidence of different encounters</div>
-<div class="entry-body">A location does not possess a single correct aesthetic. One visit may feel quiet, another rhythmic, another archival. The place does not dictate the aesthetic; the encounter generates it. What unifies the project is not aesthetic consistency but ethical consistency: this is a sincere encounter with a place.</div>
-<div class="source">encounter-interpretation-aesthetic-variation.md</div>
-</div>
-
-<div class="entry" data-keywords="interpretation service place test">
-<div class="entry-title">The interpretation test</div>
-<div class="entry-body">The useful question is not whether artistic interpretation is allowed, but: Is the interpretation in service of the place, or is the place in service of the interpretation? If a creative intervention helps reveal something about the encounter, it may belong. If it primarily calls attention to itself, it may not.</div>
-<div class="source">encounter-interpretation-aesthetic-variation.md</div>
-</div>
-
-<div class="entry" data-keywords="memory remembered contradiction selective asymmetry">
-<div class="entry-title">Northing as a place being remembered</div>
-<div class="entry-body">Memory is uneven: some moments impossibly vivid, entire stretches disappear. Northing may allow this same asymmetry. Contradiction becomes evidence of layered encounter (memory artifact). Different eras, seasons, and environmental states coexist emotionally without requiring literal continuity. The place becomes sedimented encounter.</div>
+<div class="entry" data-keywords="memory remembered contradiction selective asymmetry sedimented">
+<div class="entry-title">Northing as sedimented encounter</div>
+<div class="entry-body">Memory is uneven: some moments impossibly vivid, entire stretches disappear. Northing allows this asymmetry. Contradiction becomes evidence of layered encounter (memory artifact). Different eras, seasons, and environmental states coexist without requiring literal continuity. Not all observations originate from the same person, time, or equally reliable perception. The place becomes sedimented encounter rather than stable geography.</div>
 <div class="source">PHILOSOPHICAL-THREADS.md</div>
+<div class="xref">Tension: memory vs. geography (section 8). Supports: multiple valid Northings.</div>
 </div>
 
-<div class="entry" data-keywords="mood states environmental perception conditions seasonal">
-<div class="entry-title">Environmental Mood States (not seasons)</div>
-<div class="entry-body">Literal seasonality introduces culturally preloaded associations. Instead: recurring environmental conditions that shape perception, movement, and attention. Mood states emerge from combinations of visibility, terrain behavior, sound, atmospheric density, light, spatial openness. They are experiential and perceptual, not narrative or symbolic. Composable and reusable across locations.</div>
+<div class="entry" data-keywords="mood states environmental perception conditions vocabulary composable">
+<div class="entry-title">Environmental Mood States</div>
+<div class="entry-body">Recurring environmental conditions that shape perception, movement, and attention. Not emotions imposed onto landscapes; not seasonal labels. Emerge from combinations of visibility, terrain behavior, sound, atmospheric density, light, spatial openness. Composable and reusable across locations. The same location under different mood states becomes a different encounter. Vocabulary: Held Fog, Wind Exposure, Suppressed Distance, Ground Saturation, Soft Horizon, Residual Cold, etc.</div>
 <div class="source">website/environmental-mood-states.md</div>
+<div class="xref">Governs: website traversal scene rotation. Consequence of: encounter as fundamental unit (conditions, not locations, differentiate encounters). Tension: mood states vs. seasonal canon (section 8).</div>
+</div>
+
+<div class="entry" data-keywords="interpretation service place test creative intervention sincerity">
+<div class="entry-title">The interpretation test</div>
+<div class="entry-body">Is the interpretation in service of the place, or is the place in service of the interpretation? If a creative intervention reveals something about the encounter, it may belong. If it primarily calls attention to itself, it may not. What unifies Northing is ethical consistency (sincere encounter), not aesthetic consistency.</div>
+<div class="source">encounter-interpretation-aesthetic-variation.md</div>
+<div class="xref">Derived from: encounter as fundamental unit. Constrains: all production decisions.</div>
 </div>
 
 </section>
@@ -266,70 +361,52 @@ section h2 {
 <section data-section="artifact-evidence">
 <h2>5. Artifact and Evidence System</h2>
 
-<div class="entry" data-keywords="artifact clue evidence encounter purpose">
+<div class="entry" data-keywords="artifact clue evidence encounter purpose mystery resolution">
 <div class="entry-title">Artifacts are not clues</div>
-<div class="entry-body">Clues point toward resolution; artifacts contribute to encounter. Northing should resist becoming a mystery. Artifacts are not puzzle pieces waiting for final explanation. Sometimes they connect, sometimes conflict, sometimes remain unresolved. Their purpose is participation in the construction of place.</div>
+<div class="entry-body">Clues point toward resolution; artifacts contribute to encounter. Northing resists becoming a mystery. Artifacts are not puzzle pieces waiting for explanation. Sometimes they connect, sometimes conflict, sometimes remain unresolved. Their purpose is participation in the construction of place. No single medium is authoritative; Northing is the accumulation of partial encounters across media forms.</div>
 <div class="source">PHILOSOPHICAL-THREADS.md</div>
+<div class="xref">Supports: evidence-ambiguity tension, the detective problem (section 8). Constrains: DR-004 (resolution by implication).</div>
 </div>
 
-<div class="entry" data-keywords="evidentiary modes media categories residue">
-<div class="entry-title">Evidentiary modes (not content formats)</div>
-<div class="entry-body">Categories: traversal/environmental continuity, still environmental frames, field notes/observational records, mapping/orientation artifacts, infrastructure residue, sound-only artifacts, archival/historical fragments, environmental memory artifacts, transitional/ambiguous media, material/physical artifacts. No single medium is authoritative. Northing becomes the accumulation of partial encounters across media forms.</div>
-<div class="source">artifacts-evidentiary-modes.md</div>
-</div>
-
-<div class="entry" data-keywords="maintenance labor routine intervention alteration">
-<div class="entry-title">Human presence through maintenance, not drama</div>
-<div class="entry-body">The strongest artifacts emerge from maintenance, labor, orientation, and environmental management. Not dramatic events. The world becomes believable because people interacted with it routinely. Human intervention is strongest when it appears through environmental alteration (clearing, spacing, altered light) rather than object depiction.</div>
+<div class="entry" data-keywords="evidentiary modes media residue maintenance labor location-specific">
+<div class="entry-title">Evidence emerges from place-specific labor</div>
+<div class="entry-body">Each location produces different categories of residue because each landscape implies different forms of labor, maintenance, movement, and memory. The strongest artifacts emerge from routine interaction (maintenance, labor, orientation, environmental management), not dramatic events. Human presence appears through environmental alteration (clearing, spacing, altered light) rather than object depiction. Evidentiary modes include: traversal media, still frames, field notes, mapping fragments, infrastructure residue, sound-only, archival fragments, environmental memory artifacts, ambiguous records, material/physical artifacts.</div>
 <div class="source">artifacts-evidentiary-modes.md, PHILOSOPHICAL-THREADS.md</div>
+<div class="xref">Consequence of: encounter as fundamental unit (encounters produce residue). Supports: places provide affordances.</div>
 </div>
 
-<div class="entry" data-keywords="location specificity residue orchard categories">
-<div class="entry-title">Location-specific residue categories</div>
-<div class="entry-body">Each location produces different categories of residue because each landscape implies different forms of labor, maintenance, movement, memory, and environmental negotiation. The orchard generates harvest tallies, spray schedules, pruning notes; the utility corridor generates vegetation management maps, tower numbering, maintenance logs.</div>
-<div class="source">artifacts-evidentiary-modes.md</div>
-</div>
-
-<div class="entry" data-keywords="interior structure shelter spring house tool house">
+<div class="entry" data-keywords="interior structure shelter spring house consequence watershed">
 <div class="entry-title">Interior spaces: consequences of the watershed</div>
-<div class="entry-body">Structures arise from geography, ecology, settlement patterns, repeated use. Strongest interiors are places whose present meaning differs from original function. The Shelter (Ridge Overlook): hunting shelter becoming reflective space through cumulative use. Spring House, Orchard Tool House, Foundation Ruin as priority candidates. Structures remain consequences rather than attractions.</div>
+<div class="entry-body">Structures arise from geography, ecology, settlement patterns, repeated use. Strongest interiors are places whose present meaning differs from original function (The Shelter: hunting shelter becoming reflective space through cumulative use). Structures remain consequences rather than attractions imposed upon the watershed.</div>
 <div class="source">possible-interiors.md</div>
+<div class="xref">Risk: pre-assigned meaning conflicts with "affordances not meanings." Test: does the structure feel environmentally inevitable?</div>
 </div>
 
 </section>
 
-<!-- 6. VIDEO SYSTEM -->
+<!-- 6. VIDEO / TRAVERSAL SYSTEM -->
 <section data-section="video-system">
-<h2>6. Video System</h2>
+<h2>6. Traversal and Production</h2>
 
-<div class="entry" data-keywords="traversal scene composition illustration commission">
-<div class="entry-title">Traversal scenes: environments, not illustrations</div>
-<div class="entry-body">Traversal scenes are discovered progressively, not viewed simultaneously. Scene Width = Time x Attention Density. Aspect ratios: 3:1 minimum, 4:1 preferred. Structure: approach (15%), first recognition (20%), primary encounter (30%), departure (20%), transition (15%). Limit to three meaningful discoveries per scene. The primary subject appears after ~30% traversal.</div>
-<div class="source">website/website-scene-math.md</div>
+<div class="entry" data-keywords="traversal scene composition environment illustration progressive discovery">
+<div class="entry-title">Traversal scenes are environments experienced progressively</div>
+<div class="entry-body">Scene Width = Time x Attention Density. Aspect ratios: 3:1 minimum, 4:1 preferred. Structure: approach (15%), first recognition (20%), primary encounter (30%), departure (20%), transition (15%). Limit three discoveries per scene; primary subject appears after ~30% traversal. The visitor is moving through terrain, not viewing a picture. Vertical composition fits viewport; discovery is horizontal. Transition space is content; departure matters.</div>
+<div class="source">website/website-scene-math.md, website/website-development-prompts.md</div>
+<div class="xref">Operationalizes: encounter as fundamental unit applied to website medium.</div>
 </div>
 
-<div class="entry" data-keywords="depth parallax layering foreground midground background anchor">
-<div class="entry-title">Spatial depth requirements</div>
-<div class="entry-body">All traversal scenes must maintain strong depth hierarchy. Foreground interruption, midground traversal space, persistent far-field anchors, layered atmospheric separation. Depth emerges through parallax, environmental layering, fog/haze, intermittent obstruction, scale contrast. Far-field anchors persist through movement, drift slowly, occasionally disappear. The world always feels larger than the current scene.</div>
+<div class="entry" data-keywords="depth sound motion conditions ecological parallax presence">
+<div class="entry-title">Environmental presence through conditions, not decoration</div>
+<div class="entry-body">Depth: parallax separation, environmental layering, intermittent obstruction, persistent far-field anchors that drift slowly. Sound: ecological context evolving across traversal; environmental compression/exposure alters density and reverberation. Motion: emerging from conditions (drifting fog, wind, shifting canopy), not theatrical performance. All three must feel observational and uneven. The world always feels larger than the current scene. Avoid: ambient drones, cinematic spectacle, looping, spa atmosphere.</div>
 <div class="source">website/website-development-prompts.md</div>
+<div class="xref">Governed by: Environmental Mood States. Risk: DR-007 when rules become production checklists rather than perceptual principles.</div>
 </div>
 
-<div class="entry" data-keywords="sound ecological audio layering ambient">
-<div class="entry-title">Ecological sound, not ambient performance</div>
-<div class="entry-body">Sound reflects environmental conditions and ecological context. Avoid generic ambient drones. Audio evolves across traversal; environmental compression/exposure alters sound density, reverberation, distance perception. Avoid: soundtrack feeling, obvious looping, exaggerated wildlife, horror ambience, meditative spa atmosphere. Goal: ecological presence.</div>
+<div class="entry" data-keywords="prompt experiential sequence sensory failure seam">
+<div class="entry-title">Prompting: experiential sequences, not visual descriptions</div>
+<div class="entry-body">Describe how perception changes during traversal. Specify: dominant spatial arc, seam conditions (what is being exited/entered), terrain behavior, light character, environmental rhythm, and failure states (what the scene must NOT feel like). The prompt generates an experience, not an illustration.</div>
 <div class="source">website/website-development-prompts.md</div>
-</div>
-
-<div class="entry" data-keywords="motion environmental fog wind precipitation observational">
-<div class="entry-title">Environmental motion from conditions, not decoration</div>
-<div class="entry-body">Subtle motion emerging from conditions: drifting fog, wind in grasses, shifting canopy density, precipitation. Motion alters visibility, affects perception timing, changes depth relationships. Avoid theatrical weather, dramatic storms, cinematic spectacle, constant looping. Motion should feel observational and uneven.</div>
-<div class="source">website/website-development-prompts.md</div>
-</div>
-
-<div class="entry" data-keywords="prompt experiential sequence sensory failure">
-<div class="entry-title">Prompting principle: experiential sequences, not visual descriptions</div>
-<div class="entry-body">Successful prompts describe how perception changes during traversal, not aesthetic decoration. Specify: sensory progression, spatial change, terrain behavior, light character, environmental rhythm, seam conditions, and failure states (what the scene must NOT feel like). The prompt generates an experience, not an illustration.</div>
-<div class="source">website/website-development-prompts.md</div>
+<div class="xref">Consequence of: encounter as fundamental unit (the prompt describes an encounter, not a place).</div>
 </div>
 
 </section>
@@ -340,50 +417,56 @@ section h2 {
 
 <div class="entry" data-keywords="DR-001 framework proving confirmation">
 <div class="entry-title">DR-001: Framework Proving</div>
-<div class="entry-body">Documents demonstrating existing frameworks are correct rather than exploring consequences. Counter: Frameworks should generate observations, not require them.</div>
+<div class="entry-body">Documents demonstrating frameworks are correct rather than exploring consequences. Counter: Frameworks should generate observations, not require them.</div>
 <div class="source">drift-risk.md</div>
 </div>
 
-<div class="entry" data-keywords="DR-002 encyclopedic expansion inventory classification">
+<div class="entry" data-keywords="DR-002 encyclopedic expansion inventory classification manual">
 <div class="entry-title">DR-002: Encyclopedic Expansion</div>
-<div class="entry-body">Frameworks accumulating inventories and classifications until they function as manuals. Counter: Add structure only when it increases generative capability.</div>
+<div class="entry-body">Frameworks accumulating inventories and classifications until they function as manuals. Counter: Add structure only when it increases generative capability. This document is subject to this risk.</div>
 <div class="source">drift-risk.md</div>
 </div>
 
 <div class="entry" data-keywords="DR-003 protagonist formation character accumulation">
-<div class="entry-title">DR-003: Protagonist Formation by Accumulation</div>
+<div class="entry-title">DR-003: Protagonist Formation</div>
 <div class="entry-body">Individually reasonable statements gradually assembling an implied character. Counter: Describe consequences of place rather than characteristics of people.</div>
 <div class="source">drift-risk.md</div>
+<div class="xref">Constrained by: distributed consciousness.</div>
 </div>
 
 <div class="entry" data-keywords="DR-004 resolution implication premature certainty">
 <div class="entry-title">DR-004: Resolution by Implication</div>
 <div class="entry-body">Uncertainty technically acknowledged while prose subtly favors one interpretation. Counter: Do not weight conclusions beyond what observations support.</div>
 <div class="source">drift-risk.md</div>
+<div class="xref">Constrained by: two classes of uncertainty (pre-categorical uncertainty resists this naturally).</div>
 </div>
 
 <div class="entry" data-keywords="DR-005 coverage seeking exhaustive completion">
 <div class="entry-title">DR-005: Coverage Seeking</div>
 <div class="entry-body">Locations or systems attempting to document everything knowable. Counter: Coverage is the enemy of accumulation.</div>
 <div class="source">drift-risk.md</div>
+<div class="xref">Constrained by: sediment-depth principle, discovery-not-construction.</div>
 </div>
 
-<div class="entry" data-keywords="DR-006 question collapse resolution faster">
+<div class="entry" data-keywords="DR-006 question collapse resolution faster certainty">
 <div class="entry-title">DR-006: Question Collapse</div>
 <div class="entry-body">Observations answering questions faster than generating new ones. Counter: Increase understanding without eliminating productive uncertainty.</div>
 <div class="source">drift-risk.md</div>
+<div class="xref">Related: evidence-ambiguity tension.</div>
 </div>
 
-<div class="entry" data-keywords="DR-007 operationalization production workflow content">
+<div class="entry" data-keywords="DR-007 operationalization production workflow content instructions">
 <div class="entry-title">DR-007: Operationalization Drift</div>
 <div class="entry-body">Documents becoming instructions for production rather than descriptions of the world. Counter: The world exists independently of its depiction.</div>
 <div class="source">drift-risk.md</div>
+<div class="xref">Risk applies to: section 6 of this document, production-oriented canon.</div>
 </div>
 
 <div class="entry" data-keywords="DR-008 narrative gravity story significance symbolic">
 <div class="entry-title">DR-008: Narrative Gravity</div>
 <div class="entry-body">Locations or motifs acquiring story significance unsupported by observation. Counter: Importance must emerge from accumulated evidence.</div>
 <div class="source">drift-risk.md</div>
+<div class="xref">Constrained by: encounter as fundamental unit, what-is-here orientation.</div>
 </div>
 
 <div class="entry" data-keywords="DR-009 artifact gravity object protagonist recurring">
@@ -392,51 +475,52 @@ section h2 {
 <div class="source">drift-risk.md</div>
 </div>
 
-<div class="entry" data-keywords="DR-010 baseline gravity comparison monitoring checklist">
+<div class="entry" data-keywords="DR-010 baseline gravity comparison monitoring checklist inspection">
 <div class="entry-title">DR-010: Baseline Gravity</div>
-<div class="entry-body">Previously documented conditions becoming mandatory comparison points; future observations functioning as status checks rather than encounters. Counter: The place does not owe continuity to the record. A return visit is a new encounter, not an inspection.</div>
+<div class="entry-body">Previously documented conditions becoming mandatory comparison points; future observations functioning as status checks. Counter: The place does not owe continuity to the record. A return visit is a new encounter, not an inspection.</div>
 <div class="source">drift-risk.md</div>
+<div class="xref">Created by: familiarity mechanism (familiarity creates baselines). Constrained by: encounter as fundamental unit (each visit is its own encounter).</div>
 </div>
 
 </section>
 
-<!-- 8. OPEN QUESTIONS / TENSIONS -->
+<!-- 8. TENSIONS / OPEN QUESTIONS -->
 <section class="tension" data-section="open-questions">
 <h2>8. Tensions / Open Questions</h2>
 
-<div class="entry" data-keywords="evidence ambiguity overdetermined dissolve tension">
+<div class="entry" data-keywords="evidence ambiguity overdetermined dissolve participation">
 <div class="entry-title">The evidence-ambiguity tension</div>
-<div class="entry-body">How much evidence can be provided before the place becomes over-determined? How much ambiguity can remain before the place dissolves? The project may live within this tension rather than resolve it. Guiding principle: increase understanding without collapsing ambiguity.</div>
+<div class="entry-body">How much evidence before the place becomes over-determined? How much ambiguity before it dissolves? The project lives within this tension. Guiding principle: increase understanding without collapsing ambiguity. Pre-categorical uncertainty is productive precisely because it resists collapse from either direction.</div>
 <div class="source">PHILOSOPHICAL-THREADS.md</div>
 </div>
 
-<div class="entry" data-keywords="detective reconciliation contradiction explanation">
+<div class="entry" data-keywords="detective reconciliation contradiction explanation stage">
 <div class="entry-title">The detective problem</div>
-<div class="entry-body">Attentive explorers will initially become detectives seeking chronology, reconciliation, explanation. This instinct should not necessarily be resisted; it may be an important stage. But some evidence may resist consolidation. The contradiction itself becomes instructional: it reveals limitations in the observer's framework.</div>
+<div class="entry-body">Attentive explorers will initially become detectives. This may be an important stage (orientation). Some evidence resists consolidation; the contradiction reveals limitations in the observer's framework. Unresolved: should anything explicitly invite failed reconciliation, or should it arise naturally from accumulated evidence?</div>
 <div class="source">PHILOSOPHICAL-THREADS.md</div>
 </div>
 
-<div class="entry" data-keywords="executable knowledge simulation education commercial">
+<div class="entry" data-keywords="executable knowledge simulation platform scope">
 <div class="entry-title">Canon as executable knowledge: scope question</div>
-<div class="entry-body">The corpus can potentially support interactive exploration, simulation, conversational place intelligence, educational systems, personalized experiences, and creativity infrastructure. The long-term asset may be the system itself, not any individual output. Unresolved: how much of this to pursue vs. maintaining the corpus as a place-making project rather than a platform.</div>
+<div class="entry-body">The corpus can support interactive exploration, simulation, educational systems, creativity infrastructure. The long-term asset may be the system itself. Unresolved: how much to pursue vs. maintaining the corpus as a place-making project. Risk: pursuing platform capabilities triggers DR-007 (operationalization drift).</div>
 <div class="source">northing-beyond-videos.md, northing-as-operating-system.md</div>
 </div>
 
-<div class="entry" data-keywords="memory sedimented contradiction continuity truth">
-<div class="entry-title">Memory vs. geography: what kind of place is Northing?</div>
-<div class="entry-body">A fully seamless environment implies stable geography and a fully knowable structure. But Northing increasingly resembles a place being remembered: selective continuity, uneven retention, overlapping impressions, contradictory conditions. When does this become incoherent? Can contradiction be the most faithful documentation?</div>
+<div class="entry" data-keywords="memory geography continuity contradiction coherence">
+<div class="entry-title">Memory vs. geography</div>
+<div class="entry-body">Northing increasingly resembles a place being remembered: selective continuity, contradictory conditions, uneven retention. When does this become incoherent? Can contradiction be the most faithful documentation? The encounter concept provides a partial answer: contradictions are evidence of different encounters, not errors in a single geography.</div>
 <div class="source">PHILOSOPHICAL-THREADS.md</div>
 </div>
 
-<div class="entry" data-keywords="mood states seasons literal observational calendar">
-<div class="entry-title">Environmental Mood States vs. seasonal structure</div>
-<div class="entry-body">Mood states solve the cliche problem (autumn = nostalgia) and create composable vocabulary. But the project also has seasonal frameworks and phenology canon. Tension: how much literal seasonality to preserve vs. how fully to adopt the perceptual-condition model for website/traversal use. Likely answer: mood states govern website; seasons govern observations and canon.</div>
+<div class="entry" data-keywords="mood states seasons literal observational calendar phenology">
+<div class="entry-title">Environmental Mood States vs. seasonal canon</div>
+<div class="entry-body">Mood states solve cliche and create composable vocabulary. But the project has seasonal frameworks and phenology canon. Likely domain separation: mood states govern website/traversal; seasons govern observations and canon. Unresolved: what happens when a mood state combination implies a season the canonical timeline doesn't support?</div>
 <div class="source">website/environmental-mood-states.md</div>
 </div>
 
-<div class="entry" data-keywords="familiar viewer stop returning absence meaning">
-<div class="entry-title">What happens when a viewer stops returning?</div>
-<div class="entry-body">If familiarity is the mechanism of meaning, the project depends on sustained attention. Unlike narrative works that resolve, Northing may lose participants gradually. Does the place persist without observers? This mirrors the Wheeler question at an audience level.</div>
+<div class="entry" data-keywords="viewer returning absence persistence attention">
+<div class="entry-title">What happens when attention withdraws?</div>
+<div class="entry-body">If familiarity is the mechanism of meaning, the project depends on sustained attention. Does the place persist without observers? This mirrors the Wheeler question at an audience level. The encounter concept suggests: the place is always available for new encounters, but meaning requires active assembly.</div>
 <div class="source">PHILOSOPHICAL-THREADS.md</div>
 </div>
 
@@ -446,22 +530,12 @@ section h2 {
 <section data-section="recently-added">
 <h2>9. Recently Added</h2>
 
-<div class="entry" data-keywords="environmental mood states combination vocabulary perceptual">
-<div class="entry-title">Environmental Mood States framework (2026-05-27)</div>
-<div class="entry-body">Emerging perceptual vocabulary for website traversal: Held Fog, Wind Exposure, Suppressed Distance, Ground Saturation, Soft Horizon, Residual Cold, etc. States combine to produce distinct perceptual environments. Three candidate combinations defined with representative scenes. Rotation model: ~12 scenes, four displayed at a time, periodically rotated.</div>
-<div class="source">website/environmental-mood-states.md</div>
+<div class="entry" data-keywords="changelog">
+<div class="entry-body" style="font-size: 0.75rem; line-height: 1.8;">
+<strong>2026-05-30:</strong> Initial build from 21 scratchpad files. Concept Relationships layer added. Encounter elevated to governing principle. Cross-references added throughout. Video System consolidated from 5 entries to 3.<br>
+<strong>2026-05-27:</strong> Environmental Mood States framework emerged (website/environmental-mood-states.md).<br>
+<strong>2026-05-26:</strong> Website-as-representation concept, traversal scene mathematics, and prompting principles established (website/ subfolder).
 </div>
-
-<div class="entry" data-keywords="scene math traversal composition illustration aspect ratio">
-<div class="entry-title">Traversal scene mathematics (2026-05-26)</div>
-<div class="entry-body">Formal composition rules for horizontal traversal: progressive discovery, approach before arrival, departure as content, transition space as content. Viewport constraint: vertical composition must fit viewport height; discovery is horizontal. New commissioning category: Traversal Scenes (environments rather than pictures).</div>
-<div class="source">website/website-scene-math.md</div>
-</div>
-
-<div class="entry" data-keywords="website concept representation visual abstraction diagrammatic">
-<div class="entry-title">Website as representation concept (2026-05-26)</div>
-<div class="entry-body">Visual language breakthrough: simplified, geometric, atmospheric, symbolic, diagrammatic artwork (resembling survey sketches, interpretive maps). The website no longer competes with videos. Four-scene 360-degree traversal structure: Forest (enclosure), Ridge (exposure), Orchard (memory), Water (continuation without closure).</div>
-<div class="source">website/Northing Website Concept.md</div>
 </div>
 
 </section>
@@ -479,20 +553,20 @@ section h2 {
 <strong>encounter-interpretation-aesthetic-variation.md</strong> — Encounters not places; aesthetic freedom; ethical consistency; the interpretation test.<br>
 <strong>familiarity.md</strong> — Familiarity as organizing structure; OFA progression; attachment through recurrence.<br>
 <strong>file-naming.md</strong> — O/F/A coordinate system, numbering convention, expansion strategy.<br>
-<strong>human-ai-observation-partnership.md</strong> — Significance assignment vs. discovery; bias inventory; four-phase workflow; divergence analysis.<br>
-<strong>northing-as-operating-system.md</strong> — Canon as infrastructure; systems vs. information; AI changes the relationship; familiarity as system component.<br>
-<strong>northing-beyond-videos.md</strong> — Executable knowledge; eight capability categories; interactive exploration; simulation; educational systems.<br>
+<strong>human-ai-observation-partnership.md</strong> — Significance assignment vs. discovery; bias inventory; divergence analysis.<br>
+<strong>northing-as-operating-system.md</strong> — Canon as infrastructure; systems vs. information; familiarity as system component.<br>
+<strong>northing-beyond-videos.md</strong> — Executable knowledge; capability categories; simulation; educational systems.<br>
 <strong>northing-name.md</strong> — Nothing/Northing; collective consciousness; viewer as protagonist; documentary as observation of being.<br>
-<strong>participatory-universe.md</strong> — Wheeler connection; evidence vs. place; multiple valid Northings; sequence matters; design implication.<br>
+<strong>participatory-universe.md</strong> — Wheeler connection; evidence vs. place; multiple valid Northings; sequence matters.<br>
 <strong>place-perspective-meaning.md</strong> — Affordances not meanings; observation changes attention; multiple streams; discovery not construction.<br>
-<strong>possible-interiors.md</strong> — Interior candidates: The Shelter, Spring House, Orchard Tool House, Foundation Ruin; development principle.<br>
+<strong>possible-interiors.md</strong> — Interior candidates: The Shelter, Spring House, Orchard Tool House, Foundation Ruin.<br>
 <strong>site-deployment.md</strong> — Cloudflare Pages deploy command.<br>
-<strong>small-world-principle.md</strong> — Depth over coverage; recursive re-observation; constrained geography; anti-premature expansion.<br>
-<strong>tech-stack.md</strong> — Markdown vault + GitHub + Claude + validation scripts + Resolve. Canon retrieval + consistency enforcement as first need.<br>
-<strong>website/environmental-mood-states.md</strong> — Environmental Mood States framework; vocabulary; combination model; three candidate states; rotation system.<br>
-<strong>website/Northing Website Concept.md</strong> — Representation not duplication; visual abstraction discovery; four-scene structure; text fragment philosophy.<br>
-<strong>website/website-development-prompts.md</strong> — Prompting insights; experiential sequence; depth/motion/sound requirements; seam conditions.<br>
-<strong>website/website-scene-math.md</strong> — Aspect ratios; composition rules; traversal scene as new category; viewport constraints.
+<strong>small-world-principle.md</strong> — Depth over coverage; recursive re-observation; constrained geography.<br>
+<strong>tech-stack.md</strong> — Markdown vault + GitHub + Claude + validation scripts + Resolve.<br>
+<strong>website/environmental-mood-states.md</strong> — Environmental Mood States framework; vocabulary; combination model; rotation system.<br>
+<strong>website/Northing Website Concept.md</strong> — Representation not duplication; visual abstraction; four-scene structure; text fragment philosophy.<br>
+<strong>website/website-development-prompts.md</strong> — Experiential sequence prompting; depth/motion/sound; seam conditions.<br>
+<strong>website/website-scene-math.md</strong> — Aspect ratios; composition rules; traversal scene category; viewport constraints.
 </div>
 </div>
 
