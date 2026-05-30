@@ -3190,16 +3190,24 @@ function tickS1Cue() {
 function tickSymbol() {
   // Opening only — atmospheric anchor while the canvas is still in its opening
   // blackout. drawDark fades 0 → 0.06 of p1, so the symbol yields just as the
-  // forest becomes visible. No closing presence — the wordmark takes the close.
-  const target = smooth(clamp((0.085 - p1) / (0.085 - 0.050), 0, 1));
+  // forest becomes visible.
+  const opening = smooth(clamp((0.085 - p1) / (0.085 - 0.050), 0, 1));
+  // Closing ownership — once Scene 4 approaches its end, the wordmark takes
+  // the title-card slot. Force the symbol target to 0 starting at p4=0.55,
+  // fully suppressed by p4=0.68 — well before the wordmark window opens at
+  // p4=0.70 — so the two never co-occupy.
+  const closingOwn = smooth(clamp((p4 - 0.55) / (0.68 - 0.55), 0, 1));
+  const target = opening * (1 - closingOwn);
 
-  // Smooth rise (~1.3s) for the title-card emerge, slow decay (~5s) so the
-  // symbol survives backward scrolls and hands off to the wordmark cleanly
-  // on the next loop.
+  // Accelerated decay while closing ownership is asserting. Caps at ~0.043/frame
+  // (≈0.7s from full to zero), guaranteeing the symbol is gone before the
+  // wordmark begins to rise even on a fast traversal or fresh loop-back.
+  const decayStep = 0.003 + closingOwn * 0.040;
+
   if (target > symbolOpacity) {
     symbolOpacity = Math.min(target, symbolOpacity + 0.012);
   } else {
-    symbolOpacity = Math.max(target, symbolOpacity - 0.003);
+    symbolOpacity = Math.max(target, symbolOpacity - decayStep);
   }
   nlSymbol.style.opacity = symbolOpacity;
 }
