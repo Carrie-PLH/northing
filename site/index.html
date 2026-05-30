@@ -3415,17 +3415,28 @@ function tickFrag(now) {
   const holdT = fragScene === 1 ? 3000 : (fragScene === 2 ? 3800 : (fragScene === 3 ? 4000 : 4500));
   const fadeOutT = fragScene === 1 ? 1800 : (fragScene === 2 ? 2400 : (fragScene === 3 ? 2600 : 3000));
 
+  // Compute the natural phase-based alpha, then advance the phase machine.
+  let naturalA = 0;
   if (fragPhase === 'in') {
     const a = Math.min(el / fadeInT, 1);
-    fragEl.style.color = `${col}${smooth(a) * maxA})`;
+    naturalA = smooth(a) * maxA;
     if (a >= 1) { fragPhase = 'hold'; fragStart = now; }
   } else if (fragPhase === 'hold') {
+    naturalA = maxA;
     if (el > holdT) { fragPhase = 'out'; fragStart = now; }
   } else {
     const a = Math.max(1 - el / fadeOutT, 0);
-    fragEl.style.color = `${col}${smooth(a) * maxA})`;
+    naturalA = smooth(a) * maxA;
     if (a <= 0) fragPhase = 'idle';
   }
+
+  // Closing gate — hard per-frame suppression as Scene 4 approaches blackout.
+  // Forces any fragment to zero by p4=0.86 (well before drawDark starts at
+  // p4=0.90 and before the wordmark window opens at p4=0.70), regardless of
+  // scroll speed or where in its 10s lifecycle the fragment happens to be.
+  const closingGate = 1 - smooth(clamp((p4 - 0.78) / (0.86 - 0.78), 0, 1));
+
+  fragEl.style.color = `${col}${naturalA * closingGate})`;
 }
 
 function checkFrags() {
