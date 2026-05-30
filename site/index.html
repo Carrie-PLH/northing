@@ -16,6 +16,9 @@ html, body {
   background: #000;
   cursor: none;
 }
+/* Restore cursor at the closing so visitors can actually see where they're
+   pointing when the social icons are interactable. Toggled from JS. */
+body.cursor-visible { cursor: default; }
 canvas {
   display: block;
   position: fixed;
@@ -3148,6 +3151,10 @@ const nlWordmark   = document.getElementById('nl-wordmark');
 // Social icon persistence — slow decay so icons survive backward scrolls and loop
 let socialOpacityA = 0, socialOpacityB = 0;
 
+// Cursor visibility — hidden during traversal, restored at the closing so
+// visitors can navigate to the social icons before the loop resets.
+let cursorVisible = false;
+
 // Title-card mark persistence — smooth fade-in (mark emerges), slow decay so
 // the wordmark holds through closing blackout and the symbol holds briefly
 // into Scene 1 reveal before yielding.
@@ -3173,6 +3180,14 @@ function tickSocial() {
   socSecondary.style.opacity = socialOpacityB;
   socPrimary.style.pointerEvents   = socialOpacityA > 0.4 ? 'auto' : 'none';
   socSecondary.style.pointerEvents = socialOpacityB > 0.4 ? 'auto' : 'none';
+
+  // Reveal the cursor on the same threshold that makes the icons clickable.
+  // Toggled only on transitions to avoid per-frame DOM mutation.
+  const wantCursor = socialOpacityA > 0.4;
+  if (wantCursor !== cursorVisible) {
+    document.body.classList.toggle('cursor-visible', wantCursor);
+    cursorVisible = wantCursor;
+  }
 }
 
 function tickS1Cue() {
