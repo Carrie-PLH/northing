@@ -4055,6 +4055,17 @@ window.addEventListener('touchend', () => {
   if (Math.abs(tVelocity) > MOMENTUM_MIN) { momentumRAF = requestAnimationFrame(coastMomentum); }
 });
 
+// Mouse click — advance the world. Visitors whose first instinct is to click
+// (rather than scroll) get immediate lateral feedback from the click itself,
+// teaching the interaction model through the world's response rather than
+// through UI instruction. Excludes anchors/buttons so social icons still
+// open their links normally.
+window.addEventListener('click', e => {
+  if (e.target.closest('a, button')) return;
+  hasScrolled = true;
+  advance(800);
+}, { passive: true });
+
 // S1 cue hover — resolves clarity without changing visual language
 s1CueRoot.addEventListener('mouseenter', () => { s1CueHovered = true; });
 s1CueRoot.addEventListener('mouseleave', () => { s1CueHovered = false; });
