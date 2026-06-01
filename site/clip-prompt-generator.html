@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Northing · Clip Prompt Generator</title>
+<style>
+  :root{
+    --bg:#f4f1ea;
+    --panel:#faf8f2;
+    --ink:#3a362f;
+    --ink-soft:#6b655a;
+    --ink-faint:#938c7e;
+    --line:#d8d2c4;
+    --line-soft:#e6e1d5;
+    --accent:#5c5346;
+    --field:#fcfbf7;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
+    font-size:16px;
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+    padding:0 0 80px;
+  }
+  .wrap{
+    max-width:820px;
+    margin:0 auto;
+    padding:32px 22px 0;
+  }
+  header.site{
+    border-bottom:1px solid var(--line);
+    padding-bottom:18px;
+    margin-bottom:26px;
+  }
+  .kicker{
+    font-size:11px;
+    letter-spacing:0.22em;
+    text-transform:uppercase;
+    color:var(--ink-faint);
+    margin:0 0 8px;
+  }
+  h1{
+    font-size:25px;
+    font-weight:600;
+    letter-spacing:0.01em;
+    margin:0 0 8px;
+  }
+  .lede{
+    font-size:14.5px;
+    color:var(--ink-soft);
+    margin:0;
+    max-width:62ch;
+  }
+  h2.section{
+    font-size:12px;
+    letter-spacing:0.18em;
+    text-transform:uppercase;
+    color:var(--ink-faint);
+    border-bottom:1px solid var(--line-soft);
+    padding-bottom:7px;
+    margin:34px 0 18px;
+    font-weight:600;
+  }
+  .grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:18px 20px;
+  }
+  .field{display:flex;flex-direction:column;gap:6px;}
+  .field.full{grid-column:1 / -1;}
+  label{
+    font-size:11.5px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    font-weight:600;
+  }
+  .hint{
+    font-size:12px;
+    color:var(--ink-faint);
+    font-style:italic;
+    line-height:1.4;
+    margin-top:-1px;
+  }
+  select,input[type=text],textarea{
+    font-family:inherit;
+    font-size:15px;
+    color:var(--ink);
+    background:var(--field);
+    border:1px solid var(--line);
+    border-radius:3px;
+    padding:9px 11px;
+    width:100%;
+    outline:none;
+    transition:border-color .15s ease;
+  }
+  select:focus,input:focus,textarea:focus{border-color:var(--accent);}
+  textarea{resize:vertical;line-height:1.5;}
+  .seg{
+    display:flex;
+    flex-wrap:wrap;
+    gap:7px;
+  }
+  .seg label{
+    text-transform:none;
+    letter-spacing:0;
+    font-weight:400;
+    position:relative;
+  }
+  .seg input{position:absolute;opacity:0;pointer-events:none;}
+  .seg .opt{
+    display:inline-block;
+    border:1px solid var(--line);
+    background:var(--field);
+    border-radius:3px;
+    padding:7px 14px;
+    font-size:14px;
+    cursor:pointer;
+    color:var(--ink-soft);
+    user-select:none;
+    transition:all .12s ease;
+  }
+  .seg input:checked + .opt{
+    background:var(--accent);
+    border-color:var(--accent);
+    color:#f4f1ea;
+  }
+  .asset-list{
+    display:flex;
+    flex-direction:column;
+    gap:2px;
+    border:1px solid var(--line);
+    border-radius:3px;
+    background:var(--field);
+    padding:4px;
+  }
+  .asset-list .empty{
+    font-size:13px;
+    color:var(--ink-faint);
+    font-style:italic;
+    padding:8px 9px;
+  }
+  .asset-row{
+    display:flex;
+    align-items:flex-start;
+    gap:9px;
+    padding:7px 9px;
+    border-radius:3px;
+    cursor:pointer;
+    transition:background .12s ease;
+  }
+  .asset-row:hover{background:var(--line-soft);}
+  .asset-row input{
+    margin:3px 0 0;
+    width:auto;
+    accent-color:var(--accent);
+  }
+  .asset-row .meta{display:flex;flex-direction:column;gap:1px;}
+  .asset-row .id{
+    font-size:13.5px;
+    color:var(--ink);
+    letter-spacing:0.03em;
+  }
+  .asset-row .id b{font-weight:600;}
+  .asset-row .sub{
+    font-size:12px;
+    color:var(--ink-faint);
+  }
+  .profile-note{
+    background:var(--panel);
+    border:1px solid var(--line-soft);
+    border-left:2px solid var(--line);
+    border-radius:3px;
+    padding:13px 15px;
+    font-size:13.5px;
+    color:var(--ink-soft);
+    line-height:1.5;
+    margin-top:14px;
+  }
+  .profile-note strong{color:var(--ink);font-weight:600;}
+  .profile-note .row{margin:3px 0;}
+  .actions{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    margin:28px 0 8px;
+  }
+  button{
+    font-family:inherit;
+    font-size:14px;
+    letter-spacing:0.03em;
+    cursor:pointer;
+    border-radius:3px;
+    padding:11px 20px;
+    border:1px solid var(--accent);
+    transition:all .12s ease;
+  }
+  button.primary{background:var(--accent);color:#f4f1ea;}
+  button.primary:hover{background:#4a4338;}
+  button.ghost{background:transparent;color:var(--accent);}
+  button.ghost:hover{background:var(--line-soft);}
+  .out-head{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    gap:12px;
+    flex-wrap:wrap;
+    margin-top:34px;
+  }
+  .wordcount{font-size:12px;color:var(--ink-faint);font-style:italic;}
+  #output{
+    min-height:340px;
+    margin-top:14px;
+    background:var(--field);
+    font-size:14px;
+    line-height:1.6;
+  }
+  .ref-note{
+    margin-top:26px;
+    background:var(--panel);
+    border:1px solid var(--line-soft);
+    border-radius:3px;
+    padding:16px 18px;
+    font-size:13.5px;
+    color:var(--ink-soft);
+    line-height:1.55;
+  }
+  .ref-note h3{
+    font-size:11px;
+    letter-spacing:0.16em;
+    text-transform:uppercase;
+    color:var(--ink-faint);
+    margin:0 0 8px;
+    font-weight:600;
+  }
+  .toast{
+    position:fixed;
+    left:50%;
+    bottom:26px;
+    transform:translateX(-50%) translateY(20px);
+    background:var(--ink);
+    color:#f4f1ea;
+    padding:10px 20px;
+    border-radius:4px;
+    font-size:13px;
+    letter-spacing:0.04em;
+    opacity:0;
+    pointer-events:none;
+    transition:all .25s ease;
+    z-index:50;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  footer.site{
+    margin-top:48px;
+    padding-top:18px;
+    border-top:1px solid var(--line);
+    font-size:12px;
+    color:var(--ink-faint);
+    line-height:1.5;
+  }
+  @media (max-width:620px){
+    .grid{grid-template-columns:1fr;}
+    .wrap{padding:24px 16px 0;}
+    h1{font-size:22px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="site">
+    <p class="kicker">Northing · Field Tools</p>
+    <h1>Clip Prompt Generator</h1>
+    <p class="lede">Translates Northing's observational language into concrete motion and camera instructions for Veo 3.1. Choose a location and conditions; the tool assembles a copy-ready prompt. Northing is a place, observed patiently. Keep the spectacle out.</p>
+  </header>
+
+  <h2 class="section">Subject</h2>
+  <div class="grid">
+    <div class="field">
+      <label for="location">Location</label>
+      <select id="location"></select>
+      <span class="hint">Profiles are editable in the LOCATIONS object near the top of the script.</span>
+    </div>
+    <div class="field">
+      <label for="locationCustom">Or enter a custom location</label>
+      <input type="text" id="locationCustom" placeholder="Leave blank to use the profile above">
+      <span class="hint">If filled, this overrides the dropdown.</span>
+    </div>
+  </div>
+  <div class="profile-note" id="profileNote" hidden></div>
+
+  <h2 class="section">Reference Assets</h2>
+  <div class="grid">
+    <div class="field full">
+      <label>Continuity anchors</label>
+      <div class="asset-list" id="assetList"></div>
+      <span class="hint">Curated registry, editable in the REFERENCE_ASSETS object near the top of the script. Select any number; selected assets anchor this clip to existing Northing material.</span>
+    </div>
+  </div>
+
+  <h2 class="section">Mode</h2>
+  <div class="grid">
+    <div class="field full">
+      <label>Reference image mode</label>
+      <div class="seg" id="refModeSeg"></div>
+      <span class="hint" id="refModeHint"></span>
+    </div>
+    <div class="field full">
+      <label for="continuity">Continuity note</label>
+      <textarea id="continuity" rows="2" placeholder="e.g. Use same visual world as Tributary Confluence image set A. Match environmental character established in RO-001."></textarea>
+      <span class="hint">Optional. Links this clip to existing Northing stills or sequences so the archive stays visually coherent over time.</span>
+    </div>
+  </div>
+
+  <h2 class="section">Observation</h2>
+  <div class="grid">
+    <div class="field full">
+      <label>Duration</label>
+      <div class="seg" id="durationSeg"></div>
+    </div>
+    <div class="field">
+      <label for="phase">Orientation phase</label>
+      <select id="phase"></select>
+      <span class="hint" id="phaseHint"></span>
+    </div>
+    <div class="field">
+      <label for="mood">Environmental mood state</label>
+      <select id="mood"></select>
+      <span class="hint" id="moodHint"></span>
+    </div>
+  </div>
+
+  <h2 class="section">Conditions</h2>
+  <div class="grid">
+    <div class="field">
+      <label for="season">Season</label>
+      <select id="season"></select>
+    </div>
+    <div class="field">
+      <label for="timeOfDay">Time of day</label>
+      <select id="timeOfDay"></select>
+    </div>
+    <div class="field full">
+      <label for="weather">Weather</label>
+      <select id="weather"></select>
+    </div>
+  </div>
+
+  <h2 class="section">Treatment</h2>
+  <div class="grid">
+    <div class="field">
+      <label for="camera">Camera behavior</label>
+      <select id="camera"></select>
+    </div>
+    <div class="field">
+      <label for="motion">Motion level</label>
+      <select id="motion"></select>
+    </div>
+    <div class="field">
+      <label for="archival">Archival source style</label>
+      <select id="archival"></select>
+    </div>
+    <div class="field">
+      <label for="sound">Sound direction</label>
+      <select id="sound"></select>
+    </div>
+    <div class="field full">
+      <label for="avoid">Things to avoid (added to negatives)</label>
+      <input type="text" id="avoid" placeholder="e.g. lens flares, fast push-ins, saturated greens">
+    </div>
+    <div class="field full">
+      <label for="notes">Custom notes</label>
+      <textarea id="notes" rows="3" placeholder="Anything specific to this clip — a recurring detail to favor, a framing constraint, a continuity note."></textarea>
+    </div>
+  </div>
+
+  <h2 class="section">Output</h2>
+  <div class="grid">
+    <div class="field full">
+      <label>Prompt length</label>
+      <div class="seg" id="lengthSeg"></div>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="primary" id="genBtn">Generate Prompt</button>
+    <button class="ghost" id="copyBtn">Copy Prompt</button>
+    <button class="ghost" id="resetBtn">Reset</button>
+  </div>
+
+  <div class="out-head">
+    <h2 class="section" style="margin:0;border:none;padding:0;">Generated Prompt</h2>
+    <span class="wordcount" id="wordcount">0 words</span>
+  </div>
+  <textarea id="output" placeholder="Select your conditions and press Generate Prompt. The result is fully editable before you copy it."></textarea>
+
+  <div class="ref-note">
+    <h3>Reference Image Note</h3>
+    If you supply a reference image in Veo, the image controls composition, palette, and subject. Let the text prompt carry only motion, atmosphere, camera behavior, pacing, and exclusions — do not re-describe what the image already fixes. Conflicting instructions between image and text tend to degrade the result.
+  </div>
+
+  <footer class="site">
+    Northing is a place, not a story. This tool produces production direction, not canon. Significance emerges through recurrence and patient attention, never through spectacle or explanation.
+  </footer>
+</div>
+
+<div class="toast" id="toast">Copied to clipboard</div>
+
+<script>
+/* =========================================================================
+   NORTHING CLIP PROMPT GENERATOR
+   -------------------------------------------------------------------------
+   Edit the data objects below to tune the tool. They are intentionally
+   plain so a non-programmer can adjust wording in place.
+   ========================================================================= */
+
+/* ---- 0. REFERENCE ASSET REGISTRY ----------------------------------------
+   A curated, human-maintained list of canonical Northing stills, photographs,
+   artifacts, and clips that act as continuity anchors. This is NOT a folder
+   scan or automatic discovery; you add entries by hand as the archive grows.
+
+   To add an asset, copy a block and give it a new ID key. Conventions:
+     - key:      a short stable ID, e.g. "TC-002" (location prefix + number)
+     - name:     a human label shown in the UI and printed in the prompt
+     - location: should match a LOCATIONS profile name where applicable
+     - role:     "canonical" for defining references, or e.g. "study",
+                 "variant", "seasonal" for secondary material
+     - season:   the season the asset represents (free text)
+
+   The ID is what appears in the generated REFERENCE ASSETS section, so keep
+   IDs meaningful and stable once published.                                */
+const REFERENCE_ASSETS = {
+  "TC-001": {
+    name: "Canonical Tributary Confluence",
+    location: "Tributary Confluence Wet Meadow",
+    role: "canonical",
+    season: "summer"
+  },
+  "RO-001": {
+    name: "Canonical Ridge Overlook",
+    location: "Ridge Overlook",
+    role: "canonical",
+    season: "autumn"
+  }
+};
+
+/* ---- 1. LOCATION PROFILES ------------------------------------------------
+   Seven editable defaults. Edit text freely. Add a profile by copying a
+   block and giving it a new key. Each profile feeds the LOCATION DESCRIPTION
+   and informs camera, season, sound, and negatives.                        */
+const LOCATIONS = {
+  "tributary-confluence": {
+    name: "Tributary Confluence Wet Meadow",
+    landscape: "A low, flat meadow where two small watercourses meet and braid before joining. Standing and moving water threads through sedge, rush, and matted grass. The ground is saturated, dark, and uneven, with shallow pools holding the sky. Alder and willow edge the wetter margins.",
+    recurringDetails: "Reflected sky in still pools, the seam where two currents merge, bent reeds combed by past high water, insect movement over the surface, a darker band marking the old flood line.",
+    cameraBehavior: "Low, level, patient. Hold on the water's surface and let motion come to the frame. Slow lateral drift only if any.",
+    seasonalNotes: "Spring brings high, cold, fast water and bright new green. Summer is low slow channels, dense growth, heavy insect life. Autumn turns the sedge tawny under lower light with clearer water. Winter shows ice margins, exposed mud, muted color.",
+    ambientSound: "Layered water — one channel quicker than the other — wind in reeds, intermittent insect or frog, distant bird.",
+    visualRisks: "Over-saturated greens, glamour-light reflections, postcard symmetry, any sense of a manicured garden pond."
+  },
+  "ridge-overlook": {
+    name: "Ridge Overlook",
+    landscape: "An exposed shoulder of high ground where the land falls away into successive ridgelines softened by distance. Thin soil, wind-shaped low vegetation, lichen-marked rock. The view is wide but the foreground is sparse and worn.",
+    recurringDetails: "Receding ridgelines fading into atmospheric haze, wind-flagged shrubs leaning one way, bare rock with lichen, a single weathered post or cairn, moving cloud shadow crossing the far slopes.",
+    cameraBehavior: "Mostly static, eye-level or slightly low. If it moves, a very slow pan across the distance, never a sweeping reveal.",
+    seasonalNotes: "Spring is cold wind, intermittent cloud, pale growth. Summer brings haze, long light, dry grass. Autumn is clear hard light with color on the far slopes. Winter shows snow patches, scoured ground, flat cold light.",
+    ambientSound: "Steady wind across the ridge, the faint hush of distance, occasional bird carried on the air.",
+    visualRisks: "Epic adventure framing, drone-style fly-over, summit-conquest mood, lens flare, hyper-clarity HDR."
+  },
+  "abandoned-orchard": {
+    name: "Abandoned Orchard",
+    landscape: "Rows of old fruit trees long past tending, limbs gnarled and partly fallen, gaps where trees have died. Tall grass and volunteer saplings fill the spacing. The planting grid is still legible beneath the disorder.",
+    recurringDetails: "The surviving geometry of the rows, lichen and moss on bark, split or hollow trunks, windfall fruit in season, grass grown waist-high between trees, a leaning trunk held up by its neighbor.",
+    cameraBehavior: "Slow, ground-level observation. Let the eye find the row-lines. Brief holds on individual trees. Minimal movement.",
+    seasonalNotes: "Spring shows sparse uneven blossom and a bright understory. Summer is heavy green hiding the structure. Autumn brings windfall, low gold light, thinning leaves. Winter bares the architecture of limbs, frost, full visibility of the grid.",
+    ambientSound: "Wind through dry grass and old branches, creak of wood, insects in season, distant bird, a soft drop of fruit.",
+    visualRisks: "Fairy-tale enchantment, magic-hour glow, whimsy, horror-orchard menace, anything supernatural."
+  },
+  "stone-foundation": {
+    name: "Stone Foundation Clearing",
+    landscape: "A clearing holding the low rectangular footprint of a structure long gone. Dry-laid stone, partly tumbled, partly swallowed by turf and moss. Younger trees stand inside and around the outline. The forest is reclaiming a once-cleared square.",
+    recurringDetails: "Right-angled stone lines under moss, a filled cellar depression, a doorway gap in the wall, saplings rooted in the old floor, the contrast between worked stone and unworked ground.",
+    cameraBehavior: "Still, respectful, close to the stone. Slow drift along a wall line at most. Let the geometry emerge rather than announcing it.",
+    seasonalNotes: "Spring is green moss with leaf-out closing the clearing. Summer brings deep shade and dense growth softening the stone. Autumn fills the footprint with leaf litter under low light. Winter snow reveals the full outline in bare clarity.",
+    ambientSound: "Quiet forest interior, dripping after rain, settling leaves, a distant bird, near silence.",
+    visualRisks: "Ruins-of-civilization drama, archaeological reveal, mystery-puzzle framing, ghost-story atmosphere, explanatory signage feel."
+  },
+  "hemlock-ravine": {
+    name: "Hemlock Ravine",
+    landscape: "A steep, shaded ravine under old hemlock, cool and dim even at midday. A small stream works the bottom over rock and root. Steep mossy slopes, fallen trunks bridging the cut, deep evergreen shade with thin shafts of light.",
+    recurringDetails: "Filtered light shafts through the canopy, moss on rock and deadfall, the stream working between boulders, exposed root systems on the slope, slow-rotting logs, a persistent dim coolness.",
+    cameraBehavior: "Static or barely creeping, low near the stream. Hold in the shade and let light and water move. Avoid climbing reveals.",
+    seasonalNotes: "Spring brings full cold flow and vivid moss. Summer is deep shade, a low slow stream, dense green. Autumn drops leaves from the hardwood edges with lower flow. Winter ices the rock under dark needles in very low light.",
+    ambientSound: "Stream over rock close and steady, drip from the canopy, wind high in the hemlocks not felt below, sparse bird.",
+    visualRisks: "Enchanted-forest mood, god-ray melodrama, fantasy gloom, horror dread, over-green color grading."
+  },
+  "old-road-trace": {
+    name: "Old Road Trace",
+    landscape: "The faint surviving line of an abandoned road through regrown country. Two parallel depressions, a raised crown between them, partly grassed and partly bare. Trees lean in from both sides, narrowing the corridor. The route reads as intention more than surface.",
+    recurringDetails: "The paired ruts and central crown, encroaching trees forming a tunnel, a culvert stone or rotted post, the road-line vanishing around a bend, leaf litter or grass tracking the old path.",
+    cameraBehavior: "Looking down the line of the road, mostly static. If moving, a slow even forward drift at walking pace, never a fast travel shot.",
+    seasonalNotes: "Spring closes the corridor with green over soft ground. Summer is dense overgrowth and dappled shade. Autumn covers the trace in leaves as visibility returns. Winter snow holds the road-line clearly in open structure.",
+    ambientSound: "Wind in the corridor of trees, footfall-scale quiet, distant bird, the muffled sound of an enclosed space.",
+    visualRisks: "Journey or adventure metaphor, ominous path dread, vanishing-point drama, vehicle-POV feel, nostalgic sentimentality."
+  },
+  "pond-edge": {
+    name: "Pond Edge",
+    landscape: "The margin of a small still pond where land becomes water through a band of reed, mud, and shallow growth. Dark water reflects the sky and the far bank. The edge is soft, transitional, and slowly shifting.",
+    recurringDetails: "Reflection broken by surface movement, the reed band at the waterline, a half-submerged branch or log, slow ripple spreading from an unseen cause, the mud line marking water level.",
+    cameraBehavior: "Low and level at the waterline. Static, holding on the surface. Let ripple and reflection carry the motion.",
+    seasonalNotes: "Spring raises the water with new reed and an active surface. Summer is low water, algae, dense insect life, warm still air. Autumn clears the water as the reed goes tawny and leaves fall on the surface. Winter forms ice from the edge around a dark open center.",
+    ambientSound: "Lapping at the margin, reed rustle, frog or insect in season, a single bird call, broad quiet.",
+    visualRisks: "Mirror-perfect glamour reflection, sunset-calendar cliche, koi-pond serenity, swamp-horror menace."
+  }
+};
+
+/* ---- 2. ORIENTATION PHASES ----------------------------------------------
+   Abstract phase -> concrete camera and framing behavior.                  */
+const PHASES = {
+  "orientation": {
+    name: "Orientation",
+    hint: "First encounter. The camera is still learning the place.",
+    lines: [
+      "a searching, slightly uncertain camera that has not yet settled",
+      "framing that adjusts in small increments, as if deciding where to look",
+      "no single dominant subject; attention moves between elements",
+      "brief pauses and small reframings rather than committed composition",
+      "the feeling of a first encounter with an unfamiliar place"
+    ]
+  },
+  "familiarity": {
+    name: "Familiarity",
+    hint: "The place is becoming known. Observation steadies.",
+    lines: [
+      "steadier, more confident framing that holds its choices",
+      "the camera recognizes and returns to specific recurring details",
+      "fewer adjustments; composition rests once it finds a feature",
+      "a sense of repeated visits, of knowing where to look"
+    ]
+  },
+  "attunement": {
+    name: "Attunement",
+    hint: "The place is fully known. The camera nearly disappears.",
+    lines: [
+      "an almost still camera, motion reduced to the barely perceptible",
+      "patient sustained attention with no impulse to move on",
+      "subtle environmental motion carries the frame, not the camera",
+      "no narrative insistence; nothing is being pointed out",
+      "the place feels self-sufficient, indifferent to being watched"
+    ]
+  }
+};
+
+/* ---- 3. ENVIRONMENTAL MOOD STATES ---------------------------------------
+   Each adds concrete visual instructions, not abstract prose.              */
+const MOODS = {
+  "threshold": {
+    name: "Threshold",
+    hint: "An edge or transition between two states of the place.",
+    lines: [
+      "favor an edge or boundary in frame, where one ground meets another",
+      "hold on the seam between wet and dry, light and shade, open and closed",
+      "let the transition itself be the subject, neither side dominant"
+    ]
+  },
+  "residue": {
+    name: "Residue",
+    hint: "What remains after something has passed.",
+    lines: [
+      "emphasize traces left behind: high-water marks, bent grass, settled debris",
+      "the cause is absent; only the aftermath is visible",
+      "stillness that implies a recent event without showing it"
+    ]
+  },
+  "drift": {
+    name: "Drift",
+    hint: "Slow, directionless movement through the place.",
+    lines: [
+      "slow continuous motion of air, water, or light across the frame",
+      "nothing arrives or departs; movement without destination",
+      "the camera, if it moves, drifts laterally at the pace of the wind"
+    ]
+  },
+  "witness": {
+    name: "Witness",
+    hint: "Quiet, attentive presence. The place is being noted.",
+    lines: [
+      "a held, attentive frame that simply records without reacting",
+      "composed but unobtrusive, the steadiness of careful observation",
+      "no emphasis added; the act is noticing, not interpreting"
+    ]
+  },
+  "shelter": {
+    name: "Shelter",
+    hint: "Enclosure, cover, a sense of being held by the place.",
+    lines: [
+      "enclosed framing: canopy, walls, banks, or vegetation forming cover",
+      "softer, lower, more protected light within the enclosure",
+      "the surrounding space reads as containing rather than exposing"
+    ]
+  },
+  "exposure": {
+    name: "Exposure",
+    hint: "Openness, weather, lack of cover.",
+    lines: [
+      "open framing with sky and weather present and active",
+      "wind-driven motion in vegetation; nothing shielded",
+      "flatter, broader light and a sense of being unsheltered"
+    ]
+  },
+  "return": {
+    name: "Return",
+    hint: "Coming back to a place already known.",
+    lines: [
+      "framing that settles immediately, as if resuming a known view",
+      "recurring details given quiet recognition rather than discovery",
+      "small evidence of change since a previous visit"
+    ]
+  },
+  "dormancy": {
+    name: "Dormancy",
+    hint: "Suspended life, waiting, low metabolism.",
+    lines: [
+      "minimal movement; the place at rest, life withdrawn or paused",
+      "muted color, bare structure, cold or still air",
+      "stillness that reads as waiting, not absence"
+    ]
+  },
+  "saturation": {
+    name: "Saturation",
+    hint: "Fullness of water, growth, light, or sound.",
+    lines: [
+      "dense, full conditions: heavy growth, standing water, thick air",
+      "the frame crowded with active life or moisture",
+      "richness without spectacle; abundance held quietly"
+    ]
+  },
+  "trace": {
+    name: "Trace",
+    hint: "A faint sign of past human or animal presence.",
+    lines: [
+      "a single faint mark of former presence, easily missed in frame",
+      "the trace is incidental, not centered or emphasized",
+      "the place has nearly absorbed the sign back into itself"
+    ]
+  },
+  "ground": {
+    name: "Ground",
+    hint: "Direct attention to surface, texture, and material.",
+    lines: [
+      "close, downward attention to surface texture: soil, stone, bark, water",
+      "the material itself is the subject; little or no horizon",
+      "tactile detail in raking or even light"
+    ]
+  },
+  "passage": {
+    name: "Passage",
+    hint: "Time moving through the place.",
+    lines: [
+      "visible passage of time: shifting cloud shadow, changing light, slow flow",
+      "the place unchanged while its conditions move across it",
+      "duration made perceptible through gradual environmental change"
+    ]
+  }
+};
+
+/* ---- 4. OPTION LISTS -----------------------------------------------------
+   Plain selectable choices. Edit, add, or remove freely.                   */
+const SEASONS = ["Early spring","Late spring","Summer","Early autumn","Late autumn","Winter"];
+const TIMES = ["Pre-dawn","Early morning","Mid-morning","Midday","Afternoon","Late afternoon","Dusk","Overcast (no clear time)"];
+const WEATHER = [
+  "Clear and calm","Light breeze","Steady wind","Overcast / flat light",
+  "Light rain","After rain (wet surfaces)","Mist / low fog","Drizzle and low cloud",
+  "Light snow","Frost","Humid and still","Broken cloud with moving shadow"
+];
+const CAMERA = [
+  "Locked-off static","Near-static (micro-movement only)","Slow lateral drift",
+  "Very slow forward drift (walking pace)","Slow gentle pan","Slow tilt to follow a detail",
+  "Handheld stillness (subtle natural sway)"
+];
+const MOTION = [
+  "Minimal — only ambient micro-motion","Low — gentle vegetation and water movement",
+  "Moderate — visible wind and flow","Active — sustained wind, moving water, shifting light"
+];
+const ARCHIVAL = [
+  "16mm natural-history film (fine grain, muted color)",
+  "Faded color archival footage (slightly desaturated, soft contrast)",
+  "Amateur field documentation (handheld, honest, unglamorous)",
+  "Land survey fragment (plain, neutral, record-like)",
+  "Analog memory (soft, warm, slightly degraded)",
+  "Black-and-white field photography (matte, low contrast)",
+  "Clean modern digital but restrained (no grade, natural color)"
+];
+const SOUND = [
+  "Ambient field recording only (no music)","Wind and vegetation dominant",
+  "Water dominant","Distant intermittent birdsong","Near silence with sparse detail",
+  "Layered natural ambience (wind, water, insect, bird)","No sound / silent clip"
+];
+const DURATIONS = [15,30,45,60,90];
+const LENGTHS = [
+  {key:"full",label:"Full Prompt (500–900 words)"},
+  {key:"compact",label:"Compact Prompt (150–300 words)"}
+];
+const REFMODES = [
+  {key:"ref",label:"Using Reference Image"},
+  {key:"none",label:"No Reference Image"}
+];
+const REFMODE_HINTS = {
+  ref: "The image fixes composition, palette, subject, scale, and spatial relationships. The prompt governs motion, atmosphere, environmental behavior, camera, pacing, continuity, and exclusions.",
+  none: "No image supplied. The prompt carries full scene establishment, composition guidance, and visual description."
+};
+
+/* ---- 5. FIXED NORTHING STYLE + NEGATIVES --------------------------------- */
+const STYLE_LINES = [
+  "real field documentation of an actual place, observed patiently",
+  "archival landscape and natural-history aesthetic, not cinematic spectacle",
+  "honest, unglamorous framing as if recording rather than presenting",
+  "the place exists independently of the viewer and is indifferent to being watched",
+  "significance, if any, emerges only through patient attention, never announced",
+  "Northing locations are places, not scenes; this clip is another record in the archive, not a new interpretation of the place"
+];
+const BASE_NEGATIVES = [
+  "no people unless explicitly requested",
+  "no text, captions, logos, or watermarks",
+  "no surreal distortion, morphing, or impossible physics",
+  "no fantasy, supernatural, horror, or menace",
+  "no spectacle, drama, or movie-trailer pacing",
+  "no fast push-ins, whip pans, sweeping reveals, or drone/aerial tourism style",
+  "no influencer, commercial-travel, adventure, or conquest framing",
+  "no apocalyptic or post-disaster imagery",
+  "no over-saturated color, HDR clarity, lens flares, or glamour lighting",
+  "no excessive cinematic polish, AI smoothing, or plastic surface texture"
+];
+
+/* =========================================================================
+   UI WIRING
+   ========================================================================= */
+const $ = id => document.getElementById(id);
+
+function fillSelect(el, items, valueFn, labelFn){
+  el.innerHTML = "";
+  items.forEach(it => {
+    const o = document.createElement("option");
+    o.value = valueFn(it);
+    o.textContent = labelFn(it);
+    el.appendChild(o);
+  });
+}
+function fillSeg(container, items, name, valueFn, labelFn, checkedVal){
+  container.innerHTML = "";
+  items.forEach(it => {
+    const val = valueFn(it);
+    const wrap = document.createElement("label");
+    const input = document.createElement("input");
+    input.type = "radio"; input.name = name; input.value = val;
+    if(String(val) === String(checkedVal)) input.checked = true;
+    const span = document.createElement("span");
+    span.className = "opt"; span.textContent = labelFn(it);
+    wrap.appendChild(input); wrap.appendChild(span);
+    container.appendChild(wrap);
+  });
+}
+function segValue(name){
+  const el = document.querySelector('input[name="' + name + '"]:checked');
+  return el ? el.value : null;
+}
+
+function initUI(){
+  fillSelect($("location"), Object.keys(LOCATIONS), k=>k, k=>LOCATIONS[k].name);
+  fillSelect($("phase"), Object.keys(PHASES), k=>k, k=>PHASES[k].name);
+  fillSelect($("mood"), Object.keys(MOODS), k=>k, k=>MOODS[k].name);
+  fillSelect($("season"), SEASONS, s=>s, s=>s);
+  fillSelect($("timeOfDay"), TIMES, s=>s, s=>s);
+  fillSelect($("weather"), WEATHER, s=>s, s=>s);
+  fillSelect($("camera"), CAMERA, s=>s, s=>s);
+  fillSelect($("motion"), MOTION, s=>s, s=>s);
+  fillSelect($("archival"), ARCHIVAL, s=>s, s=>s);
+  fillSelect($("sound"), SOUND, s=>s, s=>s);
+  fillSeg($("durationSeg"), DURATIONS, "duration", d=>d, d=>d+"s", 30);
+  fillSeg($("lengthSeg"), LENGTHS, "length", l=>l.key, l=>l.label, "full");
+  fillSeg($("refModeSeg"), REFMODES, "refmode", r=>r.key, r=>r.label, "ref");
+  updateRefModeHint();
+  renderAssetList();
+  $("season").value = "Summer";
+  $("timeOfDay").value = "Overcast (no clear time)";
+  $("weather").value = "Overcast / flat light";
+  updateProfileNote();
+  updatePhaseHint();
+  updateMoodHint();
+}
+
+function updateProfileNote(){
+  const custom = $("locationCustom").value.trim();
+  const note = $("profileNote");
+  if(custom){
+    note.hidden = false;
+    note.innerHTML = '<div class="row"><strong>Custom location:</strong> ' + escapeHtml(custom) + '</div>' +
+      '<div class="row">No stored profile. The prompt will use your conditions and notes only; consider adding landscape detail in Custom Notes.</div>';
+    return;
+  }
+  const p = LOCATIONS[$("location").value];
+  note.hidden = false;
+  note.innerHTML =
+    '<div class="row"><strong>' + escapeHtml(p.name) + '</strong></div>' +
+    '<div class="row"><strong>Landscape:</strong> ' + escapeHtml(p.landscape) + '</div>' +
+    '<div class="row"><strong>Recurring detail:</strong> ' + escapeHtml(p.recurringDetails) + '</div>' +
+    '<div class="row"><strong>Preferred camera:</strong> ' + escapeHtml(p.cameraBehavior) + '</div>' +
+    '<div class="row"><strong>Ambient sound:</strong> ' + escapeHtml(p.ambientSound) + '</div>' +
+    '<div class="row"><strong>Avoid here:</strong> ' + escapeHtml(p.visualRisks) + '</div>';
+}
+function updatePhaseHint(){ $("phaseHint").textContent = PHASES[$("phase").value].hint; }
+function updateMoodHint(){ $("moodHint").textContent = MOODS[$("mood").value].hint; }
+function updateRefModeHint(){
+  const m = segValue("refmode") || "ref";
+  $("refModeHint").textContent = REFMODE_HINTS[m];
+}
+function renderAssetList(){
+  const host = $("assetList");
+  host.innerHTML = "";
+  const keys = Object.keys(REFERENCE_ASSETS);
+  if(!keys.length){
+    host.innerHTML = '<div class="empty">No reference assets registered yet. Add them to the REFERENCE_ASSETS object.</div>';
+    return;
+  }
+  keys.forEach(function(k){
+    const a = REFERENCE_ASSETS[k];
+    const row = document.createElement("label");
+    row.className = "asset-row";
+    const cb = document.createElement("input");
+    cb.type = "checkbox"; cb.value = k; cb.className = "assetCheck";
+    const meta = document.createElement("div"); meta.className = "meta";
+    const id = document.createElement("span"); id.className = "id";
+    id.innerHTML = "<b>" + escapeHtml(k) + "</b> · " + escapeHtml(a.name);
+    const sub = document.createElement("span"); sub.className = "sub";
+    sub.textContent = [a.location, a.role, a.season].filter(Boolean).join(" · ");
+    meta.appendChild(id); meta.appendChild(sub);
+    row.appendChild(cb); row.appendChild(meta);
+    host.appendChild(row);
+  });
+}
+function selectedAssets(){
+  const out = [];
+  document.querySelectorAll(".assetCheck:checked").forEach(function(cb){ out.push(cb.value); });
+  return out;
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"]/g, function(c){
+    return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c];
+  });
+}
+
+/* =========================================================================
+   PROMPT GENERATION
+   ========================================================================= */
+function collect(){
+  const custom = $("locationCustom").value.trim();
+  const profileKey = $("location").value;
+  const profile = custom ? null : LOCATIONS[profileKey];
+  return {
+    locationName: custom || (profile ? profile.name : ""),
+    profile: profile,
+    duration: parseInt(segValue("duration"),10) || 30,
+    length: segValue("length") || "full",
+    refMode: (segValue("refmode") || "ref") === "ref",
+    continuity: $("continuity").value.trim(),
+    assets: selectedAssets(),
+    phase: PHASES[$("phase").value],
+    mood: MOODS[$("mood").value],
+    season: $("season").value,
+    timeOfDay: $("timeOfDay").value,
+    weather: $("weather").value,
+    camera: $("camera").value,
+    motion: $("motion").value,
+    archival: $("archival").value,
+    sound: $("sound").value,
+    avoid: $("avoid").value.trim(),
+    notes: $("notes").value.trim()
+  };
+}
+
+function bulletList(arr){ return arr.map(function(l){ return "- " + l; }).join("\n"); }
+function stripDot(s){ return s.replace(/\.$/, ""); }
+
+/* Reusable continuity block. Triggered by selected assets OR a continuity note.
+   Reinforces archival sameness without implying exact duplication.          */
+function continuityBlock(d){
+  let s = "CONTINUITY\n";
+  if(d.continuity) s += "Reference material: " + d.continuity + "\n";
+  s += "Maintain continuity with the referenced Northing material. Preserve landform geometry, vegetation character, hydrology, ecological relationships, atmospheric quality, scale relationships, and observational tone.\n" +
+    "Avoid stylistic reinvention, dramatic escalation, visual spectacle, changing the identity of the place, or introducing new aesthetic rules.\n" +
+    "Not an exact duplicate; do not assume identical weather or season unless stated here. The conditions below govern this clip.";
+  return s;
+}
+
+/* Reusable reference-assets block. Lists the selected registry anchors; the
+   preservation language lives in the CONTINUITY block, which always co-occurs. */
+function referenceAssetsBlock(d){
+  const lines = d.assets.map(function(k){
+    const a = REFERENCE_ASSETS[k];
+    return k + (a ? " · " + a.name : "");
+  });
+  return "REFERENCE ASSETS\n" +
+    lines.join("\n") + "\n" +
+    "Use these as continuity anchors. Preserve the environmental character and visual identity they represent; do not duplicate them exactly.";
+}
+
+/* Reusable reference-image guidance block. */
+function refImageBlock(){
+  return "REFERENCE IMAGE GUIDANCE\n" +
+    "The supplied reference image establishes composition, palette, subject, scale, and spatial relationships. This prompt governs motion, atmosphere, environmental behavior, camera behavior, pacing, continuity, and exclusions.\n" +
+    "- Do not re-describe or override what the image fixes; animate the still within its existing composition.\n" +
+    "- Keep all motion consistent with the image's geometry, scale, and depth; introduce nothing the image does not contain.";
+}
+
+function buildFull(d){
+  const p = d.profile;
+
+  // Location description adapts to reference-image mode.
+  let locDesc;
+  if(d.refMode){
+    locDesc = p
+      ? "The reference image fixes the composition, palette, and subject of " + d.locationName + ". Do not re-establish the scene. Give attention only to its living, moving detail: " + p.recurringDetails
+      : d.locationName + ". The reference image fixes composition, palette, and subject; this prompt governs only what moves and how it is observed.";
+  } else {
+    locDesc = p
+      ? p.landscape + " Establish the scene clearly and compose with restraint, letting the space read as a real place. Recurring details to favor: " + p.recurringDetails
+      : d.locationName + ". (No stored profile; establish the scene and describe physical specifics through the conditions and custom notes below.)";
+  }
+
+  const negatives = BASE_NEGATIVES.slice();
+  if(p) negatives.push("for this location specifically, avoid: " + stripDot(p.visualRisks));
+  if(d.avoid) negatives.push(d.avoid);
+
+  const cameraLines = d.phase.lines.slice();
+  cameraLines.unshift("base camera behavior: " + d.camera.toLowerCase());
+  if(p) cameraLines.push("location-preferred handling: " + stripDot(p.cameraBehavior).toLowerCase());
+
+  const sections = [];
+  sections.push("CLIP OBJECTIVE\n" +
+    "A " + d.duration + "-second observational clip of " + d.locationName + " for Northing, a place-based visual archive. Patient documentation of a real place, not a story or a scene. Phase of attention: " + d.phase.name + ". Environmental mood: " + d.mood.name + ".");
+
+  if(d.refMode) sections.push(refImageBlock());
+
+  sections.push("NORTHING VISUAL STYLE\n" + bulletList(STYLE_LINES));
+
+  sections.push("LOCATION DESCRIPTION\n" + locDesc);
+
+  if(d.assets.length) sections.push(referenceAssetsBlock(d));
+  if(d.continuity || d.assets.length) sections.push(continuityBlock(d));
+
+  sections.push("DURATION & FORMAT\n" +
+    "- Single continuous shot, " + d.duration + " seconds, no cuts.\n" +
+    (d.refMode
+      ? "- Image-to-video: match the reference image's aspect ratio.\n"
+      : "- Text-to-video: establish the scene from this description. 16:9 unless otherwise noted.\n") +
+    "- Realistic physical motion throughout, no time-lapse unless requested.");
+
+  sections.push("CAMERA BEHAVIOR\n" + bulletList(cameraLines));
+
+  sections.push("ENVIRONMENTAL MOTION\n" +
+    "- Motion level: " + d.motion + ".\n" +
+    "- Mood-driven motion (" + d.mood.name + "):\n" +
+    d.mood.lines.map(function(l){ return "  - " + l; }).join("\n") + "\n" +
+    "- All movement must obey real physics: wind, water, and light behave naturally; nothing morphs, melts, or loops unnaturally.");
+
+  sections.push("LIGHT, WEATHER & SEASON\n" +
+    "- Season: " + d.season + ".\n" +
+    "- Time of day: " + d.timeOfDay + ".\n" +
+    "- Weather: " + d.weather + ".\n" +
+    "- Use only natural light consistent with the above. " +
+    (p ? "Seasonal reference: " + p.seasonalNotes : "Keep light direction and color physically plausible for the stated conditions."));
+
+  sections.push("ARCHIVAL / PHOTOGRAPHIC TREATMENT\n" +
+    "- Treatment: " + d.archival + ".\n" +
+    (d.refMode
+      ? "- The reference image sets the palette and tonal character; preserve it. Apply the treatment only as motion-era grain, texture, and movement feel, without re-coloring the image.\n"
+      : "- Honest color and honest light. Establish a muted, archival palette consistent with the conditions below.\n") +
+    "- The footage should read as a record of a place, not a polished production. Restraint over polish.");
+
+  sections.push("SOUND DIRECTION\n" +
+    "- " + d.sound + ".\n" +
+    "- No music. No narration. Sound, if present, is diegetic field ambience only." +
+    (p ? " Location ambience reference: " + p.ambientSound : ""));
+
+  sections.push("NEGATIVE INSTRUCTIONS\n" + bulletList(negatives));
+
+  if(d.notes) sections.push("CUSTOM NOTES\n" + d.notes);
+
+  sections.push("FINAL INSTRUCTION TO VEO\n" +
+    "Hold a single, quiet, physically realistic " + d.duration + "-second shot of this place. Let the environment carry the motion; keep the camera restrained and the light natural. The place is self-sufficient and indifferent to the viewer. Do not add narrative, drama, people, text, or spectacle. Observe, do not present.");
+
+  return sections.join("\n\n");
+}
+
+function buildCompact(d){
+  const p = d.profile;
+  const negParts = ["no people (unless requested)","no text, logos, or music","no spectacle, drama, or trailer pacing","no fast moves, push-ins, or drone style","no fantasy, horror, or surreal distortion","no over-saturation, HDR, or lens flares"];
+  if(p) negParts.push("avoid " + stripDot(p.visualRisks).toLowerCase());
+  if(d.avoid) negParts.push(d.avoid);
+
+  let out = "Northing observational clip — " + d.locationName + ". A " + d.duration + "-second single continuous shot. Real field documentation of an actual place; archival, unglamorous, patient. A place, not a scene; another record in the archive, self-sufficient and indifferent to being watched.";
+
+  const anchored = d.continuity || d.assets.length;
+  if(d.refMode){
+    out += "\n\nReference image: it sets composition, palette, subject, scale, and spatial relations. This prompt governs only motion, atmosphere, environmental behavior, camera, pacing, continuity, and exclusions. Animate it; do not re-describe it." +
+      (p && !anchored ? " Favor: " + p.recurringDetails : "");
+  } else {
+    out += "\n\nScene: " + (p ? p.landscape : d.locationName + ".") + " Establish clearly, compose with restraint.";
+  }
+
+  if(d.assets.length){
+    out += "\n\nReference assets (continuity anchors): " + d.assets.join(", ") + " — do not duplicate exactly.";
+  }
+
+  if(d.continuity || d.assets.length){
+    out += "\n\nContinuity: " + (d.continuity ? "reference " + d.continuity + "; " : "") + "preserve landform, vegetation, hydrology, ecology, atmosphere, scale, and observational tone; no reinvention, escalation, or spectacle; keep the identity of the place; not an exact duplicate.";
+  }
+
+  out += "\n\nConditions: " + d.season + ", " + d.timeOfDay.toLowerCase() + ", " + d.weather.toLowerCase() + ", natural light only.\n\n" +
+    "Camera (" + d.phase.name + "): " + d.camera.toLowerCase() + "; " + d.phase.lines[0] + ".\n\n" +
+    "Motion: " + d.motion.toLowerCase() + ". Mood — " + d.mood.name + ": " + d.mood.lines[0] + ". Physically realistic.\n\n" +
+    "Treatment: " + d.archival + (d.refMode ? " as grain and movement only; keep the image's palette" : "") + ". Sound: " + d.sound.toLowerCase() + ".";
+
+  if(d.notes) out += "\n\nNotes: " + d.notes;
+  out += "\n\nAvoid: " + negParts.join("; ") + ".";
+  out += "\n\nFinal: hold one quiet, restrained, realistic shot; let the environment carry the motion. Observe, do not present.";
+  return out;
+}
+
+function generate(){
+  const d = collect();
+  if(!d.locationName){ flash("Choose or enter a location first"); return; }
+  $("output").value = d.length === "compact" ? buildCompact(d) : buildFull(d);
+  updateWordcount();
+}
+
+function updateWordcount(){
+  const t = $("output").value.trim();
+  const n = t ? t.split(/\s+/).length : 0;
+  $("wordcount").textContent = n + (n===1 ? " word" : " words");
+}
+
+/* ---- Buttons ------------------------------------------------------------- */
+function copyPrompt(){
+  const t = $("output").value;
+  if(!t.trim()){ flash("Nothing to copy yet"); return; }
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t).then(function(){ flash("Copied to clipboard"); }, function(){ fallbackCopy(t); });
+  } else { fallbackCopy(t); }
+}
+function fallbackCopy(t){
+  const ta = $("output"); ta.focus(); ta.select();
+  try{ document.execCommand("copy"); flash("Copied to clipboard"); }
+  catch(e){ flash("Press Ctrl/Cmd + C to copy"); }
+}
+function resetAll(){
+  $("location").selectedIndex = 0;
+  $("locationCustom").value = "";
+  $("phase").selectedIndex = 0;
+  $("mood").selectedIndex = 0;
+  $("season").value = "Summer";
+  $("timeOfDay").value = "Overcast (no clear time)";
+  $("weather").value = "Overcast / flat light";
+  $("camera").selectedIndex = 0;
+  $("motion").selectedIndex = 0;
+  $("archival").selectedIndex = 0;
+  $("sound").selectedIndex = 0;
+  $("avoid").value = "";
+  $("notes").value = "";
+  $("continuity").value = "";
+  document.querySelectorAll(".assetCheck:checked").forEach(function(cb){ cb.checked = false; });
+  const dur = document.querySelector('input[name="duration"][value="30"]'); if(dur) dur.checked = true;
+  const len = document.querySelector('input[name="length"][value="full"]'); if(len) len.checked = true;
+  const rm = document.querySelector('input[name="refmode"][value="ref"]'); if(rm) rm.checked = true;
+  $("output").value = "";
+  updateProfileNote(); updatePhaseHint(); updateMoodHint(); updateRefModeHint(); updateWordcount();
+  flash("Reset");
+}
+
+let toastTimer = null;
+function flash(msg){
+  const t = $("toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ t.classList.remove("show"); }, 1600);
+}
+
+/* ---- Listeners ----------------------------------------------------------- */
+window.addEventListener("DOMContentLoaded", function(){
+  initUI();
+  $("location").addEventListener("change", updateProfileNote);
+  $("locationCustom").addEventListener("input", updateProfileNote);
+  $("phase").addEventListener("change", updatePhaseHint);
+  $("mood").addEventListener("change", updateMoodHint);
+  $("refModeSeg").addEventListener("change", updateRefModeHint);
+  $("genBtn").addEventListener("click", generate);
+  $("copyBtn").addEventListener("click", copyPrompt);
+  $("resetBtn").addEventListener("click", resetAll);
+  $("output").addEventListener("input", updateWordcount);
+});
+</script>
+</body>
+</html>
