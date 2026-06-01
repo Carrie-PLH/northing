@@ -184,6 +184,49 @@
   }
   .profile-note strong{color:var(--ink);font-weight:600;}
   .profile-note .row{margin:3px 0;}
+  .canon-panel{
+    display:flex;
+    gap:14px;
+    align-items:flex-start;
+    background:var(--panel);
+    border:1px solid var(--line-soft);
+    border-left:2px solid var(--accent);
+    border-radius:3px;
+    padding:13px 15px;
+    margin-top:10px;
+  }
+  .canon-panel .thumb-wrap{flex:0 0 auto;}
+  .canon-panel .thumb{
+    width:128px;height:84px;object-fit:cover;
+    border:1px solid var(--line);border-radius:2px;display:block;background:var(--field);
+  }
+  .canon-panel .thumb-missing{
+    width:128px;min-height:84px;
+    border:1px dashed var(--line);border-radius:2px;
+    display:flex;align-items:center;justify-content:center;text-align:center;
+    font-size:11px;font-style:italic;color:var(--ink-faint);
+    padding:8px;background:var(--field);
+  }
+  .canon-panel .canon-meta{font-size:13px;color:var(--ink-soft);line-height:1.5;min-width:0;}
+  .canon-panel .canon-meta .ctitle{
+    font-size:11px;letter-spacing:0.16em;text-transform:uppercase;color:var(--ink-faint);
+    font-weight:600;margin:0 0 5px;
+  }
+  .canon-panel .canon-meta .row{margin:2px 0;}
+  .canon-panel .canon-meta strong{color:var(--ink);font-weight:600;}
+  .canon-panel .canon-meta code{
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    font-size:12px;color:var(--accent);word-break:break-all;
+  }
+  .veo-instruction{
+    font-size:12px;color:var(--ink-soft);font-style:italic;
+    background:var(--panel);border:1px solid var(--line-soft);border-radius:3px;
+    padding:8px 11px;margin:8px 0 0;line-height:1.45;
+  }
+  @media (max-width:620px){
+    .canon-panel{flex-direction:column;}
+    .canon-panel .thumb,.canon-panel .thumb-missing{width:100%;height:auto;}
+  }
   .actions{
     display:flex;
     flex-wrap:wrap;
@@ -292,6 +335,7 @@
     </div>
   </div>
   <div class="profile-note" id="profileNote" hidden></div>
+  <div class="canon-panel" id="canonicalPanel" hidden></div>
 
   <h2 class="section">Reference Assets</h2>
   <div class="grid">
@@ -308,6 +352,7 @@
       <label>Reference image mode</label>
       <div class="seg" id="refModeSeg"></div>
       <span class="hint" id="refModeHint"></span>
+      <p class="veo-instruction">For Veo: upload the canonical image separately. This generator only names the reference image and writes continuity instructions.</p>
     </div>
     <div class="field full">
       <label for="continuity">Continuity note</label>
@@ -424,37 +469,58 @@
    scan or automatic discovery; you add entries by hand as the archive grows.
 
    To add an asset, copy a block and give it a new ID key. Conventions:
-     - key:      a short stable ID, e.g. "TC-002" (location prefix + number)
-     - name:     a human label shown in the UI and printed in the prompt
-     - location: should match a LOCATIONS profile name where applicable
-     - role:     "canonical" for defining references, or e.g. "study",
-                 "variant", "seasonal" for secondary material
-     - season:   the season the asset represents (free text)
+     - key:              a short stable ID, e.g. "TC-002" (location prefix + number)
+     - name:             a human label shown in the UI and printed in the prompt
+     - location:         should match a LOCATIONS profile name where applicable
+     - role:             "canonical" for defining references, or e.g. "study",
+                         "variant", "seasonal" for secondary material
+     - authority:        "primary" canonical assets define location identity and
+                         override secondary/supporting references when in tension
+     - governingStructure: the structural idea the asset anchors (free text)
+     - path:             the on-disk image path (used only to name the file and,
+                         if present, show a thumbnail; never analyzed or uploaded)
 
-   The ID is what appears in the generated REFERENCE ASSETS section, so keep
-   IDs meaningful and stable once published.                                */
+   NOTE ON PATHS: the seven canonical photographs currently live on disk as
+   assets/canonical/1-TC-001.png ... 7-RO-001.png. The paths below point at
+   those real files so the thumbnail preview works. If you rename the files to
+   a cleaner convention (e.g. tc-001-canonical.jpg), update the matching path
+   here and in the LOCATIONS profiles below.                                 */
 const REFERENCE_ASSETS = {
-  "TC-001": {
-    name: "Canonical Tributary Confluence",
-    location: "Tributary Confluence Wet Meadow",
-    role: "canonical",
-    season: "summer"
-  },
-  "RO-001": {
-    name: "Canonical Ridge Overlook",
-    location: "Ridge Overlook",
-    role: "canonical",
-    season: "autumn"
-  }
+  "TC-001": { name: "Canonical Tributary Confluence Wet Meadow", location: "Tributary Confluence Wet Meadow", role: "canonical", authority: "primary", governingStructure: "convergence", path: "assets/canonical/1-TC-001.png" },
+  "AO-001": { name: "Canonical Abandoned Hillside Orchard",      location: "Abandoned Hillside Orchard",      role: "canonical", authority: "primary", governingStructure: "persistence",    path: "assets/canonical/2-AO-001.png" },
+  "FC-001": { name: "Canonical Forest Crossing",                 location: "Forest Crossing",                 role: "canonical", authority: "primary", governingStructure: "passage",        path: "assets/canonical/3-FC-001.png" },
+  "BM-001": { name: "Canonical Beaver Meadow",                   location: "Beaver Meadow",                   role: "canonical", authority: "primary", governingStructure: "transformation", path: "assets/canonical/4-BM-001.png" },
+  "SF-001": { name: "Canonical Stone Foundation Clearing",       location: "Stone Foundation Clearing",       role: "canonical", authority: "primary", governingStructure: "reclamation",    path: "assets/canonical/5-SF-001.png" },
+  "HS-001": { name: "Canonical Headwater Spring",                location: "Headwater Spring",                role: "canonical", authority: "primary", governingStructure: "emergence",      path: "assets/canonical/6-HS-001.png" },
+  "RO-001": { name: "Canonical Ridge Overlook",                  location: "Ridge Overlook",                  role: "canonical", authority: "primary", governingStructure: "orientation",    path: "assets/canonical/7-RO-001.png" }
 };
 
 /* ---- 1. LOCATION PROFILES ------------------------------------------------
-   Seven editable defaults. Edit text freely. Add a profile by copying a
-   block and giving it a new key. Each profile feeds the LOCATION DESCRIPTION
-   and informs camera, season, sound, and negatives.                        */
+   The seven finalized canonical Northing locations. Edit text freely. Each
+   profile carries archival metadata plus descriptive language:
+     - id:                  canonical location ID (e.g. "TC-001")
+     - name:                full location name
+     - locationNumber:      ordering in the canonical set (1-7)
+     - governingStructure:  the single structural idea that defines the place
+     - governingDescription:a short clause expanding the structure
+     - referenceImage:      on-disk path to the canonical photograph (named in
+                            prompts and previewed if present; never analyzed)
+     - referenceImageLabel: short caption for the canonical image
+     - landscape / recurringDetails / cameraBehavior / seasonalNotes /
+       ambientSound / visualRisks: descriptive language feeding the prompt.
+
+   The placeholder concepts Old Road Trace, Pond Edge, and Hemlock Ravine have
+   been removed; Forest Crossing, Beaver Meadow, and Headwater Spring replace
+   them per the finalized corpus.                                            */
 const LOCATIONS = {
   "tributary-confluence": {
+    id: "TC-001",
     name: "Tributary Confluence Wet Meadow",
+    locationNumber: 1,
+    governingStructure: "convergence",
+    governingDescription: "where water systems meet",
+    referenceImage: "assets/canonical/1-TC-001.png",
+    referenceImageLabel: "TC-001 canonical photograph",
     landscape: "A low, flat meadow where two small watercourses meet and braid before joining. Standing and moving water threads through sedge, rush, and matted grass. The ground is saturated, dark, and uneven, with shallow pools holding the sky. Alder and willow edge the wetter margins.",
     recurringDetails: "Reflected sky in still pools, the seam where two currents merge, bent reeds combed by past high water, insect movement over the surface, a darker band marking the old flood line.",
     cameraBehavior: "Low, level, patient. Hold on the water's surface and let motion come to the frame. Slow lateral drift only if any.",
@@ -462,26 +528,59 @@ const LOCATIONS = {
     ambientSound: "Layered water — one channel quicker than the other — wind in reeds, intermittent insect or frog, distant bird.",
     visualRisks: "Over-saturated greens, glamour-light reflections, postcard symmetry, any sense of a manicured garden pond."
   },
-  "ridge-overlook": {
-    name: "Ridge Overlook",
-    landscape: "An exposed shoulder of high ground where the land falls away into successive ridgelines softened by distance. Thin soil, wind-shaped low vegetation, lichen-marked rock. The view is wide but the foreground is sparse and worn.",
-    recurringDetails: "Receding ridgelines fading into atmospheric haze, wind-flagged shrubs leaning one way, bare rock with lichen, a single weathered post or cairn, moving cloud shadow crossing the far slopes.",
-    cameraBehavior: "Mostly static, eye-level or slightly low. If it moves, a very slow pan across the distance, never a sweeping reveal.",
-    seasonalNotes: "Spring is cold wind, intermittent cloud, pale growth. Summer brings haze, long light, dry grass. Autumn is clear hard light with color on the far slopes. Winter shows snow patches, scoured ground, flat cold light.",
-    ambientSound: "Steady wind across the ridge, the faint hush of distance, occasional bird carried on the air.",
-    visualRisks: "Epic adventure framing, drone-style fly-over, summit-conquest mood, lens flare, hyper-clarity HDR."
-  },
   "abandoned-orchard": {
-    name: "Abandoned Orchard",
-    landscape: "Rows of old fruit trees long past tending, limbs gnarled and partly fallen, gaps where trees have died. Tall grass and volunteer saplings fill the spacing. The planting grid is still legible beneath the disorder.",
-    recurringDetails: "The surviving geometry of the rows, lichen and moss on bark, split or hollow trunks, windfall fruit in season, grass grown waist-high between trees, a leaning trunk held up by its neighbor.",
-    cameraBehavior: "Slow, ground-level observation. Let the eye find the row-lines. Brief holds on individual trees. Minimal movement.",
+    id: "AO-001",
+    name: "Abandoned Hillside Orchard",
+    locationNumber: 2,
+    governingStructure: "persistence",
+    governingDescription: "where human order persists through succession",
+    referenceImage: "assets/canonical/2-AO-001.png",
+    referenceImageLabel: "AO-001 canonical photograph",
+    landscape: "Rows of old fruit trees on a hillside long past tending, limbs gnarled and partly fallen, gaps where trees have died. Tall grass and volunteer saplings fill the spacing. The planting grid is still legible across the slope beneath the disorder.",
+    recurringDetails: "The surviving geometry of the rows running across the slope, lichen and moss on bark, split or hollow trunks, windfall fruit in season, grass grown waist-high between trees, a leaning trunk held up by its neighbor.",
+    cameraBehavior: "Slow, ground-level observation. Let the eye find the row-lines through the succession. Brief holds on individual trees. Minimal movement.",
     seasonalNotes: "Spring shows sparse uneven blossom and a bright understory. Summer is heavy green hiding the structure. Autumn brings windfall, low gold light, thinning leaves. Winter bares the architecture of limbs, frost, full visibility of the grid.",
     ambientSound: "Wind through dry grass and old branches, creak of wood, insects in season, distant bird, a soft drop of fruit.",
     visualRisks: "Fairy-tale enchantment, magic-hour glow, whimsy, horror-orchard menace, anything supernatural."
   },
+  "forest-crossing": {
+    id: "FC-001",
+    name: "Forest Crossing",
+    locationNumber: 3,
+    governingStructure: "passage",
+    governingDescription: "where movement negotiates water and drainage",
+    referenceImage: "assets/canonical/3-FC-001.png",
+    referenceImageLabel: "FC-001 canonical photograph",
+    landscape: "A point in the forest where a footworn crossing meets running water — a shallow stream or seasonal drainage cut into the floor. Stones, a fallen log, and packed earth mark where passage and water negotiate one another. Trees close overhead; the ground is root-laced and damp at the crossing.",
+    recurringDetails: "The worn line of the crossing meeting the watercourse, wet stones and the log or stepping point, exposed roots holding the bank, leaf litter combed by flow, the slight channel where feet and water have both passed.",
+    cameraBehavior: "Low at the crossing, looking along or across the line of passage. Mostly static; let water move through the frame. No travelling shots through the crossing.",
+    seasonalNotes: "Spring runs the drainage full and the crossing wet. Summer lowers the flow to dry stones in dense shade. Autumn fills the channel with leaves over thin flow. Winter ices the crossing, baring the structure of root and stone.",
+    ambientSound: "Water working over stone at the crossing, drip from the canopy, the quiet of enclosed forest, sparse bird.",
+    visualRisks: "Adventure-trail framing, hero stepping-stone moment, fantasy forest path, vehicle or POV crossing, dramatic ford."
+  },
+  "beaver-meadow": {
+    id: "BM-001",
+    name: "Beaver Meadow",
+    locationNumber: 4,
+    governingStructure: "transformation",
+    governingDescription: "where water reshapes the landscape",
+    referenceImage: "assets/canonical/4-BM-001.png",
+    referenceImageLabel: "BM-001 canonical photograph",
+    landscape: "A broad, flat wetland meadow shaped by beaver activity — standing water held behind an old dam, drowned standing snags, and silt flats turning to sedge. The watercourse has been spread and slowed across the valley floor, reworking it into pool, channel, and wet meadow.",
+    recurringDetails: "Standing dead snags in shallow water, the low line of an old dam, sheet-water spread over silt, sedge reclaiming former pond, gnawed or fallen stems, the braided remnants of slowed flow.",
+    cameraBehavior: "Level and low to the water and sedge, unglamorous. Static, letting wind and water surface carry the motion. No sweeping reveals of the whole basin.",
+    seasonalNotes: "Spring floods the basin and brightens new sedge. Summer holds warm shallow water, heavy insect life, drying margins. Autumn lays tawny sedge over lowering water with clear reflections. Winter ices the flats, dark snags, the dam line exposed.",
+    ambientSound: "Still water with intermittent movement, wind across open sedge, frog and insect in season, distant bird, the occasional knock of settling wood.",
+    visualRisks: "Wildlife-documentary beaver hero shot, postcard pond, swamp-horror menace, dramatic dam reveal, over-green color."
+  },
   "stone-foundation": {
+    id: "SF-001",
     name: "Stone Foundation Clearing",
+    locationNumber: 5,
+    governingStructure: "reclamation",
+    governingDescription: "where the landscape reclaims a human footprint",
+    referenceImage: "assets/canonical/5-SF-001.png",
+    referenceImageLabel: "SF-001 canonical photograph",
     landscape: "A clearing holding the low rectangular footprint of a structure long gone. Dry-laid stone, partly tumbled, partly swallowed by turf and moss. Younger trees stand inside and around the outline. The forest is reclaiming a once-cleared square.",
     recurringDetails: "Right-angled stone lines under moss, a filled cellar depression, a doorway gap in the wall, saplings rooted in the old floor, the contrast between worked stone and unworked ground.",
     cameraBehavior: "Still, respectful, close to the stone. Slow drift along a wall line at most. Let the geometry emerge rather than announcing it.",
@@ -489,32 +588,35 @@ const LOCATIONS = {
     ambientSound: "Quiet forest interior, dripping after rain, settling leaves, a distant bird, near silence.",
     visualRisks: "Ruins-of-civilization drama, archaeological reveal, mystery-puzzle framing, ghost-story atmosphere, explanatory signage feel."
   },
-  "hemlock-ravine": {
-    name: "Hemlock Ravine",
-    landscape: "A steep, shaded ravine under old hemlock, cool and dim even at midday. A small stream works the bottom over rock and root. Steep mossy slopes, fallen trunks bridging the cut, deep evergreen shade with thin shafts of light.",
-    recurringDetails: "Filtered light shafts through the canopy, moss on rock and deadfall, the stream working between boulders, exposed root systems on the slope, slow-rotting logs, a persistent dim coolness.",
-    cameraBehavior: "Static or barely creeping, low near the stream. Hold in the shade and let light and water move. Avoid climbing reveals.",
-    seasonalNotes: "Spring brings full cold flow and vivid moss. Summer is deep shade, a low slow stream, dense green. Autumn drops leaves from the hardwood edges with lower flow. Winter ices the rock under dark needles in very low light.",
-    ambientSound: "Stream over rock close and steady, drip from the canopy, wind high in the hemlocks not felt below, sparse bird.",
-    visualRisks: "Enchanted-forest mood, god-ray melodrama, fantasy gloom, horror dread, over-green color grading."
+  "headwater-spring": {
+    id: "HS-001",
+    name: "Headwater Spring",
+    locationNumber: 6,
+    governingStructure: "emergence",
+    governingDescription: "where groundwater becomes surface flow",
+    referenceImage: "assets/canonical/6-HS-001.png",
+    referenceImageLabel: "HS-001 canonical photograph",
+    landscape: "A small place at the head of a watercourse where groundwater emerges and becomes surface flow — seepage from beneath rock or bank gathering into the first thread of moving water. Saturated ground, mossed stone, and a clear cold pool or rivulet where the stream begins.",
+    recurringDetails: "The point of emergence where still becomes moving, clear water over clean gravel or stone, moss and liverwort on wet rock, the first defined thread of channel, saturated dark ground around the source.",
+    cameraBehavior: "Close and low at the source, static. Hold on the emergence and let the new flow move. No following the stream downhill.",
+    seasonalNotes: "Spring runs the source strongest and the moss vivid. Summer steadies a low clear flow in cool shade. Autumn lays leaves around the source over thin flow. Winter keeps the spring open where ground-warmth persists, with ice at the margins.",
+    ambientSound: "A small, close trickle beginning, drip and seep, near silence around it, faint bird, the steadiness of cold water.",
+    visualRisks: "Sacred-spring mysticism, glamour-clear beauty shot, fantasy source, healing-water sentiment, over-saturated moss green."
   },
-  "old-road-trace": {
-    name: "Old Road Trace",
-    landscape: "The faint surviving line of an abandoned road through regrown country. Two parallel depressions, a raised crown between them, partly grassed and partly bare. Trees lean in from both sides, narrowing the corridor. The route reads as intention more than surface.",
-    recurringDetails: "The paired ruts and central crown, encroaching trees forming a tunnel, a culvert stone or rotted post, the road-line vanishing around a bend, leaf litter or grass tracking the old path.",
-    cameraBehavior: "Looking down the line of the road, mostly static. If moving, a slow even forward drift at walking pace, never a fast travel shot.",
-    seasonalNotes: "Spring closes the corridor with green over soft ground. Summer is dense overgrowth and dappled shade. Autumn covers the trace in leaves as visibility returns. Winter snow holds the road-line clearly in open structure.",
-    ambientSound: "Wind in the corridor of trees, footfall-scale quiet, distant bird, the muffled sound of an enclosed space.",
-    visualRisks: "Journey or adventure metaphor, ominous path dread, vanishing-point drama, vehicle-POV feel, nostalgic sentimentality."
-  },
-  "pond-edge": {
-    name: "Pond Edge",
-    landscape: "The margin of a small still pond where land becomes water through a band of reed, mud, and shallow growth. Dark water reflects the sky and the far bank. The edge is soft, transitional, and slowly shifting.",
-    recurringDetails: "Reflection broken by surface movement, the reed band at the waterline, a half-submerged branch or log, slow ripple spreading from an unseen cause, the mud line marking water level.",
-    cameraBehavior: "Low and level at the waterline. Static, holding on the surface. Let ripple and reflection carry the motion.",
-    seasonalNotes: "Spring raises the water with new reed and an active surface. Summer is low water, algae, dense insect life, warm still air. Autumn clears the water as the reed goes tawny and leaves fall on the surface. Winter forms ice from the edge around a dark open center.",
-    ambientSound: "Lapping at the margin, reed rustle, frog or insect in season, a single bird call, broad quiet.",
-    visualRisks: "Mirror-perfect glamour reflection, sunset-calendar cliche, koi-pond serenity, swamp-horror menace."
+  "ridge-overlook": {
+    id: "RO-001",
+    name: "Ridge Overlook",
+    locationNumber: 7,
+    governingStructure: "orientation",
+    governingDescription: "where the broader landscape becomes legible",
+    referenceImage: "assets/canonical/7-RO-001.png",
+    referenceImageLabel: "RO-001 canonical photograph",
+    landscape: "An exposed shoulder of high ground where the land falls away into successive ridgelines softened by distance. Thin soil, wind-shaped low vegetation, lichen-marked rock. The view is wide but the foreground is sparse and worn.",
+    recurringDetails: "Receding ridgelines fading into atmospheric haze, wind-flagged shrubs leaning one way, bare rock with lichen, a single weathered post or cairn, moving cloud shadow crossing the far slopes.",
+    cameraBehavior: "Mostly static, eye-level or slightly low. If it moves, a very slow pan across the distance, never a sweeping reveal.",
+    seasonalNotes: "Spring is cold wind, intermittent cloud, pale growth. Summer brings haze, long light, dry grass. Autumn is clear hard light with color on the far slopes. Winter shows snow patches, scoured ground, flat cold light.",
+    ambientSound: "Steady wind across the ridge, the faint hush of distance, occasional bird carried on the air.",
+    visualRisks: "Epic adventure framing, drone-style fly-over, summit-conquest mood, lens flare, hyper-clarity HDR."
   }
 };
 
@@ -800,6 +902,7 @@ function updateProfileNote(){
     note.hidden = false;
     note.innerHTML = '<div class="row"><strong>Custom location:</strong> ' + escapeHtml(custom) + '</div>' +
       '<div class="row">No stored profile. The prompt will use your conditions and notes only; consider adding landscape detail in Custom Notes.</div>';
+    updateCanonicalPanel();
     return;
   }
   const p = LOCATIONS[$("location").value];
@@ -811,6 +914,46 @@ function updateProfileNote(){
     '<div class="row"><strong>Preferred camera:</strong> ' + escapeHtml(p.cameraBehavior) + '</div>' +
     '<div class="row"><strong>Ambient sound:</strong> ' + escapeHtml(p.ambientSound) + '</div>' +
     '<div class="row"><strong>Avoid here:</strong> ' + escapeHtml(p.visualRisks) + '</div>';
+  updateCanonicalPanel();
+}
+
+/* Compact Canonical Reference panel. Shows ID, governing structure/description,
+   the canonical filename, and a thumbnail if the image loads. If the image is
+   missing, no error is thrown — a note prompts placing it at the path.       */
+function updateCanonicalPanel(){
+  const panel = $("canonicalPanel");
+  const custom = $("locationCustom").value.trim();
+  if(custom){ panel.hidden = true; panel.innerHTML = ""; return; }
+  const p = LOCATIONS[$("location").value];
+  if(!p || !p.referenceImage){ panel.hidden = true; panel.innerHTML = ""; return; }
+  panel.hidden = false;
+  panel.innerHTML = "";
+
+  const thumbWrap = document.createElement("div");
+  thumbWrap.className = "thumb-wrap";
+  const img = document.createElement("img");
+  img.className = "thumb";
+  img.alt = (p.referenceImageLabel || p.id) + " preview";
+  img.onerror = function(){
+    const miss = document.createElement("div");
+    miss.className = "thumb-missing";
+    miss.textContent = "Place the canonical image at this path to enable preview.";
+    if(img.parentNode) img.parentNode.replaceChild(miss, img);
+  };
+  img.src = p.referenceImage;
+  thumbWrap.appendChild(img);
+
+  const meta = document.createElement("div");
+  meta.className = "canon-meta";
+  meta.innerHTML =
+    '<p class="ctitle">Canonical Reference</p>' +
+    '<div class="row"><strong>' + escapeHtml(p.id) + '</strong> · ' + escapeHtml(p.name) + '</div>' +
+    '<div class="row"><strong>Governing structure:</strong> ' + escapeHtml(p.governingStructure) + '</div>' +
+    '<div class="row">' + escapeHtml(p.governingDescription) + '</div>' +
+    '<div class="row"><strong>Image:</strong> <code>' + escapeHtml(p.referenceImage) + '</code></div>';
+
+  panel.appendChild(thumbWrap);
+  panel.appendChild(meta);
 }
 function updatePhaseHint(){ $("phaseHint").textContent = PHASES[$("phase").value].hint; }
 function updateMoodHint(){ $("moodHint").textContent = MOODS[$("mood").value].hint; }
@@ -900,16 +1043,39 @@ function continuityBlock(d){
 /* Reusable reference-assets block. Lists the selected registry anchors; the
    preservation language lives in the CONTINUITY block, which always co-occurs. */
 function referenceAssetsBlock(d){
-  const lines = d.assets.map(function(k){
-    const a = REFERENCE_ASSETS[k];
-    return k + (a ? " · " + a.name : "");
-  });
-  return "REFERENCE ASSETS\n" +
-    lines.join("\n") + "\n" +
-    "Use these as continuity anchors. Preserve the environmental character and visual identity they represent; do not duplicate them exactly.";
+  let s = "REFERENCE ASSETS\n" +
+    d.assets.join("\n") + "\n" +
+    "Continuity anchors for this clip; preservation requirements are stated under CONTINUITY below.";
+  // Primary canonical assets take precedence over secondary/supporting ones.
+  const hasPrimary = d.assets.some(function(k){ return REFERENCE_ASSETS[k] && REFERENCE_ASSETS[k].authority === "primary"; });
+  if(hasPrimary) s += "\nPrimary canonical assets define location identity and should override secondary or supporting references if there is tension.";
+  return s;
 }
 
-/* Reusable reference-image guidance block. */
+/* GOVERNING STRUCTURE block. Always included when a location profile is set.
+   States the structural idea the place is defined by and asks all craft
+   choices to reinforce it without explaining or diagramming it.            */
+function governingBlock(p){
+  return "GOVERNING STRUCTURE\n" +
+    "This location is defined by " + p.governingStructure + ": " + p.governingDescription + ". " +
+    "All camera behavior, environmental motion, framing, and subject emphasis should reinforce this governing structure without turning the image into a diagram or explanation.";
+}
+
+/* CANONICAL REFERENCE IMAGE block. Used in reference-image mode when the
+   selected location has a canonical photograph. Names the file to attach in
+   Veo and states what the image governs vs. what the prompt governs. Replaces
+   the generic reference-image guidance to avoid duplicate instructions.     */
+function canonicalImageBlock(p, noAssetSelected){
+  let s = "CANONICAL REFERENCE IMAGE\n" +
+    "Use the canonical location photograph as the primary visual continuity anchor:\n" +
+    p.id + " · " + p.name + "\n" +
+    p.referenceImage + "\n" +
+    "The attached image should establish composition, landform geometry, vegetation distribution, hydrologic structure, scale, enclosure, and spatial relationships. Do not override or reinvent these features. This prompt should govern motion, atmosphere, camera behavior, duration, and exclusions.";
+  if(noAssetSelected) s += "\nNo reference asset is selected: attach this canonical image in Veo as the continuity anchor for this location.";
+  return s;
+}
+
+/* Reusable reference-image guidance block (used when no canonical image). */
 function refImageBlock(){
   return "REFERENCE IMAGE GUIDANCE\n" +
     "The supplied reference image establishes composition, palette, subject, scale, and spatial relationships. This prompt governs motion, atmosphere, environmental behavior, camera behavior, pacing, continuity, and exclusions.\n" +
@@ -944,11 +1110,18 @@ function buildFull(d){
   sections.push("CLIP OBJECTIVE\n" +
     "A " + d.duration + "-second observational clip of " + d.locationName + " for Northing, a place-based visual archive. Patient documentation of a real place, not a story or a scene. Phase of attention: " + d.phase.name + ". Environmental mood: " + d.mood.name + ".");
 
-  if(d.refMode) sections.push(refImageBlock());
+  // In reference-image mode, the canonical image block supersedes the generic
+  // guidance when the location has a canonical photograph (avoids duplication).
+  if(d.refMode){
+    if(p && p.referenceImage) sections.push(canonicalImageBlock(p, d.assets.length === 0));
+    else sections.push(refImageBlock());
+  }
 
   sections.push("NORTHING VISUAL STYLE\n" + bulletList(STYLE_LINES));
 
   sections.push("LOCATION DESCRIPTION\n" + locDesc);
+
+  if(p) sections.push(governingBlock(p));
 
   if(d.assets.length) sections.push(referenceAssetsBlock(d));
   if(d.continuity || d.assets.length) sections.push(continuityBlock(d));
@@ -973,7 +1146,7 @@ function buildFull(d){
     "- Time of day: " + d.timeOfDay + ".\n" +
     "- Weather: " + d.weather + ".\n" +
     "- Use only natural light consistent with the above. " +
-    (p ? "Seasonal reference: " + p.seasonalNotes : "Keep light direction and color physically plausible for the stated conditions."));
+    (p && !d.refMode ? "Seasonal reference: " + p.seasonalNotes : "Keep light direction and color physically plausible for the stated conditions."));
 
   sections.push("ARCHIVAL / PHOTOGRAPHIC TREATMENT\n" +
     "- Treatment: " + d.archival + ".\n" +
@@ -1005,16 +1178,25 @@ function buildCompact(d){
 
   let out = "Northing observational clip — " + d.locationName + ". A " + d.duration + "-second single continuous shot. Real field documentation of an actual place; archival, unglamorous, patient. A place, not a scene; another record in the archive, self-sufficient and indifferent to being watched.";
 
+  if(p) out += "\n\nGoverning structure: " + p.governingStructure + ", " + p.governingDescription + ". Reinforce this through motion, framing, and environmental emphasis.";
+
   const anchored = d.continuity || d.assets.length;
   if(d.refMode){
-    out += "\n\nReference image: it sets composition, palette, subject, scale, and spatial relations. This prompt governs only motion, atmosphere, environmental behavior, camera, pacing, continuity, and exclusions. Animate it; do not re-describe it." +
-      (p && !anchored ? " Favor: " + p.recurringDetails : "");
+    if(p && p.referenceImage){
+      out += "\n\nCanonical reference image: " + p.referenceImage + ". Use it as the primary continuity anchor" +
+        (anchored ? "." : "; preserve landform, vegetation, hydrology, scale, and spatial relationships.") +
+        (d.assets.length === 0 ? " Attach it in Veo." : "");
+    } else {
+      out += "\n\nReference image: it sets composition, palette, subject, scale, and spatial relations. This prompt governs only motion, atmosphere, environmental behavior, camera, pacing, continuity, and exclusions. Animate it; do not re-describe it." +
+        (p && !anchored ? " Favor: " + p.recurringDetails : "");
+    }
   } else {
     out += "\n\nScene: " + (p ? p.landscape : d.locationName + ".") + " Establish clearly, compose with restraint.";
   }
 
   if(d.assets.length){
-    out += "\n\nReference assets (continuity anchors): " + d.assets.join(", ") + " — do not duplicate exactly.";
+    out += "\n\nReference assets (continuity anchors): " + d.assets.join(", ") + ".";
+    if(d.assets.some(function(k){ return REFERENCE_ASSETS[k] && REFERENCE_ASSETS[k].authority === "primary"; })) out += " Primary canonical assets override secondary references.";
   }
 
   if(d.continuity || d.assets.length){
@@ -1028,7 +1210,7 @@ function buildCompact(d){
 
   if(d.notes) out += "\n\nNotes: " + d.notes;
   out += "\n\nAvoid: " + negParts.join("; ") + ".";
-  out += "\n\nFinal: hold one quiet, restrained, realistic shot; let the environment carry the motion. Observe, do not present.";
+  out += "\n\nFinal: one quiet, restrained, realistic shot. Observe, do not present.";
   return out;
 }
 
