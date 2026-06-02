@@ -178,6 +178,30 @@
   .comp-bar i{display:block;height:100%;}
   .future-list{font-size:11.5px;color:var(--ink-faint);line-height:1.7;font-style:italic;}
 
+  /* spatial / internal */
+  .internal-tag{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#9a7a52;margin:-4px 0 8px;}
+  .sp-row{display:flex;justify-content:space-between;gap:8px;align-items:baseline;padding:4px 0;border-bottom:1px solid var(--line-soft);}
+  .sp-row .sp-pair{font-size:12px;color:var(--ink-soft);font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .sp-row .sp-tags{font-size:11px;color:var(--ink-faint);text-align:right;line-height:1.35;}
+  .sp-row.watch .sp-tags{color:#9a7a52;}
+  .sp-summary{font-size:11.5px;color:var(--ink-soft);font-style:italic;margin-top:8px;line-height:1.5;}
+  .internal-banner{border:1px solid #d9c4a0;background:#f6efe0;border-radius:6px;padding:10px 12px;font-size:12px;color:#7a6240;line-height:1.5;}
+  .internal-banner b{letter-spacing:.06em;text-transform:uppercase;font-size:10.5px;}
+  .conflict-note{margin-top:10px;border-top:1px solid #d9c4a0;padding-top:8px;font-size:11.5px;line-height:1.5;color:#8a5a3a;}
+  .conflict-note b{color:#9a3f2a;text-transform:none;letter-spacing:0;font-size:11.5px;}
+  .conflict-note div{margin-top:2px;}
+  .conflict-note.soft{color:#6b655a;}
+  .conflict-note.soft b{color:#7a6240;}
+  .conflict-note .cn-k{color:var(--ink-faint);text-transform:uppercase;letter-spacing:.08em;font-size:9.5px;}
+  .conflict-note .cn-status{font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:#9a3f2a;margin-top:1px;}
+  .conflict-note.soft .cn-status{color:#7a6240;}
+  .precedence-note{margin-top:8px;font-size:11.5px;line-height:1.5;color:#7a6240;}
+  .orient-replace{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink-soft);margin-top:12px;}
+  .orient-ref{display:grid;grid-template-columns:1fr 1fr;gap:8px 18px;font-size:12px;color:var(--ink-soft);}
+  .orient-ref .ref-line{line-height:1.5;}
+  .orient-ref .ref-k{color:var(--ink-faint);font-size:10px;letter-spacing:.1em;text-transform:uppercase;display:block;}
+  .tpl .tpl-seq .modecodes{color:var(--ink-soft);}
+
   /* ---------- modals ---------- */
   .overlay{position:fixed;inset:0;background:rgba(40,37,32,.4);display:none;align-items:center;justify-content:center;z-index:50;padding:24px;}
   .overlay.show{display:flex;}
@@ -235,6 +259,7 @@
   <div class="tools">
     <button class="btn" id="btnImport">Import Media Folder</button>
     <button class="btn" id="btnTemplates">Templates</button>
+    <button class="btn" id="btnOrient" title="Internal spatial sequencing (approximate)">Orientation</button>
     <button class="btn" id="btnExport">Export Sequence</button>
     <button class="btn" id="btnLibIO">Library</button>
     <button class="btn ghost" id="btnClearSeq" title="Clear the current sequence board">Clear board</button>
@@ -287,6 +312,11 @@
         <div class="composition" id="composition"></div>
       </div>
       <div class="block">
+        <p class="section-label">Spatial coherence</p>
+        <p class="internal-tag">internal · approximate · not for decks</p>
+        <div id="spatial"></div>
+      </div>
+      <div class="block">
         <p class="section-label">Later metrics</p>
         <div class="future-list">
           return-to-place frequency · archive density ·
@@ -321,6 +351,21 @@
   </div>
 </div>
 
+<!-- orientation modal -->
+<div class="overlay" id="orientOverlay">
+  <div class="modal wide">
+    <div class="modal-head"><h2>Orientation · internal spatial sequencing</h2><button class="btn ghost close" data-close>✕</button></div>
+    <div class="modal-body">
+      <div class="internal-banner" id="orientBanner"></div>
+      <p class="section-label" style="margin-top:16px">Geographic sequence modes</p>
+      <div class="tpl-list" id="orientModes"></div>
+      <label class="orient-replace"><input type="checkbox" id="orientReplace" checked> Replace current board (uncheck to append)</label>
+      <p class="section-label" style="margin-top:18px">Internal reference <span style="text-transform:none;letter-spacing:0;font-style:italic">(approximate — not deck content)</span></p>
+      <div class="orient-ref" id="orientRef"></div>
+    </div>
+  </div>
+</div>
+
 <!-- export modal -->
 <div class="overlay" id="exportOverlay">
   <div class="modal wide">
@@ -329,7 +374,9 @@
       <div class="tabs">
         <button class="tab on" data-tab="md">Markdown outline</button>
         <button class="tab" data-tab="json">JSON</button>
+        <button class="tab" data-tab="internal">Internal notes</button>
       </div>
+      <p class="hint" id="exportHint"></p>
       <textarea class="export-out" id="exportOut" readonly spellcheck="false"></textarea>
     </div>
     <div class="modal-foot">
@@ -525,6 +572,246 @@ const LOC_CODES = {TC:'Tributary Confluence Wet Meadow', AO:'Abandoned Hillside 
 const LOC_NUM = {1:'Tributary Confluence Wet Meadow',2:'Abandoned Hillside Orchard',
   3:'Forest Crossing',4:'Beaver Meadow',5:'Stone Foundation Clearing',
   6:'Headwater Spring',7:'Ridge Overlook'};
+
+/* =====================================================================
+   5. INTERNAL SPATIAL MODEL  —  NORTHING_SPATIAL_MODEL   (v1.1, corrected)
+   ---------------------------------------------------------------------
+   INTERNAL CONSISTENCY TOOL. Not public canon, not a published artifact,
+   not a survey. It constrains how the builder ORDERS locations. It is not
+   narrative content and must not be exposed in audience-facing decks. All
+   values are APPROXIMATE relative positions — no distances, coordinates,
+   or surveyed certainty. RO-001 orients the landscape; it is not
+   omniscient (FC-001 and HS-001 lie beyond its viewshed).
+
+   CORRECTION (2026-06-01, formal decision by Carrie): location canon is
+   authoritative. The source map (v1 PNG) was WRONG on BM-001. BM-001 is a
+   mid-section beaver impoundment on the EASTERN tributary, UPSTREAM of the
+   TC-001 confluence — not the lowest, downstream-most site. The watershed
+   is therefore BRANCHED, not a single chain HS→FC→TC→BM. This is a
+   spatial-model correction, not a canon change; no canon files were edited.
+
+   Clean, self-contained, and exported on `window` so other Northing
+   tools can share the same constraint system.
+   ===================================================================== */
+const NORTHING_SPATIAL_MODEL = {
+  meta:{
+    status:'internal',
+    version:'1.2',
+    source:'/90 media/INTERNAL-USE-ONLY-Northing-map-v2.png (v2, 2026-06-01). v2 illustration now matches canon: BM-001 on the eastern tributary upstream of TC-001, branched watershed. v1 renamed /90 media/v1-northing-map-superceded-by-v2.png (superseded).',
+    confidence:'approximate',
+    drainageDirection:'Main watercourse N→S. BRANCHED: western tributary (HS→FC→main) and eastern tributary (BM) converge at the TC-001 confluence; outlet continues to the lower wetland complex below TC-001.',
+    prevailingWind:'NW → SE',
+    notice:'Internal use only. Approximate relative positions; no surveyed certainty. '+
+           'Not public canon and not for audience-facing decks. Constrains sequencing, not narration.',
+    precedence:'Location canon is authoritative over this internal map (formal decision 2026-06-01). The map is a later, approximate consistency aid, not a survey.',
+    // BM↔TC conflict resolved in favour of canon and corrected in-model. No active conflicts.
+    conflicts:[],
+    corrections:[
+      {id:'bm-hydro-position', date:'2026-06-01', decision:'canon authoritative',
+       summary:'BM-001 corrected to its canon position: mid-section eastern-tributary impoundment, UPSTREAM of TC-001.',
+       wasMap:'BM as lowest/downstream-most (~460 m, below TC-001) on a single-stem chain HS→FC→TC→BM.',
+       nowModel:'Branched topology: western tributary (HS→FC) and eastern tributary (BM) both descend to the TC-001 confluence; below TC-001 is the (uncarded) lower wetland.',
+       changed:'BM elevation rank moved above TC; hydroOrder chain replaced with a directed flow graph; sequencing modes regenerated.'},
+      {id:'map-v2-adoption', date:'2026-06-01', decision:'map redrawn to match canon',
+       summary:'Internal orientation map v2 adopted as source; v2 depicts BM-001 on the eastern tributary upstream of TC-001.',
+       wasMap:'v1 PNG (single-stem HS→FC→TC→BM, BM lowest). Renamed v1-northing-map-superceded-by-v2.png.',
+       nowModel:'v2 PNG matches the already-corrected branched model; approximate elevations synced (FC ~560, TC ~500, BM ~580, lower wetland ~460).',
+       changed:'meta.source and elevApprox/elevationRank updated to v2 values. Topology and sequencing modes unchanged (already correct).'}
+    ],
+    notes:[
+      'HS-001 and FC-001 are western-tributary; whether they lie on the same stream is canonically undetermined (location-006). Modelled as western-system neighbours.',
+      'The carded set models one western headwater (HS-001); canon allows additional unnamed tributary sources elsewhere in the watershed.',
+      'The lowest zone is the lower wetland complex below TC-001 (~460 m per map v2; no card). BM-001 (~580 m) is NOT the lowest point.'
+    ]
+  },
+  // branch: 'overlook' (above all) | 'west' | 'confluence' | 'east'
+  // elevApprox: approximate metres, relative only. elevationRank: 1 = highest.
+  // Cross-branch elevation (west vs east) is not canonically comparable except via TC / RO.
+  locations:{
+    'RO-001':{name:'Ridge Overlook', code:'RO', govern:'Orientation', branch:'overlook',
+      system:'western ridgeline (orientation point above the whole watershed)',
+      elevApprox:760, elevationRank:1, tier:'ridge',
+      elevation:'highest northern ridge',
+      fog:'above fog', fogRank:0, wind:'highest exposure', shelter:'exposed',
+      viewshedFromRO:'self'},
+    'AO-001':{name:'Abandoned Hillside Orchard', code:'AO', govern:'Persistence', branch:'west',
+      system:'western bench',
+      elevApprox:640, elevationRank:2, tier:'bench',
+      elevation:'orchard bench below ridge, south/southwest-facing',
+      fog:'often above valley fog', fogRank:1, wind:'moderate exposure', shelter:'partial',
+      viewshedFromRO:'visible'},
+    'SF-001':{name:'Stone Foundation Clearing', code:'SF', govern:'Reclamation', branch:'west',
+      system:'western bench / terrace',
+      elevApprox:620, elevationRank:3, tier:'bench',
+      elevation:'separate foundation bench or terrace',
+      fog:'partially sheltered; sometimes above fog', fogRank:1, wind:'sheltered to moderate', shelter:'partial',
+      viewshedFromRO:'occasional/partial'},
+    'HS-001':{name:'Headwater Spring', code:'HS', govern:'Emergence', branch:'west',
+      system:'western tributary — seep-fed headwater (emergence zone)',
+      elevApprox:600, elevationRank:4, tier:'upper-western-tributary',
+      elevation:'western-slope spring emergence, upstream terminus of a seep-fed tributary',
+      fog:'sheltered and cool', fogRank:1, wind:'sheltered', shelter:'sheltered',
+      viewshedFromRO:'not visible'},
+    'FC-001':{name:'Forest Crossing', code:'FC', govern:'Passage', branch:'west',
+      system:'western tributary — ravine-head crossing',
+      elevApprox:560, elevationRank:6, tier:'western-tributary',
+      elevation:'ravine-head crossing on a western-slope seep-fed stream',
+      fog:'sheltered drainage interior', fogRank:1, wind:'sheltered', shelter:'sheltered',
+      viewshedFromRO:'not visible'},
+    'TC-001':{name:'Tributary Confluence Wet Meadow', code:'TC', govern:'Convergence', branch:'confluence',
+      system:'confluence — eastern tributary meets the main watercourse (lower third)',
+      elevApprox:500, elevationRank:7, tier:'valley-confluence',
+      elevation:'alluvial confluence; lower wetland begins just downstream',
+      fog:'valley / confluence fog (forms first near the tributary outlet)', fogRank:2,
+      wind:'moderate valley exposure', shelter:'moderate',
+      viewshedFromRO:'seasonal/weather-dependent'},
+    'BM-001':{name:'Beaver Meadow', code:'BM', govern:'Transformation', branch:'east',
+      system:'eastern tributary — mid-section beaver impoundment, upstream of TC-001',
+      elevApprox:580, elevNote:'≈580 m per map v2; above TC-001 (upstream of the confluence); cross-branch elevation not directly comparable to western sites',
+      elevationRank:5, tier:'eastern-tributary',
+      elevation:'mid-section eastern-tributary impoundment, upstream of the TC-001 confluence, behind the interior secondary ridge',
+      fog:'strong pond-surface fog (open-water mechanism) plus local cold-air pooling; not the watershed’s lowest cold-air sink (that is the lower wetland)', fogRank:3,
+      wind:'locally open over the water, but valley-confined and largely sheltered from prevailing NW behind the interior secondary ridge', shelter:'valley-confined',
+      viewshedFromRO:'frequent/clear'}
+  },
+  // Directed flow graph (upstream → downstream). LOWER-WETLAND is an uncarded sink.
+  hydrology:{
+    drainageDirection:'branched; west and east tributaries converge at TC-001, then to the lower wetland',
+    flow:[
+      ['HS-001','FC-001'],        // western tributary
+      ['FC-001','TC-001'],        // western tributary → main watercourse → confluence
+      ['BM-001','TC-001'],        // eastern tributary → confluence
+      ['TC-001','LOWER-WETLAND']  // outlet (uncarded)
+    ]
+  },
+  viewshedFrom:{
+    'RO-001':{ 'BM-001':'frequent/clear', 'TC-001':'seasonal/weather-dependent',
+      'AO-001':'visible', 'SF-001':'occasional/partial',
+      'FC-001':'not visible', 'HS-001':'not visible' }
+  },
+  // Approximate likely traverse adjacencies (relative neighbours, not routed paths).
+  // TC–BM remains adjacent: BM connects to TC by descending the eastern tributary
+  // to the confluence, or by crossing the interior secondary ridge from the main valley.
+  traverse:[
+    ['RO-001','AO-001'], ['RO-001','SF-001'], ['AO-001','SF-001'],
+    ['AO-001','HS-001'], ['AO-001','TC-001'], ['SF-001','TC-001'],
+    ['HS-001','FC-001'], ['FC-001','TC-001'], ['TC-001','BM-001']
+  ],
+  sequencingModes:[
+    {id:'watershed', name:'Watershed sequence',   note:'HS → FC → TC (western tributary to confluence)',
+      steps:['HS-001','FC-001','TC-001']},
+    {id:'eastern',   name:'Eastern tributary',    note:'BM → TC (eastern impoundment down to confluence)',
+      steps:['BM-001','TC-001']},
+    {id:'descent',   name:'Elevation descent',    note:'RO → AO/SF → HS → FC → TC',
+      steps:['RO-001',['AO-001','SF-001'],'HS-001','FC-001','TC-001']},
+    {id:'viewshed',  name:'Viewshed-to-ground',   note:'RO → AO → BM (ridge to clearly-visible eastern valley floor)',
+      steps:['RO-001','AO-001','BM-001']},
+    {id:'hidden',    name:'Hidden drainage',      note:'HS → FC (reaches beyond RO viewshed)',
+      steps:['HS-001','FC-001']},
+    {id:'bench',     name:'Bench-to-valley',      note:'AO/SF → TC (western benches to the valley confluence)',
+      steps:[['AO-001','SF-001'],'TC-001']}
+  ]
+};
+try{ window.NORTHING_SPATIAL_MODEL = NORTHING_SPATIAL_MODEL; }catch(_){}
+const SM = NORTHING_SPATIAL_MODEL;
+
+/* resolve a card's free-text location to a spatial node code, or null */
+function resolveSpatialNode(locStr){
+  if(!locStr) return null;
+  const n=norm(locStr);
+  for(const [code,loc] of Object.entries(SM.locations)) if(n===norm(loc.name)) return code;
+  const m=n.match(/\b(ro|ao|sf|hs|fc|tc|bm)\b/);
+  if(m){ const code=m[1].toUpperCase()+'-001'; if(SM.locations[code]) return code; }
+  for(const [code,loc] of Object.entries(SM.locations))
+    if(n.includes(norm(loc.name)) || norm(loc.name).includes(n)) return code;
+  return null;
+}
+const shortCode = code => (code||'').replace('-001','');
+function isAdjacent(a,b){ return SM.traverse.some(([x,y])=>(x===a&&y===b)||(x===b&&y===a)); }
+
+/* downstream reachability over the directed flow graph (a flows toward b?) */
+function flowsTo(a,b){
+  const edges=SM.hydrology.flow, seen=new Set(), q=[a];
+  while(q.length){
+    const n=q.shift(); if(n===b) return true;
+    if(seen.has(n)) continue; seen.add(n);
+    edges.forEach(([x,y])=>{ if(x===n) q.push(y); });
+  }
+  return false;
+}
+/* elevation is comparable within a branch, or whenever RO (overlook, above all)
+   or TC (confluence, common low point both branches drain to) is involved */
+function elevComparable(A,B){
+  if(A.branch===B.branch) return true;
+  return ['overlook','confluence'].includes(A.branch) || ['overlook','confluence'].includes(B.branch);
+}
+
+/* terse, internal, non-narrative descriptors for a transition a→b */
+function spatialTransition(a,b){
+  const A=SM.locations[a], B=SM.locations[b]; const tags=[];
+  if(!A||!B) return tags;
+  if(a===b){ tags.push('same place'); return tags; }
+  // drainage (directed flow graph)
+  if(flowsTo(a,b)) tags.push('with drainage');
+  else if(flowsTo(b,a)) tags.push('against drainage');
+  else { const p=new Set([A.branch,B.branch]); if(p.has('west')&&p.has('east')) tags.push('separate branches'); }
+  // elevation (only where canonically comparable)
+  if(elevComparable(A,B)){
+    if(A.elevationRank<B.elevationRank) tags.push('descends');
+    else if(A.elevationRank>B.elevationRank) tags.push('ascends');
+    else tags.push('same tier');
+  }
+  tags.push(isAdjacent(a,b)?'adjacent':'non-adjacent');
+  const other = a==='RO-001'?b : (b==='RO-001'?a:null);
+  if(other){ const v=SM.viewshedFrom['RO-001'][other];
+    if(v) tags.push(v==='not visible'?'beyond RO viewshed':`in RO viewshed (${v})`); }
+  return tags;
+}
+function coherenceSummary(codes){
+  let desc=0,asc=0,withD=0,against=0,nonAdj=0,branchSplit=0;
+  for(let i=1;i<codes.length;i++){
+    const A=SM.locations[codes[i-1]], B=SM.locations[codes[i]]; if(!A||!B)continue;
+    if(flowsTo(codes[i-1],codes[i]))withD++; else if(flowsTo(codes[i],codes[i-1]))against++;
+    else { const p=new Set([A.branch,B.branch]); if(p.has('west')&&p.has('east'))branchSplit++; }
+    if(elevComparable(A,B)){
+      if(A.elevationRank<B.elevationRank)desc++; else if(A.elevationRank>B.elevationRank)asc++;
+    }
+    if(codes[i-1]!==codes[i] && !isAdjacent(codes[i-1],codes[i]))nonAdj++;
+  }
+  const parts=[];
+  if(desc&&!asc)parts.push('descends throughout');
+  else if(desc>asc)parts.push('mostly descends');
+  else if(asc>desc)parts.push('mostly ascends');
+  else if(desc||asc)parts.push('mixed elevation');
+  if(withD&&!against)parts.push('follows drainage');
+  else if(against>withD)parts.push('runs against drainage');
+  if(branchSplit)parts.push(`${branchSplit} cross-branch step${branchSplit>1?'s':''}`);
+  if(nonAdj)parts.push(`${nonAdj} non-adjacent step${nonAdj>1?'s':''}`);
+  return 'Internal · approximate — '+(parts.length?parts.join(', '):'single segment')+'.';
+}
+
+/* generate a geographically coherent spine from a sequencing mode */
+function generateSpatialSequence(modeId, replace){
+  const mode=SM.sequencingModes.find(x=>x.id===modeId); if(!mode) return;
+  if(replace){ state.sequence=[]; state.selection.clear(); }
+  mode.steps.forEach(step=>{
+    const codes=Array.isArray(step)?step:[step];
+    let chosen=null, chosenCode=null;
+    for(const code of codes){
+      const matches=state.library.filter(c=>resolveSpatialNode(c.location)===code && !c._placeholder);
+      if(matches.length){ chosen=matches.find(c=>c.type==='landscape-clip')||matches[0]; chosenCode=code; break; }
+    }
+    if(!chosen){
+      chosenCode=codes[0]; const loc=SM.locations[chosenCode];
+      chosen=newCard('landscape-clip');
+      chosen.title=`${loc.name} — placeholder`; chosen.location=loc.name; chosen._placeholder=true;
+      state.library.push(chosen); persistCard(chosen);
+    }
+    state.sequence.push({pid:uid('p'), cardId:chosen.id, group:mode.name});
+  });
+  persistMeta(); closeAll(); renderLibrary(); renderBoard(); renderAnalysis();
+  toast(`Generated “${mode.name}” spine (internal · approximate).`);
+}
 
 /* =====================================================================
    STATE + PERSISTENCE (IndexedDB)
@@ -869,6 +1156,30 @@ function renderAnalysis(){
       <span style="color:var(--ink-faint);min-width:18px;text-align:right">${counts[t]}</span>`;
     comp.appendChild(row);
   });
+  renderSpatial();
+}
+
+/* ---------- internal spatial coherence (analysis panel) ---------- */
+function locatedSeq(){
+  return state.sequence.map(p=>cardById(p.cardId)).filter(Boolean)
+    .map(c=>({c, code:resolveSpatialNode(c.location)})).filter(x=>x.code);
+}
+function renderSpatial(){
+  const box=$('#spatial'); if(!box) return; box.innerHTML='';
+  const seq=locatedSeq();
+  if(seq.length<2){
+    box.appendChild(el('p','empty-note', seq.length?'One located card. Add more to read orientation.':'No located cards yet.'));
+    return;
+  }
+  for(let i=1;i<seq.length;i++){
+    const tags=spatialTransition(seq[i-1].code, seq[i].code);
+    const watch = tags.includes('against drainage')||tags.includes('non-adjacent');
+    const row=el('div','sp-row'+(watch?' watch':''));
+    row.innerHTML=`<span class="sp-pair">${shortCode(seq[i-1].code)} → ${shortCode(seq[i].code)}</span>
+      <span class="sp-tags">${esc(tags.join(' · '))}</span>`;
+    box.appendChild(row);
+  }
+  box.appendChild(el('p','sp-summary', esc(coherenceSummary(seq.map(x=>x.code)))));
 }
 
 /* =====================================================================
@@ -940,8 +1251,34 @@ function buildJSON(){
     sequence:state.sequence.map(p=>{const c=cardById(p.cardId);const{thumb,...rest}=c||{};return{group:p.group,card:rest};})
   },null,2);
 }
+/* INTERNAL notes export — opt-in, clearly labelled, never the default.
+   Carries the approximate/internal disclaimer; the audience-facing
+   Markdown and JSON tabs deliberately contain no map-derived content. */
+function buildInternalNotes(){
+  const seq=locatedSeq();
+  let out=`# ${state.seqName} — internal orientation notes\n`;
+  out+=`# INTERNAL USE ONLY · APPROXIMATE. Not public canon; not for audience-facing decks.\n`;
+  out+=`# Relative positions only — no distances, coordinates, or surveyed certainty.\n`;
+  out+=`# Source: ${SM.meta.source}\n\n`;
+  if(seq.length<1) return out+'No located cards in the current sequence.\n';
+  seq.forEach((x,i)=>{
+    const L=SM.locations[x.code];
+    out+=`${i+1}. ${x.c.title||'(untitled)'}  [${x.code} · ${L.name}]\n`;
+    if(i<seq.length-1) out+=`     ↓ ${spatialTransition(x.code, seq[i+1].code).join(' · ')}\n`;
+  });
+  out+=`\n# ${coherenceSummary(seq.map(x=>x.code))}\n`;
+  return out;
+}
 let exportMode='md';
-function refreshExport(){ $('#exportOut').value = exportMode==='md'?buildMarkdown():buildJSON(); }
+const EXPORT_HINTS={
+  md:'Audience-facing outline. No internal map data included.',
+  json:'Audience-facing data. No internal map data included.',
+  internal:'Internal · approximate. Map-derived orientation. Do not place in audience-facing decks.'
+};
+function refreshExport(){
+  $('#exportOut').value = exportMode==='md'?buildMarkdown(): exportMode==='json'?buildJSON(): buildInternalNotes();
+  const h=$('#exportHint'); if(h) h.textContent=EXPORT_HINTS[exportMode]||'';
+}
 function download(name,text,mime){
   const blob=new Blob([text],{type:mime||'text/plain'});
   const a=el('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();
@@ -1137,10 +1474,62 @@ $('#btnExport').onclick=()=>{exportMode='md';document.querySelectorAll('.tab').f
 document.querySelectorAll('.tab').forEach(t=> t.onclick=()=>{exportMode=t.dataset.tab;document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===t));refreshExport();});
 $('#exportCopy').onclick=()=>{navigator.clipboard?.writeText($('#exportOut').value);toast('Copied.');};
 $('#exportDownload').onclick=()=>{
-  const md=exportMode==='md';
   const safe=state.seqName.replace(/[^\w-]+/g,'-').replace(/^-+|-+$/g,'')||'sequence';
-  download(`${safe}.${md?'md':'json'}`, $('#exportOut').value, md?'text/markdown':'application/json');
+  const name = exportMode==='json' ? `${safe}.json`
+             : exportMode==='internal' ? `${safe}.INTERNAL.md`
+             : `${safe}.md`;
+  const mime = exportMode==='json' ? 'application/json' : 'text/markdown';
+  download(name, $('#exportOut').value, mime);
 };
+
+/* ---------- orientation modal (internal spatial sequencing) ---------- */
+$('#btnOrient').onclick=()=>{ renderOrient(); show('#orientOverlay'); };
+function renderOrient(){
+  const prec = SM.meta.precedence ? `<div class="precedence-note">${esc(SM.meta.precedence)}</div>` : '';
+  const line=(k,v)=> v?`<div><span class="cn-k">${k}:</span> ${esc(v)}</div>`:'';
+  // Active conflicts (none after the BM correction; renderer kept for future flags).
+  const conflicts=(SM.meta.conflicts||[]).map(cf=>{
+    const isNote = cf.severity==='note';
+    return `<div class="conflict-note${isNote?' soft':''}"><b>${isNote?'⚐ Note':'⚑ Conflict'} · ${esc(cf.summary)}</b>`+
+      (cf.status?`<div class="cn-status">${esc(cf.status)}</div>`:'')+
+      line('Map',cf.map)+line('Canon',cf.canon)+line('Assessment',cf.assessment)+
+      (cf.note?`<div style="font-style:italic">${esc(cf.note)}</div>`:'')+`</div>`;
+  }).join('');
+  // Resolved corrections (provenance).
+  const corrections=(SM.meta.corrections||[]).map(c=>
+    `<div class="conflict-note soft"><b>✓ Corrected · ${esc(c.summary)}</b>`+
+    line('Was (map)',c.wasMap)+line('Now (model)',c.nowModel)+line('Decision',`${esc(c.decision)} (${esc(c.date)})`)+`</div>`).join('');
+  const notes=(SM.meta.notes||[]).length
+    ? `<div class="precedence-note" style="margin-top:8px"><span class="cn-k">Representation notes</span><br>${SM.meta.notes.map(esc).join('<br>')}</div>` : '';
+  $('#orientBanner').innerHTML=`<b>Internal use only</b><br>${esc(SM.meta.notice)}${prec}${conflicts}${corrections}${notes}`;
+  const modes=$('#orientModes'); modes.innerHTML='';
+  SM.sequencingModes.forEach(m=>{
+    const row=el('button','tpl');
+    const codes=m.steps.map(s=>Array.isArray(s)?s.map(shortCode).join('/'):shortCode(s)).join(' → ');
+    row.innerHTML=`<div class="tpl-name">${esc(m.name)}</div><div class="tpl-seq"><span class="modecodes">${esc(codes)}</span></div>`;
+    row.onclick=()=> generateSpatialSequence(m.id, $('#orientReplace').checked);
+    modes.appendChild(row);
+  });
+  const order=Object.entries(SM.locations).sort((a,b)=>a[1].elevationRank-b[1].elevationRank);
+  const refLine=(k,v)=>`<div class="ref-line"><span class="ref-k">${k}</span>${v}</div>`;
+  const vis=SM.viewshedFrom['RO-001'];
+  // Branched topology (ASCII) — the corrected, map-derived structure.
+  const topo = 'HS → FC&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(west)<br>'+
+               '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓<br>'+
+               '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;TC ← BM&nbsp;&nbsp;(east)<br>'+
+               '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓<br>'+
+               '&nbsp;&nbsp;lower wetland (uncarded)';
+  $('#orientRef').innerHTML =
+    refLine('Watershed topology', `<div style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;line-height:1.5;margin-top:3px">${topo}</div>`) +
+    refLine('Elevation (high → low)', order.map(([c])=>shortCode(c)).join(' · ')) +
+    refLine('Drainage', 'west (HS→FC) + east (BM) converge at TC → lower wetland') +
+    refLine('Viewshed from RO',
+      Object.entries(vis).map(([c,v])=>`${shortCode(c)} ${v==='not visible'?'○':'●'}`).join(' · ')) +
+    refLine('Pond / valley fog (strongest)',
+      order.slice().sort((a,b)=>b[1].fogRank-a[1].fogRank).filter(([,l])=>l.fogRank>=2).map(([c])=>shortCode(c)).join(' · ')+' · (lowest cold-air sink = lower wetland, uncarded)') +
+    refLine('Prevailing wind', SM.meta.prevailingWind) +
+    refLine('Most exposed → sheltered', 'RO · AO · TC · SF · HS · FC · BM (valley-confined)');
+}
 $('#btnLibIO').onclick=()=>{ $('#libStats').textContent=`${state.library.length} cards in library · ${state.library.filter(c=>c.thumb).length} with media.`; show('#libIOOverlay'); };
 $('#libExport').onclick=exportLibrary;
 $('#libImportBtn').onclick=()=>$('#libFileInput').click();

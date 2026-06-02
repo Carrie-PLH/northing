@@ -620,6 +620,91 @@ const LOCATIONS = {
   }
 };
 
+/* Mark all location profiles as spatially referenced against the internal
+   orientation map. The map is a maintained project asset, not hard-coded
+   assumption. See NORTHING_SPATIAL_CONFIG.internalOrientationMap.          */
+Object.values(LOCATIONS).forEach(function(loc){ loc.mapReference = true; });
+
+/* ---- 1.5. INTERNAL SPATIAL MODEL ------------------------------------------
+   Consistency layer derived from the maintained internal orientation map.
+   NOT public canon. NOT a published artifact. NOT a definitive survey.
+   Purpose: constrain spatial errors in prompts (fog, visibility, sound
+   carry, weather exposure, hydrologic sequence) without generating lore.
+
+   When this model and existing location canon appear to conflict, flag
+   the conflict rather than silently resolving it or inventing geography.  */
+const NORTHING_SPATIAL_CONFIG = {
+  internalOrientationMap: "/90 media/INTERNAL-USE-ONLY-Northing-map-v2.png"
+};
+
+const NORTHING_SPATIAL_MODEL = {
+  hydrologicOrder: ["HS-001", "FC-001", "TC-001", "BM-001"],
+
+  locations: {
+    "RO-001": {
+      position: "northern ridge, high ground",
+      role: "orientation point",
+      visibility: {
+        "BM-001": "frequent, clear",
+        "TC-001": "seasonal, weather-dependent",
+        "AO-001": "visible as bench or clearing",
+        "SF-001": "occasional, partial",
+        "FC-001": "hidden",
+        "HS-001": "hidden"
+      },
+      fog: "above valley fog",
+      wind: "high exposure, prevailing NW",
+      promptUse: "may mention distant valley fog, broad drainage legibility, cloud shadow over lower basin, partial views rather than full explanation"
+    },
+    "AO-001": {
+      position: "hillside orchard bench, south/southwest-facing",
+      visibility: { downslope: "can sometimes overlook lower drainage and fog" },
+      fog: "often above valley fog",
+      wind: "moderate exposure",
+      promptUse: "may reference downslope fog, bench light, slope orientation, orchard grid visible through succession"
+    },
+    "SF-001": {
+      position: "separate bench or terrace, partially sheltered",
+      visibility: { fromRO: "occasional, partial" },
+      fog: "variable, usually less pooled than TC or BM",
+      wind: "sheltered to moderate",
+      promptUse: "maintain enclosed clearing/terrace logic; do not place in the valley bottom"
+    },
+    "HS-001": {
+      position: "upland spring emergence below slope",
+      hydrology: "source of drainage feeding FC-001",
+      visibility: { fromRO: "hidden" },
+      fog: "cool, sheltered; not broad valley fog",
+      wind: "sheltered",
+      promptUse: "emphasize emergence, cold source, close enclosure; do not imply broad views"
+    },
+    "FC-001": {
+      position: "forest drainage crossing below HS-001",
+      hydrology: "drainage continues toward TC-001",
+      visibility: { fromRO: "hidden" },
+      fog: "sheltered drainage interior",
+      wind: "sheltered",
+      promptUse: "emphasize passage across water and drainage; do not create scenic overlook or long views"
+    },
+    "TC-001": {
+      position: "lower alluvial confluence",
+      hydrology: "receives upstream drainage, joins another channel before continuing toward BM-001",
+      visibility: { fromRO: "sometimes visible depending on weather and season" },
+      fog: "secondary cold-air and fog pool",
+      wind: "moderate valley exposure",
+      promptUse: "may reference confluence, low meadow, pooled air, seasonal fog, visible water seams"
+    },
+    "BM-001": {
+      position: "lowest broad wetland/meadow basin",
+      hydrology: "downstream transformation zone where water spreads and slows",
+      visibility: { fromRO: "frequent, clear" },
+      fog: "strongest cold-air and fog pool",
+      wind: "moderate, open exposure",
+      promptUse: "may reference basin fog, standing water, beaver-shaped hydrology, drowned snags, wide low meadow"
+    }
+  }
+};
+
 /* ---- 2. ORIENTATION PHASES ----------------------------------------------
    Abstract phase -> concrete camera and framing behavior.                  */
 const PHASES = {
@@ -1083,6 +1168,79 @@ function refImageBlock(){
     "- Keep all motion consistent with the image's geometry, scale, and depth; introduce nothing the image does not contain.";
 }
 
+/* ---- Spatial consistency engine -------------------------------------------
+   Derives constraint lines from the spatial model when selected conditions
+   intersect with geographic logic. Returns an array of plain strings (may
+   be empty). Never generates lore; only prevents spatial errors.
+   Draws from NORTHING_SPATIAL_MODEL quietly; the model is never named in
+   the output and no distances, coordinates, or map references appear.     */
+function spatialLines(d){
+  if(!d.profile) return [];
+  var id = d.profile.id;
+  var spatial = NORTHING_SPATIAL_MODEL.locations[id];
+  if(!spatial) return [];
+
+  var lines = [];
+  var w = d.weather.toLowerCase();
+  var s = d.sound.toLowerCase();
+  var isFog = w.indexOf("fog") >= 0 || w.indexOf("mist") >= 0;
+  var isWind = w.indexOf("wind") >= 0 || w.indexOf("breeze") >= 0;
+
+  /* -- Fog / mist differentiation ---------------------------------------- */
+  if(isFog){
+    var fogNotes = {
+      "RO-001": "Fog is below this location, pooled in the basin. The ridge remains above it. Show fog as a distant surface or layer seen from above, not as enveloping mist.",
+      "AO-001": "This bench typically sits above valley fog. Fog may be visible downslope but does not pool at this elevation.",
+      "SF-001": "Fog here is variable and usually lighter than at the valley bottom. The terrace may sit near the fog margin.",
+      "HS-001": "Coolness and moisture here are close-sheltered spring conditions, not broad valley fog. Any mist is thin, low, and confined to the source area.",
+      "FC-001": "Moisture here is sheltered drainage coolness under canopy, not open valley fog. Keep it thin, interior, and close to the water.",
+      "TC-001": "This low confluence pools cold air. Fog here is grounded, slow to lift, and may partially fill the meadow.",
+      "BM-001": "This basin is the deepest cold-air pool in the drainage. Fog here is dense, grounded, and basin-filling, the last to clear."
+    };
+    if(fogNotes[id]) lines.push(fogNotes[id]);
+  }
+
+  /* -- Wind / exposure --------------------------------------------------- */
+  if(isWind){
+    if(id === "RO-001")
+      lines.push("Fully exposed to prevailing wind. Vegetation and sound should reflect sustained, unobstructed air movement.");
+    else if(id === "HS-001" || id === "FC-001")
+      lines.push("Sheltered from prevailing wind by terrain and canopy. Wind reduces to faint interior movement, not open gusting.");
+    else if(id === "SF-001")
+      lines.push("Partially sheltered. Wind is present but reduced; vegetation moves moderately.");
+  }
+
+  /* -- Visibility from RO-001 -------------------------------------------- */
+  if(id === "RO-001"){
+    if(isFog)
+      lines.push("Through or above fog: the beaver meadow basin may be partially or wholly obscured; the tributary confluence disappears early; the orchard bench may emerge above the fog surface. The headwater spring and forest crossing remain hidden regardless of conditions.");
+    else
+      lines.push("Distant visibility: the beaver meadow is frequently legible; the tributary confluence is visible in clear conditions but lost in haze or low cloud; the orchard bench reads as a clearing on the slope. The headwater spring and forest crossing are not visible from this ridge.");
+  }
+
+  /* -- Prevent implausible views from enclosed locations ------------------- */
+  if(id === "HS-001" || id === "FC-001")
+    lines.push("No broad views or distant sightlines from this location. Framing stays close and enclosed.");
+
+  /* -- Sound carry constraints ------------------------------------------- */
+  var isSilent = s.indexOf("silent") >= 0 || s.indexOf("no sound") >= 0;
+  if(!isSilent){
+    if(id === "RO-001" && s.indexOf("water dominant") >= 0)
+      lines.push("No significant water source at this ridge. Water should not dominate the sound field here; wind is the primary sound.");
+    if((id === "HS-001" || id === "FC-001") && s.indexOf("layered") >= 0)
+      lines.push("Layered ambience here stays close and interior. Basin-scale sounds do not penetrate this sheltered location.");
+  }
+
+  /* -- Hydrologic sequence (when continuity text implies drainage order) -- */
+  if(d.continuity){
+    var c = d.continuity.toLowerCase();
+    if(c.indexOf("sequence") >= 0 || c.indexOf("drainage") >= 0 || c.indexOf("watershed") >= 0 || c.indexOf("downstream") >= 0 || c.indexOf("upstream") >= 0)
+      lines.push("Hydrologic order: Headwater Spring → Forest Crossing → Tributary Confluence → Beaver Meadow. Maintain this sequence in any drainage or flow continuity.");
+  }
+
+  return lines;
+}
+
 function buildFull(d){
   const p = d.profile;
 
@@ -1122,6 +1280,10 @@ function buildFull(d){
   sections.push("LOCATION DESCRIPTION\n" + locDesc);
 
   if(p) sections.push(governingBlock(p));
+
+  // Spatial consistency (from internal orientation map; never published or named in output)
+  var sLines = spatialLines(d);
+  if(sLines.length) sections.push("SPATIAL CONSISTENCY\n" + bulletList(sLines));
 
   if(d.assets.length) sections.push(referenceAssetsBlock(d));
   if(d.continuity || d.assets.length) sections.push(continuityBlock(d));
@@ -1207,6 +1369,9 @@ function buildCompact(d){
     "Camera (" + d.phase.name + "): " + d.camera.toLowerCase() + "; " + d.phase.lines[0] + ".\n\n" +
     "Motion: " + d.motion.toLowerCase() + ". Mood — " + d.mood.name + ": " + d.mood.lines[0] + ". Physically realistic.\n\n" +
     "Treatment: " + d.archival + (d.refMode ? " as grain and movement only; keep the image's palette" : "") + ". Sound: " + d.sound.toLowerCase() + ".";
+
+  var sLines = spatialLines(d);
+  if(sLines.length) out += "\n\nSpatial: " + sLines.join(" ");
 
   if(d.notes) out += "\n\nNotes: " + d.notes;
   out += "\n\nAvoid: " + negParts.join("; ") + ".";
