@@ -196,6 +196,14 @@
   .conflict-note .cn-status{font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:#9a3f2a;margin-top:1px;}
   .conflict-note.soft .cn-status{color:#7a6240;}
   .precedence-note{margin-top:8px;font-size:11.5px;line-height:1.5;color:#7a6240;}
+
+  /* help panel */
+  .help-body{line-height:1.6;}
+  .help-body .help-lead{font-size:14.5px;color:var(--ink-soft);border-left:3px solid var(--line);padding-left:12px;margin:0 0 6px;}
+  .help-body h3{font-size:13px;letter-spacing:.02em;margin:22px 0 4px;color:var(--ink);font-weight:600;display:flex;align-items:baseline;gap:8px;}
+  .help-body p{margin:0 0 8px;font-size:14px;color:var(--ink);}
+  .help-body b{color:var(--ink);}
+  .help-internal{font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:#9a7a52;border:1px solid #d9c4a0;border-radius:20px;padding:1px 8px;font-weight:400;}
   .orient-replace{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink-soft);margin-top:12px;}
   .orient-ref{display:grid;grid-template-columns:1fr 1fr;gap:8px 18px;font-size:12px;color:var(--ink-soft);}
   .orient-ref .ref-line{line-height:1.5;}
@@ -263,6 +271,7 @@
     <button class="btn" id="btnExport">Export Sequence</button>
     <button class="btn" id="btnLibIO">Library</button>
     <button class="btn ghost" id="btnClearSeq" title="Clear the current sequence board">Clear board</button>
+    <button class="btn ghost" id="btnHelp" title="How to use this tool">Help</button>
   </div>
 </header>
 
@@ -347,6 +356,49 @@
     <div class="modal-body">
       <p class="hint" style="margin-bottom:12px">Selecting a template appends placeholder cards to the board. Edit them in place, or swap in library cards.</p>
       <div class="tpl-list" id="tplList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- help modal -->
+<div class="overlay" id="helpOverlay">
+  <div class="modal wide">
+    <div class="modal-head"><h2>How to use the Sequence Deck Builder</h2><button class="btn ghost close" data-close>✕</button></div>
+    <div class="modal-body help-body">
+      <p class="help-lead">A quiet table for arranging Northing material as cards. It is for exploring relationships between places, artifacts, photographs, observations, and conditions while developing sequences. It is not a video editor and is not meant to replace one. Everything stays on this computer (stored locally in your browser); nothing is uploaded.</p>
+
+      <h3>1 · Cards and the library</h3>
+      <p>The left rail is your <b>card library</b> — every card you create or import lives here. Make one with the <b>New card</b> chips at the top (Landscape Clip, Artifact, Photograph, Observation, Environmental Mood State, Soundscape). Each type has its own fields. Click a library card's <b>✎</b> to edit it, <b>＋</b> to add it to the board, or <b>✕</b> to delete it. Use the search box to filter by title or location.</p>
+
+      <h3>2 · Building a sequence</h3>
+      <p>The centre is the <b>board</b> — the cards you've placed, in order, numbered as a sequence. Drag a card from the library onto the board to add it; a guide line shows where it will land. Drag cards already on the board to reorder them. The same library card can appear more than once (a place you return to). Each board card has <b>✎</b> to edit and <b>✕</b> to remove it from the sequence (it stays in the library). Rename the sequence in the top bar.</p>
+      <p><b>Grouping:</b> click cards to select them (Shift- or Cmd-click for several), then <b>Group selected</b> to bracket them under a name, or <b>Ungroup</b> to release them. <b>Clear board</b> empties the sequence without touching the library.</p>
+
+      <h3>3 · Templates</h3>
+      <p><b>Templates</b> drops a starter sequence of placeholder cards onto the board (Static Encounter, Reverse Echo, Landscape Echo, Observer Chain, Environmental Trigger, Unread Document). Edit the placeholders in place, or swap in real library cards.</p>
+
+      <h3>4 · Relationships</h3>
+      <p>The toggle chips in the board bar (<b>same location, season, observer, condition</b>) draw faint connecting lines between related cards, so repetitions and echoes surface on their own. Hovering a card dims the unrelated ones. These are display aids only.</p>
+
+      <h3>5 · Analysis panel</h3>
+      <p>The right panel continuously reads the current sequence: card count, total duration, artifact/landscape/photo counts, and location and seasonal diversity, plus a composition bar by card type. The metrics framework is built to be extended later (return-to-place frequency, archive density, and so on are scaffolded, not yet computed).</p>
+
+      <h3>6 · Orientation <span class="help-internal">internal · approximate · not for decks</span></h3>
+      <p>The <b>Orientation</b> button opens the internal spatial layer. It uses an approximate internal map of the watershed to keep sequences geographically coherent. <b>It is internal and approximate — not public canon, and it should never appear in audience-facing decks.</b> Location canon is authoritative; the map only constrains ordering, it does not generate narration.</p>
+      <p>Pick a <b>geographic sequence mode</b> (Watershed, Eastern tributary, Elevation descent, Viewshed-to-ground, Hidden drainage, Bench-to-valley) to lay down a coherent spine, drawing on matching library cards or light placeholders. The <b>Spatial coherence</b> block in the analysis panel reads your current sequence and tags each transition (descends/ascends, with/against drainage, adjacency, RO viewshed) — again, internal and approximate.</p>
+
+      <h3>7 · Importing a media folder</h3>
+      <p><b>Import Media Folder</b> scans a folder you choose for images and video, and proposes a card for each file, inferring type, location, and title from the folder and filename. Review the proposals — adjust type, title, location, and which to include — then add them to the library. Files are never uploaded; only thumbnails and metadata are stored locally.</p>
+
+      <h3>8 · Exporting</h3>
+      <p><b>Export Sequence</b> offers three tabs. <b>Markdown outline</b> and <b>JSON</b> are audience-facing and contain no internal map data. <b>Internal notes</b> is opt-in and carries the spatial annotations with their approximate/internal disclaimer — keep it out of finished decks. Copy or download from any tab.</p>
+      <p><b>Library</b> lets you export the whole card library as JSON to back it up or move it to another machine, and import it back later without rescanning.</p>
+
+      <h3>Storage</h3>
+      <p>Cards, sequence, and settings are saved automatically in this browser (IndexedDB). Clearing browser data or using a different browser starts fresh — use the Library JSON export to keep a backup.</p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn primary" data-close>Got it</button>
     </div>
   </div>
 </div>
@@ -1467,6 +1519,7 @@ document.querySelectorAll('.overlay').forEach(o=> o.addEventListener('mousedown'
 document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeAll(); });
 
 $('#editSave').onclick=saveEdit;
+$('#btnHelp').onclick=()=>show('#helpOverlay');
 $('#btnTemplates').onclick=()=>{renderTemplates();show('#tplOverlay');};
 $('#btnGroup').onclick=groupSelected;
 $('#btnUngroup').onclick=ungroupSelected;
