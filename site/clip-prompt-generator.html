@@ -455,6 +455,7 @@
 
 <div class="toast" id="toast">Copied to clipboard</div>
 
+<script src="northing-spatial-model.js"></script>
 <script>
 /* =========================================================================
    NORTHING CLIP PROMPT GENERATOR
@@ -566,10 +567,10 @@ const LOCATIONS = {
     governingDescription: "where water reshapes the landscape",
     referenceImage: "assets/canonical/4-BM-001.png",
     referenceImageLabel: "BM-001 canonical photograph",
-    landscape: "A broad, flat wetland meadow shaped by beaver activity — standing water held behind an old dam, drowned standing snags, and silt flats turning to sedge. The watercourse has been spread and slowed across the valley floor, reworking it into pool, channel, and wet meadow.",
+    landscape: "A wetland meadow in a narrow eastern-tributary valley, shaped by beaver activity — standing water held behind an old dam, drowned standing snags, and silt flats turning to sedge. The tributary has been spread and slowed behind the dam, elongated along the confined valley into pool, channel, and wet meadow.",
     recurringDetails: "Standing dead snags in shallow water, the low line of an old dam, sheet-water spread over silt, sedge reclaiming former pond, gnawed or fallen stems, the braided remnants of slowed flow.",
-    cameraBehavior: "Level and low to the water and sedge, unglamorous. Static, letting wind and water surface carry the motion. No sweeping reveals of the whole basin.",
-    seasonalNotes: "Spring floods the basin and brightens new sedge. Summer holds warm shallow water, heavy insect life, drying margins. Autumn lays tawny sedge over lowering water with clear reflections. Winter ices the flats, dark snags, the dam line exposed.",
+    cameraBehavior: "Level and low to the water and sedge, unglamorous. Static, letting wind and water surface carry the motion. No sweeping reveals of the whole impoundment.",
+    seasonalNotes: "Spring floods the impoundment and brightens new sedge. Summer holds warm shallow water, heavy insect life, drying margins. Autumn lays tawny sedge over lowering water with clear reflections. Winter ices the flats, dark snags, the dam line exposed.",
     ambientSound: "Still water with intermittent movement, wind across open sedge, frog and insect in season, distant bird, the occasional knock of settling wood.",
     visualRisks: "Wildlife-documentary beaver hero shot, postcard pond, swamp-horror menace, dramatic dam reveal, over-green color."
   },
@@ -626,84 +627,11 @@ const LOCATIONS = {
 Object.values(LOCATIONS).forEach(function(loc){ loc.mapReference = true; });
 
 /* ---- 1.5. INTERNAL SPATIAL MODEL ------------------------------------------
-   Consistency layer derived from the maintained internal orientation map.
-   NOT public canon. NOT a published artifact. NOT a definitive survey.
-   Purpose: constrain spatial errors in prompts (fog, visibility, sound
-   carry, weather exposure, hydrologic sequence) without generating lore.
-
-   When this model and existing location canon appear to conflict, flag
-   the conflict rather than silently resolving it or inventing geography.  */
-const NORTHING_SPATIAL_CONFIG = {
-  internalOrientationMap: "/90 media/INTERNAL-USE-ONLY-Northing-map-v2.png"
-};
-
-const NORTHING_SPATIAL_MODEL = {
-  hydrologicOrder: ["HS-001", "FC-001", "TC-001", "BM-001"],
-
-  locations: {
-    "RO-001": {
-      position: "northern ridge, high ground",
-      role: "orientation point",
-      visibility: {
-        "BM-001": "frequent, clear",
-        "TC-001": "seasonal, weather-dependent",
-        "AO-001": "visible as bench or clearing",
-        "SF-001": "occasional, partial",
-        "FC-001": "hidden",
-        "HS-001": "hidden"
-      },
-      fog: "above valley fog",
-      wind: "high exposure, prevailing NW",
-      promptUse: "may mention distant valley fog, broad drainage legibility, cloud shadow over lower basin, partial views rather than full explanation"
-    },
-    "AO-001": {
-      position: "hillside orchard bench, south/southwest-facing",
-      visibility: { downslope: "can sometimes overlook lower drainage and fog" },
-      fog: "often above valley fog",
-      wind: "moderate exposure",
-      promptUse: "may reference downslope fog, bench light, slope orientation, orchard grid visible through succession"
-    },
-    "SF-001": {
-      position: "separate bench or terrace, partially sheltered",
-      visibility: { fromRO: "occasional, partial" },
-      fog: "variable, usually less pooled than TC or BM",
-      wind: "sheltered to moderate",
-      promptUse: "maintain enclosed clearing/terrace logic; do not place in the valley bottom"
-    },
-    "HS-001": {
-      position: "upland spring emergence below slope",
-      hydrology: "source of drainage feeding FC-001",
-      visibility: { fromRO: "hidden" },
-      fog: "cool, sheltered; not broad valley fog",
-      wind: "sheltered",
-      promptUse: "emphasize emergence, cold source, close enclosure; do not imply broad views"
-    },
-    "FC-001": {
-      position: "forest drainage crossing below HS-001",
-      hydrology: "drainage continues toward TC-001",
-      visibility: { fromRO: "hidden" },
-      fog: "sheltered drainage interior",
-      wind: "sheltered",
-      promptUse: "emphasize passage across water and drainage; do not create scenic overlook or long views"
-    },
-    "TC-001": {
-      position: "lower alluvial confluence",
-      hydrology: "receives upstream drainage, joins another channel before continuing toward BM-001",
-      visibility: { fromRO: "sometimes visible depending on weather and season" },
-      fog: "secondary cold-air and fog pool",
-      wind: "moderate valley exposure",
-      promptUse: "may reference confluence, low meadow, pooled air, seasonal fog, visible water seams"
-    },
-    "BM-001": {
-      position: "lowest broad wetland/meadow basin",
-      hydrology: "downstream transformation zone where water spreads and slows",
-      visibility: { fromRO: "frequent, clear" },
-      fog: "strongest cold-air and fog pool",
-      wind: "moderate, open exposure",
-      promptUse: "may reference basin fog, standing water, beaver-shaped hydrology, drowned snags, wide low meadow"
-    }
-  }
-};
+   Loaded from the shared file northing-spatial-model.js (single source of
+   truth, shared with sequence-deck-builder.html). It defines the globals
+   NORTHING_SPATIAL_MODEL and NORTHING_SPATIAL_CONFIG. Loaded as a classic
+   <script src> before this script so it works when opened as a local file.
+   Corrected topology: BM-001 is on the eastern tributary UPSTREAM of TC-001.  */
 
 /* ---- 2. ORIENTATION PHASES ----------------------------------------------
    Abstract phase -> concrete camera and framing behavior.                  */
@@ -1189,13 +1117,13 @@ function spatialLines(d){
   /* -- Fog / mist differentiation ---------------------------------------- */
   if(isFog){
     var fogNotes = {
-      "RO-001": "Fog is below this location, pooled in the basin. The ridge remains above it. Show fog as a distant surface or layer seen from above, not as enveloping mist.",
+      "RO-001": "Fog is below this location, pooled in the valley. The ridge remains above it. Show fog as a distant surface or layer seen from above, not as enveloping mist.",
       "AO-001": "This bench typically sits above valley fog. Fog may be visible downslope but does not pool at this elevation.",
       "SF-001": "Fog here is variable and usually lighter than at the valley bottom. The terrace may sit near the fog margin.",
       "HS-001": "Coolness and moisture here are close-sheltered spring conditions, not broad valley fog. Any mist is thin, low, and confined to the source area.",
       "FC-001": "Moisture here is sheltered drainage coolness under canopy, not open valley fog. Keep it thin, interior, and close to the water.",
       "TC-001": "This low confluence pools cold air. Fog here is grounded, slow to lift, and may partially fill the meadow.",
-      "BM-001": "This basin is the deepest cold-air pool in the drainage. Fog here is dense, grounded, and basin-filling, the last to clear."
+      "BM-001": "The open impoundment is a strong local fog source: warm water cooling against cold air makes dense, grounded pond-surface fog, slow to clear. This is an eastern-tributary wetland, not the watershed's lowest basin."
     };
     if(fogNotes[id]) lines.push(fogNotes[id]);
   }
@@ -1213,7 +1141,7 @@ function spatialLines(d){
   /* -- Visibility from RO-001 -------------------------------------------- */
   if(id === "RO-001"){
     if(isFog)
-      lines.push("Through or above fog: the beaver meadow basin may be partially or wholly obscured; the tributary confluence disappears early; the orchard bench may emerge above the fog surface. The headwater spring and forest crossing remain hidden regardless of conditions.");
+      lines.push("Through or above fog: the beaver meadow may be partially or wholly obscured; the tributary confluence disappears early; the orchard bench may emerge above the fog surface. The headwater spring and forest crossing remain hidden regardless of conditions.");
     else
       lines.push("Distant visibility: the beaver meadow is frequently legible; the tributary confluence is visible in clear conditions but lost in haze or low cloud; the orchard bench reads as a clearing on the slope. The headwater spring and forest crossing are not visible from this ridge.");
   }
@@ -1228,14 +1156,14 @@ function spatialLines(d){
     if(id === "RO-001" && s.indexOf("water dominant") >= 0)
       lines.push("No significant water source at this ridge. Water should not dominate the sound field here; wind is the primary sound.");
     if((id === "HS-001" || id === "FC-001") && s.indexOf("layered") >= 0)
-      lines.push("Layered ambience here stays close and interior. Basin-scale sounds do not penetrate this sheltered location.");
+      lines.push("Layered ambience here stays close and interior. Open-valley sounds do not penetrate this sheltered location.");
   }
 
   /* -- Hydrologic sequence (when continuity text implies drainage order) -- */
   if(d.continuity){
     var c = d.continuity.toLowerCase();
     if(c.indexOf("sequence") >= 0 || c.indexOf("drainage") >= 0 || c.indexOf("watershed") >= 0 || c.indexOf("downstream") >= 0 || c.indexOf("upstream") >= 0)
-      lines.push("Hydrologic order: Headwater Spring → Forest Crossing → Tributary Confluence → Beaver Meadow. Maintain this sequence in any drainage or flow continuity.");
+      lines.push("Hydrologic order (branched): the western drainage runs Headwater Spring → Forest Crossing → Tributary Confluence; the eastern tributary runs Beaver Meadow → Tributary Confluence. Both meet at the confluence and continue downstream to the lower wetland. Beaver Meadow is upstream of the Tributary Confluence, not below it. Maintain this in any drainage or flow continuity.");
   }
 
   return lines;
@@ -1436,6 +1364,59 @@ function flash(msg){
   toastTimer = setTimeout(function(){ t.classList.remove("show"); }, 1600);
 }
 
+/* ---- Prefill from URL hash (deep link from the Sequence Deck Builder) ------
+   The deck builder opens this page as clip-prompt-generator.html#loc=...&...
+   We map a card's stable fields onto the form. Per-shot fields (camera, mood,
+   motion, archival, sound) are deliberately left at defaults for you to vary
+   shot by shot. Runs after initUI() so the selects are already populated.     */
+function prefillFromHash(){
+  if(!location.hash || location.hash.length < 2) return;
+  var p;
+  try { p = new URLSearchParams(location.hash.slice(1)); } catch(e){ return; }
+
+  var loc = p.get("loc");
+  if(loc){
+    var lc = loc.toLowerCase();
+    var key = Object.keys(LOCATIONS).find(function(k){ return LOCATIONS[k].name.toLowerCase() === lc; });
+    if(!key) key = Object.keys(LOCATIONS).find(function(k){
+      var n = LOCATIONS[k].name.toLowerCase();
+      return n.indexOf(lc) >= 0 || lc.indexOf(n) >= 0;
+    });
+    if(key) $("location").value = key;
+    else $("locationCustom").value = loc;
+  }
+
+  var season = p.get("season");
+  if(season){
+    var sc = season.toLowerCase();
+    var s = SEASONS.find(function(x){ return x.toLowerCase() === sc; }) ||
+            SEASONS.find(function(x){ return x.toLowerCase().indexOf(sc) >= 0 || sc.indexOf(x.toLowerCase()) >= 0; });
+    if(s) $("season").value = s;
+  }
+
+  var dur = p.get("dur");
+  if(dur){
+    var r = document.querySelector('input[name="duration"][value="' + dur + '"]');
+    if(r) r.checked = true;
+  }
+
+  // Weather is free text in the deck builder and rarely matches the fixed list,
+  // so carry it (plus title/type/notes) into the Notes field as context.
+  var bits = [];
+  if(p.get("title"))   bits.push("Shot: " + p.get("title"));
+  if(p.get("type"))    bits.push("Card type: " + p.get("type"));
+  if(p.get("weather")) bits.push("Weather (from deck): " + p.get("weather"));
+  if(p.get("notes"))   bits.push(p.get("notes"));
+  if(bits.length){
+    var cur = $("notes").value.trim();
+    $("notes").value = (cur ? cur + "\n\n" : "") + bits.join("\n");
+  }
+
+  updateProfileNote();
+  if(typeof updatePhaseHint === "function") updatePhaseHint();
+  if(typeof updateMoodHint === "function") updateMoodHint();
+}
+
 /* ---- Listeners ----------------------------------------------------------- */
 window.addEventListener("DOMContentLoaded", function(){
   initUI();
@@ -1448,6 +1429,7 @@ window.addEventListener("DOMContentLoaded", function(){
   $("copyBtn").addEventListener("click", copyPrompt);
   $("resetBtn").addEventListener("click", resetAll);
   $("output").addEventListener("input", updateWordcount);
+  prefillFromHash();
 });
 </script>
 </body>
