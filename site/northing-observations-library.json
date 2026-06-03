@@ -1,0 +1,79 @@
+{
+  "type": "northing-card-library",
+  "version": 1,
+  "exported": "2026-06-02",
+  "cards": [
+    {
+      "id": "obs-001",
+      "type": "observation",
+      "title": "Sediment Motion at the Collecting Basin",
+      "location": "Headwater Spring",
+      "observationId": "Obs-001",
+      "category": "",
+      "notes": "Sediment Motion at the Collecting Basin. Conditions: Sediment motion. First observation of Headwater Spring in the corpus. Source: 08 observations/observation-001-headwater-spring-sediment-motion-v1.md"
+    },
+    {
+      "id": "obs-002",
+      "type": "observation",
+      "title": "Low Water at the Impoundment",
+      "location": "Beaver Meadow",
+      "observationId": "Obs-002",
+      "category": "",
+      "notes": "Low Water at the Impoundment. Conditions: Low water autumn. First observation of Beaver Meadow in the corpus. Source: 08 observations/observation-002-beaver-meadow-low-water-autumn-v1.md"
+    },
+    {
+      "id": "obs-003",
+      "type": "observation",
+      "title": "Tributary Confluence Wet Meadow — Late Autumn, Early Morning",
+      "location": "Tributary Confluence Wet Meadow",
+      "observationId": "Obs-003",
+      "category": "",
+      "notes": "Tributary Confluence Wet Meadow — Late Autumn, Early Morning. Conditions: Early morning. First observation of Tributary Confluence Wet Meadow in the corpus. Source: 08 observations/observation-003-tributary-confluence-wet-meadow-early-morning-v1.1.md"
+    },
+    {
+      "id": "obs-004",
+      "type": "observation",
+      "title": "Ridge Overlook — Late Spring, Mid-Morning",
+      "location": "Ridge Overlook",
+      "observationId": "Obs-004",
+      "category": "",
+      "notes": "Ridge Overlook — Late Spring, Mid-Morning. Conditions: Late spring. First observation of Ridge Overlook in the corpus. Source: 08 observations/observation-004-ridge-overlook-late-spring-v1.md"
+    },
+    {
+      "id": "obs-005",
+      "type": "observation",
+      "title": "Abandoned Hillside Orchard — Mid-October, Mid-Morning",
+      "location": "Abandoned Hillside Orchard",
+      "observationId": "Obs-005",
+      "category": "",
+      "notes": "Abandoned Hillside Orchard — Mid-October, Mid-Morning. Conditions: Autumn. First observation of Abandoned Hillside Orchard in the corpus. Source: 08 observations/observation-005-abandoned-hillside-orchard-autumn-v1.md"
+    },
+    {
+      "id": "obs-006",
+      "type": "observation",
+      "title": "Forest Crossing — Summer low water",
+      "location": "Forest Crossing",
+      "observationId": "Obs-006",
+      "category": "",
+      "notes": "Forest Crossing — Summer low water. Conditions: Summer low water. First observation of Forest Crossing in the corpus. Source: 08 observations/observation-006-forest-crossing-summer-low-water-v1.md"
+    },
+    {
+      "id": "obs-007",
+      "type": "observation",
+      "title": "Stone Foundation Clearing — Winter",
+      "location": "Stone Foundation Clearing",
+      "observationId": "Obs-007",
+      "category": "",
+      "notes": "Stone Foundation Clearing — Winter. Conditions: Winter. First observation of Stone Foundation Clearing in the corpus. Source: 08 observations/observation-007-stone-foundation-clearing-winter-v1.md"
+    },
+    {
+      "id": "obs-008",
+      "type": "observation",
+      "title": "Mid-Winter at the Impoundment",
+      "location": "Beaver Meadow",
+      "observationId": "Obs-008",
+      "category": "",
+      "notes": "Mid-Winter at the Impoundment. Conditions: Mid winter. Return visit to Beaver Meadow (observation 2 of 2 at this site). Source: 08 observations/observation-008-beaver-meadow-mid-winter-v1.md"
+    }
+  ]
+}
