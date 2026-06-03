@@ -1239,9 +1239,10 @@ async function importLibrary(file){
 /* =====================================================================
    MEDIA FOLDER IMPORT
    ===================================================================== */
-const IMG_EXT=['jpg','jpeg','png','webp'], VID_EXT=['mp4','mov','webm'];
+const IMG_EXT=['jpg','jpeg','png','webp'], VID_EXT=['mp4','mov','webm'],
+      AUD_EXT=['mp3','wav','m4a','aac','ogg','flac'];
 const extOf = name=> (name.split('.').pop()||'').toLowerCase();
-const isMedia = name=>{const e=extOf(name);return IMG_EXT.includes(e)||VID_EXT.includes(e);};
+const isMedia = name=>{const e=extOf(name);return IMG_EXT.includes(e)||VID_EXT.includes(e)||AUD_EXT.includes(e);};
 
 $('#btnImport').onclick=async()=>{
   if(window.showDirectoryPicker){
@@ -1268,6 +1269,7 @@ async function walkFS(dir, prefix, out){
 
 function inferType(path){
   const pl=path.toLowerCase(), e=extOf(path);
+  if(AUD_EXT.includes(e)) return 'soundscape';
   if(VID_EXT.includes(e)) return 'landscape-clip';
   if(pl.includes('canonical')) return 'canonical-location-image';
   if(pl.includes('artifact')||pl.includes('archive')) return 'artifact';
@@ -1290,7 +1292,7 @@ function inferTitle(path){
 }
 
 async function processImport(files){
-  if(!files.length){ toast('No image or video files found in that folder.'); return; }
+  if(!files.length){ toast('No image, video, or audio files found in that folder.'); return; }
   toast(`Scanning ${files.length} file${files.length===1?'':'s'}…`);
   const proposals=[];
   let done=0;
@@ -1301,7 +1303,11 @@ async function processImport(files){
       const {file,path}=queue.shift();
       const type=inferType(path);
       let thumb=null;
-      try{ thumb = VID_EXT.includes(extOf(path)) ? await videoThumb(file) : await imageThumb(file); }catch(_){ thumb=null; }
+      const ext=extOf(path);
+      try{
+        if(AUD_EXT.includes(ext)) thumb=null;            // audio: no thumbnail, glyph shows instead
+        else thumb = VID_EXT.includes(ext) ? await videoThumb(file) : await imageThumb(file);
+      }catch(_){ thumb=null; }
       proposals.push({include:true, type, title:inferTitle(path), location:inferLocation(path), filePath:path, thumb, notes:''});
       done++;
     }
@@ -1382,7 +1388,7 @@ $('#reviewAdd').onclick=async()=>{
     const c=newCard(p.type);
     c.title=p.title; c.location=p.location; c.notes=p.notes;
     c.filePath=p.filePath; c.thumb=p.thumb;
-    c.mediaType = VID_EXT.includes(extOf(p.filePath))?'video':'image';
+    c.mediaType = AUD_EXT.includes(extOf(p.filePath))?'audio': VID_EXT.includes(extOf(p.filePath))?'video':'image';
     state.library.push(c); await persistCard(c); added++;
   }
   closeAll(); renderLibrary();
