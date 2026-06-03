@@ -1,0 +1,194 @@
+{
+  "type": "northing-card-library",
+  "version": 1,
+  "exported": "2026-06-03T00:00:00.000Z",
+  "source": "99 scratchpad/website/environmental-mood-states.md (Emerging Conceptual System, non-canonical). Cards are production material. Combination cards 023-025 are documented in the source; 026-031 are proposed pairings built only from listed states.",
+  "cards": [
+    {
+      "id": "mood-held-fog",
+      "type": "mood",
+      "title": "Held Fog",
+      "description": "Fog that does not lift or move. Near forms stay sharp while distance softens; what is far is not hidden, only withheld. Sound arrives close and damp."
+    },
+    {
+      "id": "mood-wind-exposure",
+      "type": "mood",
+      "title": "Wind Exposure",
+      "description": "Continuous wind across open ground. Grass lies in one direction, cloud shadows travel, and most of what can be heard is wind. Everything else has to get through it."
+    },
+    {
+      "id": "mood-suppressed-distance",
+      "type": "mood",
+      "title": "Suppressed Distance",
+      "description": "Sightlines end early. Vegetation, terrain, or weather closes every view within a short range. Overview is unavailable; the environment is understood incrementally."
+    },
+    {
+      "id": "mood-ground-saturation",
+      "type": "mood",
+      "title": "Ground Saturation",
+      "description": "The ground holds water. Footing softens, low places stand wet, surfaces reflect. Every step makes sound."
+    },
+    {
+      "id": "mood-soft-horizon",
+      "type": "mood",
+      "title": "Soft Horizon",
+      "description": "The line between land and sky does not resolve. Haze, light, or moisture blends them, and the far edge of the visible stays approximate."
+    },
+    {
+      "id": "mood-residual-cold",
+      "type": "mood",
+      "title": "Residual Cold",
+      "description": "Cold remaining after its weather has gone. Shaded ground stays hard, ice persists where sun does not reach, and the air is warmer than the surfaces."
+    },
+    {
+      "id": "mood-open-canopy",
+      "type": "mood",
+      "title": "Open Canopy",
+      "description": "Bare or sparse branches overhead. Light reaches the ground unevenly and the understory is visible at depth. The sky is present inside the woods."
+    },
+    {
+      "id": "mood-muted-sound",
+      "type": "mood",
+      "title": "Muted Sound",
+      "description": "The environment absorbs more than it returns. Footfalls shorten, distant sound does not arrive, and quiet reads as a property of the ground rather than an absence."
+    },
+    {
+      "id": "mood-long-drainage",
+      "type": "mood",
+      "title": "Long Drainage",
+      "description": "Water audible or visible moving downslope over an extended distance. The terrain reads as a route even where there is no path."
+    },
+    {
+      "id": "mood-distant-brightness",
+      "type": "mood",
+      "title": "Distant Brightness",
+      "description": "Light on far terrain while the near ground stays dull. A lit ridge, a pale band under cloud. Brightness located elsewhere."
+    },
+    {
+      "id": "mood-filtered-light",
+      "type": "mood",
+      "title": "Filtered Light",
+      "description": "Light arriving through canopy, cloud, or haze. No direct shadow. Surfaces are evenly lit and shapes lose their modeling."
+    },
+    {
+      "id": "mood-weather-compression",
+      "type": "mood",
+      "title": "Weather Compression",
+      "description": "Weather close overhead. The cloud base sits low enough to flatten the vertical, and the sky participates in the enclosure."
+    },
+    {
+      "id": "mood-horizon-exposure",
+      "type": "mood",
+      "title": "Horizon Exposure",
+      "description": "Terrain falls away on more than one side and the horizon becomes most of what is visible. Scale registers before detail does."
+    },
+    {
+      "id": "mood-canopy-suppression",
+      "type": "mood",
+      "title": "Canopy Suppression",
+      "description": "Dense canopy holding light out. Dimness at midday. Ground vegetation thins to what tolerates shade, and the eye works close to the ground."
+    },
+    {
+      "id": "mood-surface-reflection",
+      "type": "mood",
+      "title": "Surface Reflection",
+      "description": "Standing or slow water doubling the sky. Pale where the sky is pale, dark where it is dark. Depth unreadable."
+    },
+    {
+      "id": "mood-uneven-warmth",
+      "type": "mood",
+      "title": "Uneven Warmth",
+      "description": "Warmth in patches: sun on one slope, cold air pooled below it. Crossing terrain means crossing temperatures."
+    },
+    {
+      "id": "mood-ash-light",
+      "type": "mood",
+      "title": "Ash Light",
+      "description": "Flat grey light without identifiable source or direction. Color desaturates and the time of day is hard to read from the sky."
+    },
+    {
+      "id": "mood-late-growth",
+      "type": "mood",
+      "title": "Late Growth",
+      "description": "Vegetation past its peak and still growing. New shoots among collapsed stems. The season's order visibly mixed on the same ground."
+    },
+    {
+      "id": "mood-low-water",
+      "type": "mood",
+      "title": "Low Water",
+      "description": "Channels below their banks. Exposed stone, dried margins, water lines on rock. The route of water visible without much of the water."
+    },
+    {
+      "id": "mood-deferred-visibility",
+      "type": "mood",
+      "title": "Deferred Visibility",
+      "description": "Conditions that seem about to clear and do not. Visibility fluctuates without resolving, opening and collapsing again. Waiting becomes part of looking."
+    },
+    {
+      "id": "mood-long-distance",
+      "type": "mood",
+      "title": "Long Distance",
+      "description": "Sightlines carrying past the local terrain to country beyond it. Far weather is visible before it arrives. The middle ground thins out of attention."
+    },
+    {
+      "id": "mood-dense-growth",
+      "type": "mood",
+      "title": "Dense Growth",
+      "description": "Vegetation thick enough to obstruct. Layered, irregular spacing; interrupted sightlines. Movement is guided by gaps, sound, and texture rather than clear pathing."
+    },
+    {
+      "id": "mood-combo-001",
+      "type": "mood",
+      "title": "Held Fog + Open Canopy + Ground Saturation",
+      "description": "Diffuse light, weak horizon, reflective wet ground under sparse branches. Forms emerge by proximity; recognition is delayed and attention shifts to near-field detail. The landscape is present but withheld — never fully resolved at once."
+    },
+    {
+      "id": "mood-combo-002",
+      "type": "mood",
+      "title": "Wind Exposure + Long Distance + Residual Cold",
+      "description": "Directional grass movement, broad horizons, cold light, distant weather visible. Reduced enclosure; the landscape registers as larger than the observer, who is carried through space rather than enclosed within it."
+    },
+    {
+      "id": "mood-combo-003",
+      "type": "mood",
+      "title": "Suppressed Distance + Dense Growth + Muted Sound",
+      "description": "Layered obstruction, absorbed sound, sightlines that end early. Anticipation without release; local signals carry the navigation. The landscape refuses overview and is understood incrementally."
+    },
+    {
+      "id": "mood-combo-004",
+      "type": "mood",
+      "title": "Low Water + Surface Reflection",
+      "description": "Shrunken channels lying still. Residual pools double the sky among exposed stone, so the bed reads as rock with mirrors set into it. Water present mostly as image."
+    },
+    {
+      "id": "mood-combo-005",
+      "type": "mood",
+      "title": "Residual Cold + Filtered Light",
+      "description": "Even, shadowless light over ground still hard in the shade. Frost persisting at midday under cloud. Nothing in the light explains where the cold is held."
+    },
+    {
+      "id": "mood-combo-006",
+      "type": "mood",
+      "title": "Weather Compression + Horizon Exposure",
+      "description": "Open terrain under a low ceiling. Wide but not tall; the visible world extends outward while the sky presses down, and arriving weather can be watched across the whole distance."
+    },
+    {
+      "id": "mood-combo-007",
+      "type": "mood",
+      "title": "Ground Saturation + Open Canopy",
+      "description": "Wet ground lit at depth through bare branches. Standing water carries the canopy's pattern downward, so the floor of the woods is doubled and brighter than the season suggests."
+    },
+    {
+      "id": "mood-combo-008",
+      "type": "mood",
+      "title": "Distant Brightness + Suppressed Distance",
+      "description": "Enclosed near ground with lit terrain showing through gaps. Brightness is visible but not arrived at; the close world stays dull while somewhere else holds the light."
+    },
+    {
+      "id": "mood-combo-009",
+      "type": "mood",
+      "title": "Wind Exposure + Surface Reflection",
+      "description": "Wind texturing open water. The sky's double broken into movement; reflection becomes intermittent, reassembling in lulls. The water shows the wind more clearly than the grass does."
+    }
+  ]
+}

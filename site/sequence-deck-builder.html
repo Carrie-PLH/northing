@@ -297,6 +297,7 @@
       <input class="seq-name" id="seqName" value="Untitled sequence" spellcheck="false">
       <button class="btn sm ghost" id="btnGroup" title="Group the selected cards">Group selected</button>
       <button class="btn sm ghost" id="btnUngroup" title="Remove grouping from selected">Ungroup</button>
+      <button class="btn sm ghost" id="btnPromptSel" title="Open the Clip Prompt Generator pre-filled from the selected cards — location, conditions, and mood states merged into one shot spec">Prompt selected</button>
       <div class="rel-toggles" id="relToggles"></div>
     </div>
     <div class="board-scroll" id="boardScroll">
@@ -373,6 +374,7 @@
       <h3>2 · Building a sequence</h3>
       <p>The centre is the <b>board</b> — the cards you've placed, in order, numbered as a sequence. Drag a card from the library onto the board to add it; a guide line shows where it will land. Drag cards already on the board to reorder them. The same library card can appear more than once (a place you return to). Each board card has <b>✎</b> to edit and <b>✕</b> to remove it from the sequence (it stays in the library). Rename the sequence in the top bar.</p>
       <p><b>Grouping:</b> click cards to select them (Shift- or Cmd-click for several), then <b>Group selected</b> to bracket them under a name, or <b>Ungroup</b> to release them. <b>Clear board</b> empties the sequence without touching the library.</p>
+      <p><b>Prompting shots:</b> each board card's <b>▶</b> opens the Clip Prompt Generator in a new tab, pre-filled from that card (location, season, conditions, notes). To compose a shot spec from several cards — say a canonical location plus an environmental mood state — select them and use <b>Prompt selected</b>: location and conditions come from the first card that has them, and mood states and observation context fold into the prompt notes. Generated keepers come back in through Import Media Folder as real clips.</p>
 
       <h3>3 · Templates</h3>
       <p><b>Templates</b> drops a starter sequence of placeholder cards onto the board (Static Encounter, Reverse Echo, Landscape Echo, Observer Chain, Environmental Trigger, Unread Document). Edit the placeholders in place, or swap in real library cards.</p>
@@ -392,7 +394,7 @@
 
       <h3>8 · Exporting</h3>
       <p><b>Export Sequence</b> offers three tabs. <b>Markdown outline</b> and <b>JSON</b> are audience-facing and contain no internal map data. <b>Internal notes</b> is opt-in and carries the spatial annotations with their approximate/internal disclaimer — keep it out of finished decks. Copy or download from any tab.</p>
-      <p><b>Library</b> lets you export the whole card library as JSON to back it up or move it to another machine, and import it back later without rescanning.</p>
+      <p><b>Library</b> lets you export the whole card library as JSON to back it up or move it to another machine, and import it back later without rescanning. <b>Sync artifact catalog</b> pulls the live online catalog and creates or updates one Artifact card per entry (re-sync updates, never duplicates); the catalog remains the single place artifacts are maintained. Per the project rule, photographs are treated as artifacts — both catalog entries and imported images become Artifact cards.</p>
 
       <h3>Storage</h3>
       <p>Cards, sequence, and settings are saved automatically in this browser (IndexedDB). Clearing browser data or using a different browser starts fresh — use the Library JSON export to keep a backup.</p>
@@ -445,10 +447,12 @@
     <div class="modal-body">
       <p class="hint" style="margin-bottom:14px">The library holds every card you've created or imported, stored locally in your browser (IndexedDB). Nothing is uploaded. Export it as JSON to back it up or move it to another machine.</p>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn primary" id="btnSyncCatalog">Sync artifact catalog</button>
         <button class="btn" id="libExport">Export library JSON</button>
         <button class="btn" id="libImportBtn">Import library JSON</button>
         <button class="btn ghost" id="libClear">Clear library…</button>
       </div>
+      <p class="hint" style="margin-top:10px">Sync pulls the live artifact catalog (northing-production.up.railway.app) and adds or updates one Artifact card per entry — re-syncing updates rather than duplicates. The catalog is the source of truth: local edits to catalog cards are overwritten on sync. Catalog cards removed from the catalog are kept locally and reported.</p>
       <p class="hint" style="margin-top:14px" id="libStats"></p>
     </div>
   </div>
@@ -890,6 +894,38 @@ function buildSeqCard(p,c,i){
   return card;
 }
 
+/* merge the SELECTED board cards into one shot spec and open the generator.
+   Location/season/weather/duration come from the first card that has them
+   (sequence order); mood states and observation context fold into notes so
+   they enter the prompt as condition language. The generator needs no new
+   params — everything rides the existing deep-link fields. */
+function promptSelected(){
+  const cards = state.sequence.filter(p=>state.selection.has(p.pid))
+    .map(p=>cardById(p.cardId)).filter(Boolean);
+  if(!cards.length){ toast('Select cards on the board first (click, shift-click for several).'); return; }
+  const first = k => { const c=cards.find(x=>x[k]); return c?c[k]:''; };
+  const p=new URLSearchParams();
+  const loc=first('location');   if(loc)p.set('loc',loc);
+  const season=first('season');  if(season)p.set('season',season);
+  const weather=first('weather');if(weather)p.set('weather',weather);
+  const dur=first('duration');   if(dur)p.set('dur',dur);
+  const titles=[...new Set(cards.map(c=>c.title).filter(Boolean))];
+  if(titles.length)p.set('title',titles.join(' + '));
+  const noteLines=[];
+  cards.forEach(c=>{
+    if(c.type==='mood'){
+      noteLines.push('Environmental mood state: '+(c.title||'(unnamed)')+(c.description?' — '+c.description:''));
+    } else if(c.type==='observation'){
+      noteLines.push('Observation '+(c.observationId||'')+(c.title?' — '+c.title:'')+(c.notes?'. '+c.notes:''));
+    } else if(c.notes){
+      noteLines.push(c.notes);
+    }
+  });
+  if(noteLines.length)p.set('notes',noteLines.join('\n'));
+  p.set('type',[...new Set(cards.map(c=>typeLabel(c.type)))].join(' + '));
+  window.open('clip-prompt-generator.html#'+p.toString(),'_blank');
+}
+
 /* open the Clip Prompt Generator pre-filled with this card's stable fields */
 function openClipPrompt(c){
   const p=new URLSearchParams();
@@ -1237,6 +1273,51 @@ async function importLibrary(file){
 }
 
 /* =====================================================================
+   ARTIFACT CATALOG SYNC
+   ---------------------------------------------------------------------
+   The live catalog (Express/Postgres on Railway, CORS-open) is the single
+   source of truth for artifacts. Sync upserts one Artifact card per entry,
+   keyed 'cat-<id>' so re-syncing UPDATES instead of duplicating. Per the
+   project rule, photographs are artifacts — every catalog entry becomes an
+   Artifact card, with the catalog's type in the artifactType field.
+   ===================================================================== */
+const CATALOG_API = 'https://northing-production.up.railway.app/api/artifacts';
+async function syncCatalog(){
+  toast('Syncing artifact catalog…');
+  let data;
+  try{
+    const r = await fetch(CATALOG_API);
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    data = await r.json();
+  }catch(err){ toast('Catalog unreachable — '+err.message); return; }
+  const arts = data.artifacts || [];
+  let added=0, updated=0;
+  const seen = new Set();
+  for(const a of arts){
+    const id = 'cat-'+a.id; seen.add(id);
+    const fields = {
+      type:'artifact',
+      title: a.title || '(untitled)',
+      location: LOC_NUM[parseInt(a.location_id,10)] || '',
+      artifactType: a.type || '',
+      estimatedDate: a.period || '',
+      notes: a.description || '',
+      filePath: a.arena_url || '',
+      thumb: a.arena_image_url || null,
+      _catalog: true
+    };
+    let c = cardById(id);
+    if(c){ Object.assign(c, fields); updated++; }
+    else { c = Object.assign({id}, fields); state.library.push(c); added++; }
+    await persistCard(c);
+  }
+  const orphans = state.library.filter(c=>c._catalog && !seen.has(c.id)).length;
+  renderLibrary(); renderBoard(); renderAnalysis();
+  toast(`Catalog synced: ${added} added, ${updated} updated`+
+    (orphans?`, ${orphans} kept locally but no longer in catalog`:'')+'.');
+}
+
+/* =====================================================================
    MEDIA FOLDER IMPORT
    ===================================================================== */
 const IMG_EXT=['jpg','jpeg','png','webp'], VID_EXT=['mp4','mov','webm'],
@@ -1272,10 +1353,9 @@ function inferType(path){
   if(AUD_EXT.includes(e)) return 'soundscape';
   if(VID_EXT.includes(e)) return 'landscape-clip';
   if(pl.includes('canonical')) return 'canonical-location-image';
-  if(pl.includes('artifact')||pl.includes('archive')) return 'artifact';
-  if(pl.includes('logo')) return 'photograph';
-  if(pl.includes('photo')||pl.includes('image')||pl.includes('uploaded')) return 'photograph';
-  return 'photograph';
+  // Project rule: photographs are artifacts. All non-canonical images
+  // default to Artifact; adjust per-file in the review panel if needed.
+  return 'artifact';
 }
 function inferLocation(path){
   const fname=path.split('/').pop();
@@ -1409,6 +1489,7 @@ $('#btnHelp').onclick=()=>show('#helpOverlay');
 $('#btnTemplates').onclick=()=>{renderTemplates();show('#tplOverlay');};
 $('#btnGroup').onclick=groupSelected;
 $('#btnUngroup').onclick=ungroupSelected;
+$('#btnPromptSel').onclick=promptSelected;
 $('#btnExport').onclick=()=>{exportMode='md';document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.tab==='md'));refreshExport();show('#exportOverlay');};
 document.querySelectorAll('.tab').forEach(t=> t.onclick=()=>{exportMode=t.dataset.tab;document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===t));refreshExport();});
 $('#exportCopy').onclick=()=>{navigator.clipboard?.writeText($('#exportOut').value);toast('Copied.');};
@@ -1470,6 +1551,7 @@ function renderOrient(){
     refLine('Most exposed → sheltered', 'RO · AO · TC · SF · HS · FC · BM (valley-confined)');
 }
 $('#btnLibIO').onclick=()=>{ $('#libStats').textContent=`${state.library.length} cards in library · ${state.library.filter(c=>c.thumb).length} with media.`; show('#libIOOverlay'); };
+$('#btnSyncCatalog').onclick=syncCatalog;
 $('#libExport').onclick=exportLibrary;
 $('#libImportBtn').onclick=()=>$('#libFileInput').click();
 $('#libFileInput').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)importLibrary(f);};
