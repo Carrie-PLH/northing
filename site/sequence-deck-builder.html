@@ -197,6 +197,16 @@
   .conflict-note.soft .cn-status{color:#7a6240;}
   .precedence-note{margin-top:8px;font-size:11.5px;line-height:1.5;color:#7a6240;}
 
+  /* connections */
+  .conn-row{border:1px solid var(--line);background:var(--field);border-radius:6px;padding:10px 12px;margin-bottom:9px;}
+  .conn-row.big{border-left:3px solid var(--accent);}
+  .conn-cards{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:5px;}
+  .conn-card{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line-soft);background:var(--panel);border-radius:4px;padding:3px 8px;font-size:12.5px;}
+  .conn-card .cc-loc{color:var(--ink-faint);font-size:11px;}
+  .cc-plus{color:var(--ink-faint);}
+  .conn-reason{font-size:11.5px;color:var(--ink-soft);font-style:italic;margin-bottom:7px;}
+  .conn-kind{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:4px;}
+
   /* help panel */
   .help-body{line-height:1.6;}
   .help-body .help-lead{font-size:14.5px;color:var(--ink-soft);border-left:3px solid var(--line);padding-left:12px;margin:0 0 6px;}
@@ -268,6 +278,7 @@
     <button class="btn" id="btnImport">Import Media Folder</button>
     <button class="btn" id="btnTemplates">Templates</button>
     <button class="btn" id="btnOrient" title="Internal spatial sequencing (approximate)">Orientation</button>
+    <button class="btn" id="btnConnect" title="Suggested combinations — structural affinities across the library">Connections</button>
     <button class="btn" id="btnExport">Export Sequence</button>
     <button class="btn" id="btnLibIO">Library</button>
     <button class="btn ghost" id="btnClearSeq" title="Clear the current sequence board">Clear board</button>
@@ -381,6 +392,7 @@
 
       <h3>4 · Relationships</h3>
       <p>The toggle chips in the board bar (<b>same location, season, observer, condition</b>) draw faint connecting lines between related cards, so repetitions and echoes surface on their own. Hovering a card dims the unrelated ones. These are display aids only.</p>
+      <p><b>Connections</b> (header button) goes further: it scans the whole library for structural affinities — return-to-place, shared rare details, the same water upstream and down, co-visibility from the ridge, mood states matched to sites that produce them, shared periods — and suggests combinations. Tight combos are near-ready shot specs; larger constellations (up to 20 cards, placed as a named group) are fields for whittling: delete what doesn't read true, select the survivors, Prompt selected. If cards are selected on the board when you open it, suggestions bias toward them. <b>More</b> reshuffles.</p>
 
       <h3>5 · Analysis panel</h3>
       <p>The right panel continuously reads the current sequence: card count, total duration, artifact/landscape/photo counts, and location and seasonal diversity, plus a composition bar by card type. The metrics framework is built to be extended later (return-to-place frequency, archive density, and so on are scaffolded, not yet computed).</p>
@@ -401,6 +413,21 @@
     </div>
     <div class="modal-foot">
       <button class="btn primary" data-close>Got it</button>
+    </div>
+  </div>
+</div>
+
+<!-- connections modal -->
+<div class="overlay" id="connOverlay">
+  <div class="modal wide">
+    <div class="modal-head"><h2>Connections · suggested combinations</h2><button class="btn ghost close" data-close>✕</button></div>
+    <div class="modal-body">
+      <p class="hint" style="margin-bottom:12px">Structural affinities found across the library — the same place under different conditions, a shared detail, the same water upstream and down, a state meeting ground that produces it. Tight combos are near-ready shot specs; constellations are larger fields meant for whittling: place one, delete what doesn't read true, then select the survivors and use Prompt selected. Suggestions, not assertions.</p>
+      <div id="connList"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" id="connMore">More</button>
+      <button class="btn ghost" data-close>Close</button>
     </div>
   </div>
 </div>
@@ -1318,6 +1345,184 @@ async function syncCatalog(){
 }
 
 /* =====================================================================
+   CONNECTIONS — suggestion engine
+   ---------------------------------------------------------------------
+   Deterministic structural affinities across the library. No AI, no
+   network: rare shared vocabulary, return-to-place, the flow graph,
+   the RO viewshed, mood states matched to sites whose spatial profile
+   produces them, shared periods. Two tiers:
+     · combos (2–3 cards)        — near-ready shot specs
+     · constellations (≤20)      — larger fields for human whittling
+   Heuristics live in CONNECTION_HEURISTICS; add new ones there.
+   Reasons stay terse and observational — nudges, not narration.
+   ===================================================================== */
+const CONN_STOP=new Set(('the,and,with,from,that,this,into,over,under,near,their,have,been,were,they,where,which,while,after,before,during,between,through,against,about,these,those,than,then,them,when,what,your,will,would,could,some,more,most,other,only,also,very,each,still,such,here,there,several,across,along,within,without,around,toward,because,collection,record,records,notes,note,page,small,large,early,late,century,period,style,detail,details,visible,surface,ground,water,light,first,second,upper,lower,northing,location,observation,observations,corpus,source,file,scan,image,images,series').split(','));
+const CONN_VISUAL=['landscape-clip','canonical-location-image','photograph','artifact'];
+function connTokens(c){
+  const t=[c.title,c.artifactType,c.notes,c.description].filter(Boolean).join(' ').toLowerCase();
+  return [...new Set(t.replace(/[^a-z\s-]/g,' ').split(/[\s-]+/).filter(w=>w.length>=4&&!CONN_STOP.has(w)))];
+}
+function connIndex(){
+  const lib=state.library, byLoc={}, tokenMap={};
+  lib.forEach(c=>{
+    const code=resolveSpatialNode(c.location);
+    if(code)(byLoc[code]=byLoc[code]||[]).push(c);
+    connTokens(c).forEach(tk=>{(tokenMap[tk]=tokenMap[tk]||[]).push(c.id);});
+  });
+  return {lib,byLoc,tokenMap};
+}
+const connRand=arr=>arr[Math.floor(Math.random()*arr.length)];
+const MOOD_SITE_RULES=[
+  {re:/fog|mist/,            ok:(l,code)=>l.fogRank>=2},
+  {re:/wind|exposure|horizon|distance/, ok:l=>l.shelter==='exposed'||l.branch==='overlook'||/moderate exposure/.test(l.wind)},
+  {re:/muted|quiet|absorb|suppression|enclos|canopy/, ok:l=>l.shelter==='sheltered'},
+  {re:/saturation|reflection|standing|wet|low water/, ok:(l,code)=>code==='BM-001'||code==='TC-001'},
+  {re:/cold|frost/,          ok:l=>/cool|sheltered/.test(l.fog)||l.shelter==='sheltered'}
+];
+const CONNECTION_HEURISTICS=[
+  // mood state meets the ground that produces it (the recipe heuristic)
+  {id:'recipe', find:x=>{const out=[];
+    x.lib.filter(c=>c.type==='mood').forEach(m=>{
+      const txt=((m.title||'')+' '+(m.description||'')).toLowerCase();
+      const rule=MOOD_SITE_RULES.find(r=>r.re.test(txt)); if(!rule)return;
+      const sites=Object.entries(SM.locations).filter(([code,l])=>rule.ok(l,code));
+      // tight: mood + image + sound at one matching site
+      sites.forEach(([code,l])=>{
+        const here=x.byLoc[code]||[];
+        const vis=here.find(c=>CONN_VISUAL.includes(c.type)), snd=here.find(c=>c.type==='soundscape');
+        if(vis&&snd)out.push({kind:'combo',ids:[m.id,vis.id,snd.id],score:3,tag:m.title,
+          reason:`${m.title} at ${l.name} — state, image, and sound of a site that produces it`});
+        else if(vis)out.push({kind:'combo',ids:[m.id,vis.id],score:2.2,tag:m.title,
+          reason:`${m.title} — ${l.name} is ground where this state occurs`});
+      });
+      // constellation: mood + representatives from every matching site
+      if(sites.length){
+        const ids=[m.id];
+        sites.forEach(([code])=>{const here=(x.byLoc[code]||[]).slice(0,6);here.forEach(c=>{if(ids.length<20)ids.push(c.id);});});
+        if(ids.length>=6)out.push({kind:'constellation',ids,score:2.4,tag:m.title,
+          reason:`${m.title} — everything at the sites where this state occurs`});
+      }
+    });return out;}},
+  // return to place: same location, different conditions or registers
+  {id:'return', find:x=>{const out=[];
+    Object.entries(x.byLoc).forEach(([code,cards])=>{
+      if(cards.length<2)return;
+      const sh=cards.slice().sort(()=>Math.random()-0.5);
+      for(let i=0;i<sh.length-1&&out.length<40;i++){
+        const a=sh[i],b=sh[i+1];
+        if(a.type===b.type&&(a.season||'')===(b.season||''))continue;
+        const why=a.season&&b.season&&a.season!==b.season?`${a.season} · ${b.season}`:`${typeLabel(a.type)} · ${typeLabel(b.type)}`;
+        out.push({kind:'combo',ids:[a.id,b.id],score:1.6+(a.season&&b.season&&a.season!==b.season?0.6:0),tag:SM.locations[code].name,
+          reason:`Return — ${SM.locations[code].name}, ${why}`});
+      }
+      // constellation: one place, full cross-type spread
+      if(cards.length>=6){
+        const types={};cards.forEach(c=>{(types[c.type]=types[c.type]||[]).push(c);});
+        const ids=[];Object.values(types).forEach(g=>g.slice(0,5).forEach(c=>{if(ids.length<20)ids.push(c.id);}));
+        if(ids.length>=6)out.push({kind:'constellation',ids,score:2.0,tag:SM.locations[code].name,
+          reason:`${SM.locations[code].name} — the full spread of one place, every register`});
+      }
+    });return out;}},
+  // shared rare detail across different ground
+  {id:'term', find:x=>{const out=[];
+    for(const [tk,raw] of Object.entries(x.tokenMap)){
+      const u=[...new Set(raw)]; if(u.length<2)continue;
+      if(u.length<=6){
+        for(let i=0;i<u.length&&out.length<60;i++)for(let j=i+1;j<u.length;j++){
+          const a=cardById(u[i]),b=cardById(u[j]); if(!a||!b)continue;
+          const la=resolveSpatialNode(a.location),lb=resolveSpatialNode(b.location);
+          if(la&&lb&&la===lb)continue;
+          out.push({kind:'combo',ids:[a.id,b.id],score:1.4+(a.type!==b.type?0.7:0)+1.5/u.length,tag:tk,
+            reason:`Shared detail — “${tk}”`});
+        }
+      } else if(u.length<=20){
+        out.push({kind:'constellation',ids:u.slice(0,20),score:1.7,tag:tk,
+          reason:`“${tk}” — every card that carries it`});
+      }
+      if(out.length>=80)break;
+    }return out;}},
+  // the same water, upstream and down (flow graph)
+  {id:'hydro', find:x=>{const out=[];
+    SM.hydrology.flow.forEach(([up,down])=>{
+      if(!SM.locations[down])return;
+      const A=x.byLoc[up]||[],B=x.byLoc[down]||[]; if(!A.length||!B.length)return;
+      out.push({kind:'combo',ids:[connRand(A).id,connRand(B).id],score:1.8,tag:'same water',
+        reason:`The same water — ${SM.locations[up].name} above, ${SM.locations[down].name} below`});
+    });return out;}},
+  // co-visible from the ridge
+  {id:'view', find:x=>{const out=[];
+    const ro=x.byLoc['RO-001']||[]; if(!ro.length)return out;
+    Object.entries(SM.viewshedFrom['RO-001']).forEach(([code,v])=>{
+      if(v==='not visible')return; const tgt=x.byLoc[code]||[]; if(!tgt.length)return;
+      out.push({kind:'combo',ids:[connRand(ro).id,connRand(tgt).id],score:1.5,tag:'viewshed',
+        reason:`Co-visible — the ridge and ${SM.locations[code].name} (${v})`});
+    });return out;}},
+  // same period, different ground
+  {id:'period', find:x=>{const out=[];const byP={};
+    x.lib.forEach(c=>{if(c.type==='artifact'&&c.estimatedDate)(byP[norm(c.estimatedDate)]=byP[norm(c.estimatedDate)]||[]).push(c);});
+    Object.values(byP).forEach(cards=>{
+      if(cards.length<2)return;
+      const sh=cards.slice().sort(()=>Math.random()-0.5);
+      for(let i=0;i<Math.min(3,sh.length-1);i++){
+        const a=sh[i],b=sh[i+1]; if(norm(a.location)===norm(b.location))continue;
+        out.push({kind:'combo',ids:[a.id,b.id],score:1.3,tag:a.estimatedDate,
+          reason:`Same period — ${a.estimatedDate}, different ground`});
+      }
+      if(cards.length>=6)out.push({kind:'constellation',ids:sh.slice(0,20).map(c=>c.id),score:1.6,tag:sh[0].estimatedDate,
+        reason:`${sh[0].estimatedDate} — the watershed in one period`});
+    });return out;}}
+];
+function buildConnections(){
+  const x=connIndex();
+  let cand=[];
+  CONNECTION_HEURISTICS.forEach(h=>{try{cand=cand.concat(h.find(x).map(s=>({...s,h:h.id})));}catch(e){}});
+  // seed: if cards are selected on the board, bias toward them
+  const seed=new Set([...state.selection].map(pid=>(state.sequence.find(p=>p.pid===pid)||{}).cardId).filter(Boolean));
+  if(seed.size){const seeded=cand.filter(s=>s.ids.some(id=>seed.has(id)));if(seeded.length)cand=seeded;}
+  const seenKey=new Set();
+  cand=cand.filter(s=>{const k=s.ids.slice().sort().join('|');if(seenKey.has(k))return false;seenKey.add(k);return true;});
+  cand.forEach(s=>s.score+=Math.random()*0.5);
+  cand.sort((a,b)=>b.score-a.score);
+  const picks=[],useH={},useC={};
+  let combos=0,consts=0;
+  for(const s of cand){
+    if(combos>=5&&consts>=2)break;
+    if(s.kind==='constellation'){ if(consts>=2)continue; }
+    else {
+      if(combos>=5)continue;
+      if((useH[s.h]||0)>=2)continue;
+      if(s.ids.some(id=>(useC[id]||0)>=2))continue;
+    }
+    picks.push(s);
+    if(s.kind==='constellation')consts++; else{combos++;useH[s.h]=(useH[s.h]||0)+1;s.ids.forEach(id=>useC[id]=(useC[id]||0)+1);}
+  }
+  return picks;
+}
+function renderConnections(){
+  const list=$('#connList'); list.innerHTML='';
+  const picks=buildConnections();
+  if(!picks.length){list.appendChild(el('p','empty-note','Not enough material to connect yet — import more cards and try again.'));return;}
+  picks.sort((a,b)=>(a.kind==='constellation')-(b.kind==='constellation'));
+  picks.forEach(s=>{
+    const row=el('div','conn-row'+(s.kind==='constellation'?' big':''));
+    const chips=s.ids.map(id=>{const c=cardById(id); if(!c)return '';
+      return `<span class="conn-card"><span class="dot" style="background:${typeAccent(c.type)}"></span>${esc(c.title||'(untitled)')}${c.location?`<span class="cc-loc"> · ${esc(c.location)}</span>`:''}</span>`;
+    }).join('<span class="cc-plus">+</span>');
+    row.innerHTML=`<div class="conn-kind">${s.kind==='constellation'?`constellation · ${s.ids.length} cards — for whittling`:'combo'}</div>
+      <div class="conn-cards">${chips}</div>
+      <div class="conn-reason">${esc(s.reason)}</div>
+      <button class="btn sm" data-add>Place on board</button>`;
+    row.querySelector('[data-add]').onclick=()=>{
+      const group=s.kind==='constellation'?(s.tag||'constellation'):null;
+      s.ids.forEach(id=>{if(cardById(id))state.sequence.push({pid:uid('p'),cardId:id,group});});
+      persistMeta();renderBoard();renderAnalysis();
+      toast(`Placed ${s.ids.length} card${s.ids.length>1?'s':''}${group?` — grouped “${group}”`:''}. Delete what doesn't read true, then Prompt selected.`);
+    };
+    list.appendChild(row);
+  });
+}
+
+/* =====================================================================
    MEDIA FOLDER IMPORT
    ===================================================================== */
 const IMG_EXT=['jpg','jpeg','png','webp'], VID_EXT=['mp4','mov','webm'],
@@ -1504,6 +1709,8 @@ $('#exportDownload').onclick=()=>{
 
 /* ---------- orientation modal (internal spatial sequencing) ---------- */
 $('#btnOrient').onclick=()=>{ renderOrient(); show('#orientOverlay'); };
+$('#btnConnect').onclick=()=>{ renderConnections(); show('#connOverlay'); };
+$('#connMore').onclick=renderConnections;
 function renderOrient(){
   const prec = SM.meta.precedence ? `<div class="precedence-note">${esc(SM.meta.precedence)}</div>` : '';
   const line=(k,v)=> v?`<div><span class="cn-k">${k}:</span> ${esc(v)}</div>`:'';
