@@ -25,6 +25,7 @@
     --t-mood:#7c7466;
     --t-sound:#5f7d7a;
     --t-canonical:#6b6a82;
+    --t-transition:#4a4742;
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;height:100%;}
@@ -594,6 +595,18 @@ const CARD_TYPES = {
       {key:'notes',label:'Notes',type:'textarea'}
     ],
     summary:['location']
+  },
+  /* Transitions are mechanical artifacts of the medium, not editorial
+     gestures — a black gap is the camera off between shots; a flash frame
+     is the exposure burn of the camera restarting. Two variants only,
+     durations fixed in the assembler. */
+  'transition': {
+    label:'Transition', accent:'var(--t-transition)', glyph:'▮',
+    fields:[
+      {key:'variant',label:'Variant',type:'select',options:['Black gap','Flash frame']},
+      {key:'notes',label:'Notes',type:'textarea'}
+    ],
+    summary:['variant']
   }
 };
 const typeLabel = t => (CARD_TYPES[t]||{}).label || t;
@@ -887,6 +900,7 @@ function renderNewCardChips(){
 function newCard(type){
   const c={id:uid('card'),type:type};
   CARD_TYPES[type].fields.forEach(f=> c[f.key]='');
+  if(type==='transition'){ c.variant='Black gap'; c.title='Black gap'; }
   return c;
 }
 
@@ -1271,6 +1285,7 @@ function openEdit(card, isNew){
 function saveEdit(){
   if(!editingCard) return;
   $('#editBody').querySelectorAll('[data-key]').forEach(inp=>{ editingCard[inp.dataset.key]=inp.value; });
+  if(editingCard.type==='transition') editingCard.title=editingCard.variant||'Black gap';
   if(editingIsNew) state.library.push(editingCard);
   persistCard(editingCard);
   closeAll(); renderLibrary(); renderBoard(); renderAnalysis();
@@ -1428,6 +1443,7 @@ function connTokens(c){
 function connIndex(){
   const lib=state.library, byLoc={}, tokenMap={};
   lib.forEach(c=>{
+    if(c.type==='transition') return; // joins, not content — never connection material
     const code=resolveSpatialNode(c.location);
     if(code)(byLoc[code]=byLoc[code]||[]).push(c);
     connTokens(c).forEach(tk=>{(tokenMap[tk]=tokenMap[tk]||[]).push(c.id);});
@@ -1559,7 +1575,26 @@ function buildConnections(){
     picks.push(s);
     if(s.kind==='constellation')consts++; else{combos++;useH[s.h]=(useH[s.h]||0)+1;s.ids.forEach(id=>useC[id]=(useC[id]||0)+1);}
   }
+  // Post-pass: suggest the mechanically apt transition at visual-to-visual
+  // joins. Different ground → black gap (the camera was off in between).
+  // Same ground, different register → flash frame (the camera restarted).
+  picks.forEach(s=>{
+    if(s.kind!=='combo'||s.ids.length!==2)return;
+    const a=cardById(s.ids[0]), b=cardById(s.ids[1]);
+    if(!a||!b||!CONN_VISUAL.includes(a.type)||!CONN_VISUAL.includes(b.type))return;
+    const la=resolveSpatialNode(a.location), lb=resolveSpatialNode(b.location);
+    const variant=(la&&lb&&la===lb)?'Flash frame':'Black gap';
+    s.ids=[s.ids[0], getOrCreateTransition(variant).id, s.ids[1]];
+    s.reason+= variant==='Black gap'
+      ? ' · black gap at the cut — the camera was off between these'
+      : ' · flash frame at the cut — same ground, the camera restarted';
+  });
   return picks;
+}
+function getOrCreateTransition(variant){
+  let c=state.library.find(x=>x.type==='transition'&&norm(x.variant)===norm(variant));
+  if(!c){ c={id:uid('card'),type:'transition',variant,title:variant,notes:''}; state.library.push(c); persistCard(c); renderLibrary(); }
+  return c;
 }
 function renderConnections(){
   const list=$('#connList'); list.innerHTML='';
