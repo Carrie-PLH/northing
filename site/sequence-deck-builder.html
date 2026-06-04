@@ -409,7 +409,7 @@
       <p><b>Library</b> lets you export the whole card library as JSON to back it up or move it to another machine, and import it back later without rescanning. <b>Sync artifact catalog</b> pulls the live online catalog and creates or updates one Artifact card per entry (re-sync updates, never duplicates); the catalog remains the single place artifacts are maintained. Per the project rule, photographs are treated as artifacts — both catalog entries and imported images become Artifact cards.</p>
 
       <h3>Storage</h3>
-      <p>Cards, sequence, and settings are saved automatically in this browser (IndexedDB). Clearing browser data or using a different browser starts fresh — use the Library JSON export to keep a backup.</p>
+      <p>Cards, sequence, and settings are saved in this browser (IndexedDB) — but browsers treat storage for local pages as disposable and may clear it on quit. The durable option: <b>Library → Connect library file</b>. Pick your library JSON once per session and every change auto-saves to it; after a reboot, connecting again restores cards, sequence, and name from the file. The file is the store; the browser is just a cache. Export remains available for one-off snapshots.</p>
     </div>
     <div class="modal-foot">
       <button class="btn primary" data-close>Got it</button>
@@ -474,11 +474,13 @@
     <div class="modal-body">
       <p class="hint" style="margin-bottom:14px">The library holds every card you've created or imported, stored locally in your browser (IndexedDB). Nothing is uploaded. Export it as JSON to back it up or move it to another machine.</p>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn primary" id="btnConnectFile">Connect library file (auto-save)</button>
         <button class="btn primary" id="btnSyncCatalog">Sync artifact catalog</button>
         <button class="btn" id="libExport">Export library JSON</button>
         <button class="btn" id="libImportBtn">Import library JSON</button>
         <button class="btn ghost" id="libClear">Clear library…</button>
       </div>
+      <p class="hint" id="libFileStatus" style="margin-top:10px">Not connected to a file. Browser storage for local pages can be cleared on quit — connect your library JSON once per session and every change auto-saves to it; on reopening, connecting reloads everything from the file.</p>
       <p class="hint" style="margin-top:10px">Sync pulls the live artifact catalog (northing-production.up.railway.app) and adds or updates one Artifact card per entry — re-syncing updates rather than duplicates. The catalog is the source of truth: local edits to catalog cards are overwritten on sync. Catalog cards removed from the catalog are kept locally and reported.</p>
       <p class="hint" style="margin-top:14px" id="libStats"></p>
     </div>
@@ -799,9 +801,70 @@ const uid = (p='id')=> p+'_'+Math.random().toString(36).slice(2,9)+Date.now().to
 const cardById = id => state.library.find(c=>c.id===id);
 
 async function persistMeta(){
+  scheduleAutosave();
   await idbPut('meta',{key:'app', sequence:state.sequence, seqName:state.seqName, relFilters:state.relFilters});
 }
-async function persistCard(card){ await idbPut('cards', card); }
+async function persistCard(card){ scheduleAutosave(); await idbPut('cards', card); }
+
+/* ---------- file-backed persistence (File System Access API) ----------
+   Browser storage for file:// pages is best-effort and may be cleared on
+   quit. Connecting the library JSON makes the FILE the durable store:
+   every change auto-saves (debounced); on a fresh session with an empty
+   library, connecting reloads cards, sequence, and name from the file.  */
+let libFileHandle=null, autosaveTimer=null;
+function scheduleAutosave(){
+  if(!libFileHandle) return;
+  clearTimeout(autosaveTimer);
+  autosaveTimer=setTimeout(writeLibraryFile, 1500);
+}
+async function writeLibraryFile(){
+  if(!libFileHandle) return;
+  try{
+    const data={type:'northing-card-library', version:1, exported:new Date().toISOString(),
+      cards:state.library, sequence:state.sequence, seqName:state.seqName};
+    const w=await libFileHandle.createWritable();
+    await w.write(JSON.stringify(data,null,2));
+    await w.close();
+    updateLibFileStatus('Auto-saving to '+libFileHandle.name+' — last saved '+new Date().toLocaleTimeString()+'.');
+  }catch(err){ updateLibFileStatus('Auto-save failed: '+err.message+' — use Export as fallback.'); }
+}
+function updateLibFileStatus(msg){ const e=$('#libFileStatus'); if(e) e.textContent=msg; }
+async function connectLibraryFile(){
+  if(!window.showOpenFilePicker){
+    toast('This browser lacks the File System Access API — use Chrome/Edge, or serve the folder via localhost for durable storage.');
+    return;
+  }
+  let handle;
+  try{
+    [handle]=await window.showOpenFilePicker({
+      types:[{description:'Northing card library', accept:{'application/json':['.json']}}],
+      multiple:false
+    });
+  }catch(err){ return; } // cancelled
+  if((await handle.queryPermission({mode:'readwrite'}))!=='granted' &&
+     (await handle.requestPermission({mode:'readwrite'}))!=='granted'){
+    toast('Read/write permission declined.'); return;
+  }
+  libFileHandle=handle;
+  // Fresh session (empty library): restore everything from the file.
+  // Otherwise: memory wins, and the file becomes the auto-save target.
+  try{
+    const f=await handle.getFile();
+    if(f.size>2 && state.library.length===0){
+      const data=JSON.parse(await f.text());
+      if(Array.isArray(data.cards)){
+        for(const c of data.cards){ if(c.id && CARD_TYPES[c.type]){ state.library.push(c); await idbPut('cards',c); } }
+        if(Array.isArray(data.sequence)) state.sequence=data.sequence.filter(p=>p.pid&&p.cardId&&cardById(p.cardId));
+        if(data.seqName){ state.seqName=data.seqName; $('#seqName').value=state.seqName; }
+        await idbPut('meta',{key:'app', sequence:state.sequence, seqName:state.seqName, relFilters:state.relFilters});
+        renderLibrary(); renderBoard(); renderAnalysis();
+        toast('Restored '+data.cards.length+' cards from '+handle.name+'.');
+      }
+    }
+  }catch(err){ toast('Could not read file: '+err.message); }
+  updateLibFileStatus('Connected to '+handle.name+' — auto-saving on every change.');
+  scheduleAutosave();
+}
 
 /* =====================================================================
    RENDERING
@@ -1758,6 +1821,7 @@ function renderOrient(){
     refLine('Most exposed → sheltered', 'RO · AO · TC · SF · HS · FC · BM (valley-confined)');
 }
 $('#btnLibIO').onclick=()=>{ $('#libStats').textContent=`${state.library.length} cards in library · ${state.library.filter(c=>c.thumb).length} with media.`; show('#libIOOverlay'); };
+$('#btnConnectFile').onclick=connectLibraryFile;
 $('#btnSyncCatalog').onclick=syncCatalog;
 $('#libExport').onclick=exportLibrary;
 $('#libImportBtn').onclick=()=>$('#libFileInput').click();
@@ -1789,6 +1853,7 @@ window.addEventListener('resize',()=>{ renderBoard(); });
    BOOT
    ===================================================================== */
 async function boot(){
+  try{ if(navigator.storage&&navigator.storage.persist) navigator.storage.persist(); }catch(_){}
   try{ await openDB(); }
   catch(err){ toast('Local storage unavailable; changes will not persist.'); }
   try{
