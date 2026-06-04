@@ -406,7 +406,7 @@
       <p>Pick a <b>geographic sequence mode</b> (Watershed, Eastern tributary, Elevation descent, Viewshed-to-ground, Hidden drainage, Bench-to-valley) to lay down a coherent spine, drawing on matching library cards or light placeholders. The <b>Spatial coherence</b> block in the analysis panel reads your current sequence and tags each transition (descends/ascends, with/against drainage, adjacency, RO viewshed) — again, internal and approximate.</p>
 
       <h3>7 · Importing a media folder</h3>
-      <p><b>Import Media Folder</b> scans a folder you choose for images and video, and proposes a card for each file, inferring type, location, and title from the folder and filename. Review the proposals — adjust type, title, location, and which to include — then add them to the library. Files are never uploaded; only thumbnails and metadata are stored locally.</p>
+      <p><b>Import Media Folder</b> scans a folder you choose for images and video, and proposes a card for each file, inferring type, location, and title from the folder and filename. Review the proposals — adjust type, title, location, and which to include — then add them to the library. Files already in the library (matched by path) are skipped automatically. Files are never uploaded; only thumbnails and metadata are stored locally.</p>
 
       <h3>8 · Exporting</h3>
       <p><b>Export Sequence</b> offers three tabs. <b>Markdown outline</b> and <b>JSON</b> are audience-facing and contain no internal map data. <b>Internal notes</b> is opt-in and carries the spatial annotations with their approximate/internal disclaimer — keep it out of finished decks. Copy or download from any tab. <b>The JSON tab is the one the assembler eats</b> — name the sequence in the top bar before exporting, because the finished video inherits the name.</p>
@@ -921,13 +921,15 @@ function libCardSubtitle(c){
   return bits.join(' · ');
 }
 
+const LIB_RENDER_CAP=1000; // keep the DOM responsive on very large libraries
 function renderLibrary(){
   const q=norm($('#libSearch').value);
   const list=$('#libList'); list.innerHTML='';
-  const items = state.library
+  const matched = state.library
     .filter(c=> !q || norm(c.title).includes(q) || norm(c.location).includes(q) || norm(typeLabel(c.type)).includes(q))
     .sort((a,b)=> (a.title||'').localeCompare(b.title||''));
-  if(!items.length){ list.appendChild(el('p','empty-note', state.library.length?'No matches.':'No cards yet. Create one above, or import a media folder.')); return; }
+  if(!matched.length){ list.appendChild(el('p','empty-note', state.library.length?'No matches.':'No cards yet. Create one above, or import a media folder.')); return; }
+  const items = matched.length>LIB_RENDER_CAP ? matched.slice(0,LIB_RENDER_CAP) : matched;
   items.forEach(c=>{
     const card=el('div','lib-card');
     card.style.borderLeftColor=typeAccent(c.type);
@@ -952,6 +954,9 @@ function renderLibrary(){
     card.ondragstart=e=>{e.dataTransfer.setData('text/libcard',c.id);e.dataTransfer.effectAllowed='copy';};
     list.appendChild(card);
   });
+  if(matched.length>LIB_RENDER_CAP){
+    list.appendChild(el('p','empty-note',`Showing ${LIB_RENDER_CAP} of ${matched.length} cards — narrow the search to see the rest.`));
+  }
 }
 
 /* ---------- board ---------- */
@@ -1462,6 +1467,7 @@ function connIndex(){
   return {lib,byLoc,tokenMap};
 }
 const connRand=arr=>arr[Math.floor(Math.random()*arr.length)];
+const connShuffle=arr=>arr.slice().sort(()=>Math.random()-0.5);
 const MOOD_SITE_RULES=[
   {re:/fog|mist/,            ok:(l,code)=>l.fogRank>=2},
   {re:/wind|exposure|horizon|distance/, ok:l=>l.shelter==='exposed'||l.branch==='overlook'||/moderate exposure/.test(l.wind)},
@@ -1479,7 +1485,8 @@ const CONNECTION_HEURISTICS=[
       // tight: mood + image + sound at one matching site
       sites.forEach(([code,l])=>{
         const here=x.byLoc[code]||[];
-        const vis=here.find(c=>CONN_VISUAL.includes(c.type)), snd=here.find(c=>c.type==='soundscape');
+        const visAll=here.filter(c=>CONN_VISUAL.includes(c.type)), sndAll=here.filter(c=>c.type==='soundscape');
+        const vis=visAll.length?connRand(visAll):null, snd=sndAll.length?connRand(sndAll):null;
         if(vis&&snd)out.push({kind:'combo',ids:[m.id,vis.id,snd.id],score:3,tag:m.title,
           reason:`${m.title} at ${l.name} — state, image, and sound of a site that produces it`});
         else if(vis)out.push({kind:'combo',ids:[m.id,vis.id],score:2.2,tag:m.title,
@@ -1488,7 +1495,7 @@ const CONNECTION_HEURISTICS=[
       // constellation: mood + representatives from every matching site
       if(sites.length){
         const ids=[m.id];
-        sites.forEach(([code])=>{const here=(x.byLoc[code]||[]).slice(0,6);here.forEach(c=>{if(ids.length<20)ids.push(c.id);});});
+        sites.forEach(([code])=>{const here=connShuffle(x.byLoc[code]||[]).slice(0,6);here.forEach(c=>{if(ids.length<20)ids.push(c.id);});});
         if(ids.length>=6)out.push({kind:'constellation',ids,score:2.4,tag:m.title,
           reason:`${m.title} — everything at the sites where this state occurs`});
       }
@@ -1508,7 +1515,7 @@ const CONNECTION_HEURISTICS=[
       // constellation: one place, full cross-type spread
       if(cards.length>=6){
         const types={};cards.forEach(c=>{(types[c.type]=types[c.type]||[]).push(c);});
-        const ids=[];Object.values(types).forEach(g=>g.slice(0,5).forEach(c=>{if(ids.length<20)ids.push(c.id);}));
+        const ids=[];Object.values(types).forEach(g=>connShuffle(g).slice(0,5).forEach(c=>{if(ids.length<20)ids.push(c.id);}));
         if(ids.length>=6)out.push({kind:'constellation',ids,score:2.0,tag:SM.locations[code].name,
           reason:`${SM.locations[code].name} — the full spread of one place, every register`});
       }
@@ -1526,7 +1533,7 @@ const CONNECTION_HEURISTICS=[
             reason:`Shared detail — “${tk}”`});
         }
       } else if(u.length<=20){
-        out.push({kind:'constellation',ids:u.slice(0,20),score:1.7,tag:tk,
+        out.push({kind:'constellation',ids:connShuffle(u).slice(0,20),score:1.7,tag:tk,
           reason:`“${tk}” — every card that carries it`});
       }
       if(out.length>=80)break;
@@ -1686,8 +1693,20 @@ function inferTitle(path){
 }
 
 async function processImport(files){
-  if(!files.length){ toast('No image, video, or audio files found in that folder.'); return; }
-  toast(`Scanning ${files.length} file${files.length===1?'':'s'}…`);
+  // dedupe by file path: skip anything already in the library, and repeats within this batch
+  const existingPaths=new Set(state.library.map(c=>c.filePath).filter(Boolean));
+  const seenPaths=new Set();
+  const before=files.length;
+  files=files.filter(({path})=>{
+    if(existingPaths.has(path)||seenPaths.has(path)) return false;
+    seenPaths.add(path); return true;
+  });
+  const skipped=before-files.length;
+  if(!files.length){
+    toast(skipped?`All ${skipped} file${skipped===1?' is':'s are'} already in the library.`:'No image, video, or audio files found in that folder.');
+    return;
+  }
+  toast(`Scanning ${files.length} file${files.length===1?'':'s'}…${skipped?` (${skipped} already in library, skipped)`:''}`);
   const proposals=[];
   let done=0;
   // bounded concurrency for thumbnail generation

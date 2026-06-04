@@ -815,7 +815,7 @@ const SOUND = [
   "Water dominant","Distant intermittent birdsong","Near silence with sparse detail",
   "Layered natural ambience (wind, water, insect, bird)","No sound / silent clip"
 ];
-const DURATIONS = [15,30,45,60,90];
+const DURATIONS = [8,15,30,45,60,90];
 const LENGTHS = [
   {key:"full",label:"Full Prompt (500–900 words)"},
   {key:"compact",label:"Compact Prompt (150–300 words)"}
@@ -1149,6 +1149,8 @@ function spatialLines(d){
   /* -- Prevent implausible views from enclosed locations ------------------- */
   if(id === "HS-001" || id === "FC-001")
     lines.push("No broad views or distant sightlines from this location. Framing stays close and enclosed.");
+  if(id === "BM-001")
+    lines.push("Valley enclosure: the meadow sits in a narrow, confined tributary valley. Open sky overhead, but no distant ridgelines, no broad watershed views. Sightlines run along the valley axis and end at the forested valley sides.");
 
   /* -- Sound carry constraints ------------------------------------------- */
   var isSilent = s.indexOf("silent") >= 0 || s.indexOf("no sound") >= 0;
