@@ -215,6 +215,11 @@
   .help-body p{margin:0 0 8px;font-size:14px;color:var(--ink);}
   .help-body b{color:var(--ink);}
   .help-internal{font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:#9a7a52;border:1px solid #d9c4a0;border-radius:20px;padding:1px 8px;font-weight:400;}
+  .help-steps{margin:6px 0 10px;padding-left:22px;}
+  .help-steps li{margin-bottom:9px;font-size:14px;}
+  .cmd{display:block;background:#2c2a26;color:#f0ece2;border-radius:5px;padding:9px 12px;margin:5px 0;font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:12.5px;line-height:1.5;white-space:pre-wrap;word-break:break-word;overflow-x:auto;}
+  .cmd .cmt{color:#9b948a;}
+  .help-callout{border:1px solid #d9c4a0;background:#f6efe0;border-radius:6px;padding:9px 12px;margin:8px 0;font-size:13px;color:#7a6240;line-height:1.55;}
   .orient-replace{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink-soft);margin-top:12px;}
   .orient-ref{display:grid;grid-template-columns:1fr 1fr;gap:8px 18px;font-size:12px;color:var(--ink-soft);}
   .orient-ref .ref-line{line-height:1.5;}
@@ -414,6 +419,26 @@
 
       <h3>9 · From board to finished video — the production pipeline</h3>
       <p>The full loop, end to end: <b>Connections</b> suggests combinations → <b>Prompt selected</b> fills the Clip Prompt Generator → <b>Veo</b> renders candidate clips (conditioned on a canonical or reference image — style language in prompts is inert, the reference image is the art direction) → keepers land in their location folder under <code>90 media/Landscape Clip/</code> and come back in through Import Media Folder → <code>scripts/treat.sh</code> applies the house 16mm-archive register → a board exported as JSON goes to <code>scripts/assemble.py</code>, which renders one finished video.</p>
+      <p><b>Run it — the exact steps.</b> Make a board, then turn it into a video. Commands are for the Mac Terminal app (Cmd+Space, type Terminal, Enter). Paste one line at a time, pressing Enter after each.</p>
+      <div class="help-callout"><b>One-time setup.</b> The renderer needs a free tool called ffmpeg. Check with <code>ffmpeg -version</code>; if it says "command not found", install it once with <code>brew install ffmpeg</code> (needs Homebrew — <code>brew --version</code> to check, and brew.sh if you don't have it). After this, skip straight to the steps below every time.</div>
+      <ol class="help-steps">
+        <li>If your board uses artifact cards from the online catalog, first click <b>Library → Sync artifact catalog</b> here in the deck builder, so newly-added images are known.</li>
+        <li>Click <b>Export Sequence → JSON</b> (the JSON tab, not the library file — they're different shapes) and save it, e.g. to your Desktop as <code>my-board.json</code>.</li>
+        <li>Go to the project folder in Terminal:
+          <span class="cmd">cd ~/Desktop/Northing</span></li>
+        <li><span class="cmt">Optional — age your clips first for the grainy archive look:</span>
+          <span class="cmd">./scripts/treat.sh "90 media/Landscape Clip/BM/" --batch</span>
+          The renderer uses the treated versions automatically; skip this for a quick draft.</li>
+        <li>Render the video (this is the one that makes the movie):
+          <span class="cmd">python3 scripts/assemble.py ~/Desktop/my-board.json --out ~/Desktop/my-video.mp4</span>
+          If a clip reports <span class="cmt">media not found</span>, add the media root so it knows where to look:
+          <span class="cmd">python3 scripts/assemble.py ~/Desktop/my-board.json --out ~/Desktop/my-video.mp4 --media-root ~/Desktop/Northing</span></li>
+        <li>Find <code>my-video.mp4</code> on your Desktop and double-click to watch. For a channel-resolution render, add <code>--width 1920 --height 1080</code>.</li>
+        <li><span class="cmt">Optional — check a long render before uploading:</span>
+          <span class="cmd">python3 scripts/qc-render.py ~/Desktop/my-video.mp4 --report</span></li>
+      </ol>
+      <div class="help-callout"><b>Reading the receipt.</b> The render prints what it used and what it <i>skipped</i>. Skipped mood and observation cards are correct — they're guidance, not picture. An artifact that says <code>media not found:</code> with nothing after the colon means that card has no image yet: sync the catalog (step 1) if the image now exists, or it's a text-only entry still waiting for one. The first render after a catalog sync is slower while images download and cache once into <code>90 media/_catalog-cache/</code>; after that they're instant.</div>
+
       <p><b><code>treat.sh</code></b> — run bare (<code>treat.sh clip.mp4</code>) it applies the locked house default: medium intensity plus exposure flicker. Output goes to a <code>treated/</code> subfolder beside the untouched raw; it never modifies keepers and is idempotent, so the whole corpus can be re-treated in one pass if the preset evolves. <code>--batch</code> treats a folder; heavier tiers (<code>--intensity heavy/xheavy</code>) are deliberate register choices for implied-older material, not defaults.</p>
       <p><b><code>assemble.py</code></b> — reads the exported JSON and renders the board in order: clips play (preferring their <code>treated/</code> sibling automatically), image cards hold for 5 seconds as <b>living stills</b> — house grain and flicker plus a slow, seeded drift (a barely conscious push or pull with slight pan, always the same move for the same file) so they read as filmed inserts, never freeze-frames. Soundscapes follow the position rule in section 2, looping or trimming to their region with edge fades — a bed shorter than its region is loop-extended with a seam crossfade, never a hard cut. Every audio region is then <b>mastered to the same perceived loudness</b> (−20 LUFS house target), so chapters sit at one level across an hour and no soundscape arrives louder than its neighbours. Transition cards render at their fixed durations; a governing soundscape runs through black unbroken. Artifact cards whose file is an online catalog URL are <b>downloaded once and cached</b> in <code>90 media/_catalog-cache/</code>; text-only catalog entries (no image at all) are skipped with a notice — they need an image made before they can appear as picture. Output is 720p/24 by default; pass <code>--width 1920 --height 1080</code> for channel-resolution renders.</p>
       <p><b><code>shuffle-board.py</code></b> — the long-form generator, for the ambience-channel goal of hour-long videos that re-edit the same material in fresh orders. It scans the media pool and writes an assembler-ready board of any length, structured as <b>location chapters</b>: each chapter is one location's soundscape, then visits — a clip dwelled on for two or three takes with black gaps between, artifact stills folded in about one visit in five, the canonical still once per chapter — with fades through black at chapter boundaries. Every run shuffles differently; <code>--seed</code> reproduces a run you liked. <b>Season</b> rides in filenames as a hyphenated token — <code>BM-winter-001.mp4</code>, <code>reference-BM-winter-001.png</code>, soundscapes the same way — and <code>--season winter</code> builds from that season's material plus anything untagged (untagged files are season-neutral and play in any season; locations with nothing to show that season sit the video out). Typical use: <code>python3 scripts/shuffle-board.py --minutes 60</code>, then assemble the JSON it writes (an hour renders in very roughly half an hour to forty-five minutes). The generator never changes the assembler — it just writes boards, so everything above applies.</p>
@@ -609,8 +634,10 @@ const CARD_TYPES = {
   },
   /* Transitions are mechanical artifacts of the medium, not editorial
      gestures — a black gap is the camera off between shots; a flash frame
-     is the exposure burn of the camera restarting. Two variants only,
-     durations fixed in the assembler. */
+     is the exposure burn of the camera restarting; a fade through black is
+     lab-print practice for chapter-scale joins. Three variants, durations
+     fixed in the assembler. Connections auto-mints the first two; all three
+     are also placeable from the New card rail. */
   'transition': {
     label:'Transition', accent:'var(--t-transition)', glyph:'▮',
     fields:[
@@ -901,6 +928,19 @@ const titleCase = s=> s.replace(/\b\w/g,m=>m.toUpperCase());
 function renderNewCardChips(){
   const wrap=$('#newCardTypes'); wrap.innerHTML='';
   Object.keys(CARD_TYPES).forEach(t=>{
+    // Transitions have no content to edit — expand the one type into its three
+    // fixed variants so each is directly creatable and placeable, matching the
+    // Black gap / Flash frame that Connections mints automatically.
+    if(t==='transition'){
+      CARD_TYPES.transition.fields.find(f=>f.key==='variant').options.forEach(v=>{
+        const b=el('button','type-chip');
+        b.title='Add a “'+v+'” transition to the library, then drag it between two cards';
+        b.innerHTML=`<span class="dot" style="background:${typeAccent('transition')}"></span>${esc(v)}`;
+        b.onclick=()=>{ getOrCreateTransition(v); toast('“'+v+'” transition is in the library — drag it between two cards on the board.'); };
+        wrap.appendChild(b);
+      });
+      return;
+    }
     const b=el('button','type-chip');
     b.innerHTML=`<span class="dot" style="background:${typeAccent(t)}"></span>${esc(typeLabel(t))}`;
     b.onclick=()=> openEdit(newCard(t), true);
