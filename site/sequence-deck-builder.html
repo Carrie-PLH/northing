@@ -220,6 +220,9 @@
   .cmd{display:block;background:#2c2a26;color:#f0ece2;border-radius:5px;padding:9px 12px;margin:5px 0;font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:12.5px;line-height:1.5;white-space:pre-wrap;word-break:break-word;overflow-x:auto;}
   .cmd .cmt{color:#9b948a;}
   .help-callout{border:1px solid #d9c4a0;background:#f6efe0;border-radius:6px;padding:9px 12px;margin:8px 0;font-size:13px;color:#7a6240;line-height:1.55;}
+  .help-bigpic{border:1px solid var(--line);background:var(--panel-2);border-radius:8px;padding:14px 18px;margin-bottom:20px;}
+  .help-bigpic h3{font-size:15px;}
+  .help-bigpic p{font-size:14px;line-height:1.6;}
   .orient-replace{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink-soft);margin-top:12px;}
   .orient-ref{display:grid;grid-template-columns:1fr 1fr;gap:8px 18px;font-size:12px;color:var(--ink-soft);}
   .orient-ref .ref-line{line-height:1.5;}
@@ -383,6 +386,13 @@
   <div class="modal wide">
     <div class="modal-head"><h2>How to use the Sequence Deck Builder</h2><button class="btn ghost close" data-close>✕</button></div>
     <div class="modal-body help-body">
+      <div class="help-bigpic">
+        <h3 style="margin-top:0">Start here — the big picture</h3>
+        <p>Making a Northing video has <b>two separate steps</b>, done with two different tools. Getting them straight is the whole game:</p>
+        <p><b>Step 1 — make the clips (in Veo).</b> Veo is the only thing that creates new footage: short 4-to-8-second pieces, one at a time, in your web browser. That's it for Veo. You feed it a canonical image and a prompt, it hands you a clip, you save the keepers.</p>
+        <p><b>Step 2 — glue the clips together (this tool + one Terminal command).</b> This deck builder is a table where you lay out cards — clips, photos, sounds — in the order you want them. It makes no footage of its own. When the order looks right, you Export the board and run one command (<code>assemble.py</code>, which uses a stitching tool called <b>ffmpeg</b>) that combines everything into one finished video. No AI in this step — it's just gluing pieces you already have.</p>
+        <p style="margin-bottom:0"><b>So:</b> Veo cooks the ingredients, this tool plates the meal. Both are still in use; they just happen at different moments. If you only remember one thing: <i>new footage = Veo; finished video = this tool plus the assemble command.</i> The numbered sections below are reference for when you need a specific detail — you don't need to read them to use the tool.</p>
+      </div>
       <p class="help-lead">A quiet table for arranging Northing material as cards — places, artifacts, photographs, observations, conditions — and, together with <code>scripts/assemble.py</code>, the project's video editor: a board exported as JSON renders directly into a finished video (see section 9). It is an editor with deliberately little freedom — no timeline, no trimming, no grading; three fixed transitions and a position rule for sound. The order of cards is the entire edit, and the register is enforced by what the tool declines to offer. Everything stays on this computer (stored locally in your browser); nothing is uploaded.</p>
 
       <h3>1 · Cards and the library</h3>
