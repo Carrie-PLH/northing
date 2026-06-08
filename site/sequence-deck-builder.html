@@ -219,6 +219,10 @@
   .help-steps li{margin-bottom:9px;font-size:14px;}
   .cmd{display:block;background:#2c2a26;color:#f0ece2;border-radius:5px;padding:9px 12px;margin:5px 0;font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:12.5px;line-height:1.5;white-space:pre-wrap;word-break:break-word;overflow-x:auto;}
   .cmd .cmt{color:#9b948a;}
+  .cmd-line{display:flex;gap:8px;align-items:stretch;margin:5px 0;}
+  .cmd-line .cmd{flex:1;margin:0;}
+  .cmd-opts{display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin:10px 0;font-size:13px;}
+  .cmd-opts label{display:flex;gap:6px;align-items:center;}
   .help-callout{border:1px solid #d9c4a0;background:#f6efe0;border-radius:6px;padding:9px 12px;margin:8px 0;font-size:13px;color:#7a6240;line-height:1.55;}
   .help-bigpic{border:1px solid var(--line);background:var(--panel-2);border-radius:8px;padding:14px 18px;margin-bottom:20px;}
   .help-bigpic h3{font-size:15px;}
@@ -291,6 +295,7 @@
     <button class="btn" id="btnExport">Export Sequence</button>
     <button class="btn" id="btnLibIO">Library</button>
     <button class="btn ghost" id="btnClearSeq" title="Clear the current sequence board">Clear board</button>
+    <button class="btn ghost" id="btnCommands" title="Build the Terminal commands for this board">Commands</button>
     <button class="btn ghost" id="btnHelp" title="How to use this tool">Help</button>
   </div>
 </header>
@@ -377,6 +382,46 @@
     <div class="modal-body">
       <p class="hint" style="margin-bottom:12px">Selecting a template appends placeholder cards to the board. Edit them in place, or swap in library cards.</p>
       <div class="tpl-list" id="tplList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- commands modal -->
+<div class="overlay" id="cmdOverlay">
+  <div class="modal wide">
+    <div class="modal-head"><h2>Commands for this board</h2><button class="btn ghost close" data-close>✕</button></div>
+    <div class="modal-body help-body">
+      <p class="help-lead">The deck builder makes the board; the finished video is made by one Terminal command (Cmd+Space, type Terminal, Enter). Set the options below, then copy the line. Every command runs from the project folder, so start with this once per session:</p>
+      <div class="cmd-line"><span class="cmd" id="cmdCd">cd ~/Desktop/Northing</span><button class="btn sm" data-copy="cmdCd">Copy</button></div>
+
+      <h3>Render this board</h3>
+      <p class="hint" style="margin-top:0">Export the board first (<b>Export Sequence → JSON</b>) and save it to the path below.</p>
+      <div class="cmd-opts">
+        <label>Board file <input id="optBoard" class="seq-name" style="width:auto;min-width:240px" spellcheck="false"></label>
+        <label>Resolution
+          <select id="optRes"><option value="">Draft (720p)</option><option value="hd">Channel (1080p)</option></select></label>
+        <label>Cuts
+          <select id="optFade"><option value="">Gentle fades</option><option value="0">Hard cuts</option><option value="0.6">Slow fades</option></select></label>
+        <label>Still hold (s) <input id="optStill" type="number" min="1" step="1" value="5" style="width:64px"></label>
+      </div>
+      <div class="cmd-line"><span class="cmd" id="cmdRender"></span><button class="btn sm" data-copy="cmdRender">Copy</button></div>
+      <p class="hint">No output name needed — the video is named for its places and conditions and filed in <code>90 media/assembled clip/</code>.</p>
+
+      <h3>Generate an hour automatically</h3>
+      <div class="cmd-opts">
+        <label>Minutes <input id="optMin" type="number" min="1" step="1" value="60" style="width:72px"></label>
+        <label><input type="checkbox" id="optSeason1"> one season only</label>
+        <select id="optSeasonName"><option>winter</option><option>spring</option><option>summer</option><option>autumn</option></select>
+      </div>
+      <div class="cmd-line"><span class="cmd" id="cmdGen"></span><button class="btn sm" data-copy="cmdGen">Copy</button></div>
+      <p class="hint">It prints its own <code>render:</code> line when it finishes — paste that to render the generated board.</p>
+
+      <h3>Prepare &amp; check</h3>
+      <div class="cmd-line"><span class="cmd" id="cmdTagClips">python3 scripts/facet-index.py</span><button class="btn sm" data-copy="cmdTagClips">Copy</button></div>
+      <div class="cmd-line"><span class="cmd" id="cmdTagArt">python3 scripts/facet-index.py --artifacts</span><button class="btn sm" data-copy="cmdTagArt">Copy</button></div>
+      <div class="cmd-line"><span class="cmd" id="cmdScan">python3 scripts/audio-match.py --scan</span><button class="btn sm" data-copy="cmdScan">Copy</button></div>
+      <div class="cmd-line"><span class="cmd" id="cmdAudit"></span><button class="btn sm" data-copy="cmdAudit">Copy</button></div>
+      <p class="hint" style="margin-bottom:0">Tag clips/artifacts after generating new ones; scan after adding soundscapes; audit checks a board's beds against the season guard before you render.</p>
     </div>
   </div>
 </div>
@@ -1969,6 +2014,35 @@ document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeAll(); });
 
 $('#editSave').onclick=saveEdit;
 $('#btnHelp').onclick=()=>show('#helpOverlay');
+
+/* Commands panel — builds copy-paste Terminal commands from the current board
+   and the chosen render options. The browser can't run shell, so it produces
+   the exact lines to paste. */
+function cmdSafeName(s){ return (s||'').replace(/[^\w-]+/g,'-').replace(/^-+|-+$/g,'')||'sequence'; }
+function buildCommands(){
+  const raw=($('#optBoard').value||'').trim() || `~/Desktop/${cmdSafeName(state.seqName)}.json`;
+  const board = raw.includes(' ') ? `"${raw}"` : raw;
+  const res = $('#optRes').value==='hd' ? ' --width 1920 --height 1080' : '';
+  const fv = $('#optFade').value;
+  const fade = fv==='' ? '' : ` --clip-fade ${fv}`;
+  const stillV = parseFloat($('#optStill').value);
+  const still = (!isNaN(stillV) && stillV!==5) ? ` --still-duration ${stillV}` : '';
+  $('#cmdRender').textContent = `python3 scripts/assemble.py ${board}${res}${fade}${still}`;
+  const mins = parseFloat($('#optMin').value)||60;
+  const seas = $('#optSeason1').checked ? ` --season ${$('#optSeasonName').value}` : '';
+  $('#cmdGen').textContent = `python3 scripts/shuffle-board.py --minutes ${mins}${seas}`;
+  $('#cmdAudit').textContent = `python3 scripts/audio-match.py --board ${board}`;
+}
+$('#btnCommands').onclick=()=>{
+  if(!$('#optBoard').value) $('#optBoard').value=`~/Desktop/${cmdSafeName(state.seqName)}.json`;
+  buildCommands(); show('#cmdOverlay');
+};
+['optBoard','optRes','optFade','optStill','optMin','optSeason1','optSeasonName'].forEach(id=>{
+  const el=$('#'+id); if(el){ el.addEventListener('input',buildCommands); el.addEventListener('change',buildCommands); }
+});
+document.querySelectorAll('#cmdOverlay [data-copy]').forEach(b=>{
+  b.onclick=()=>{ const el=$('#'+b.dataset.copy); if(el){ navigator.clipboard?.writeText(el.textContent); toast('Copied.'); } };
+});
 $('#btnTemplates').onclick=()=>{renderTemplates();show('#tplOverlay');};
 $('#btnGroup').onclick=groupSelected;
 $('#btnUngroup').onclick=ungroupSelected;
