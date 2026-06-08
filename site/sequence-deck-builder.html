@@ -393,6 +393,42 @@
         <p><b>Step 2 — glue the clips together (this tool + one Terminal command).</b> This deck builder is a table where you lay out cards — clips, photos, sounds — in the order you want them. It makes no footage of its own. When the order looks right, you Export the board and run one command (<code>assemble.py</code>, which uses a stitching tool called <b>ffmpeg</b>) that combines everything into one finished video. No AI in this step — it's just gluing pieces you already have.</p>
         <p style="margin-bottom:0"><b>So:</b> Veo cooks the ingredients, this tool plates the meal. Both are still in use; they just happen at different moments. If you only remember one thing: <i>new footage = Veo; finished video = this tool plus the assemble command.</i> The numbered sections below are reference for when you need a specific detail — you don't need to read them to use the tool.</p>
       </div>
+
+      <div class="help-callout">
+        <h3 style="margin-top:0">Quick command reference</h3>
+        <p style="margin-top:0">Everything runs in the Mac Terminal (Cmd+Space, type Terminal, Enter), one line at a time. Start every session by going to the project folder:</p>
+        <span class="cmd">cd ~/Desktop/Northing</span>
+
+        <p><b>Make new clips</b> <span class="cmt">(Veo runner — reads your <code>*clip-prompts.md</code> files)</span></p>
+        <span class="cmd">python3 scripts/fal-generate.py</span>
+        <span class="cmt">rebuild the clip record if it gets out of step:</span>
+        <span class="cmd">python3 scripts/fal-generate.py --backfill</span>
+
+        <p><b>Tag the media</b> <span class="cmt">(once after adding clips or artifacts — writes the facet index the generator and audio use)</span></p>
+        <span class="cmd">python3 scripts/facet-index.py</span>
+        <span class="cmt">tag artifacts (reads the images in 90 media/artifact/):</span>
+        <span class="cmd">python3 scripts/facet-index.py --artifacts</span>
+        <span class="cmt">cheaper run: add</span> <code>--model claude-haiku-4-5-20251001</code>
+
+        <p><b>Build an hour automatically</b> <span class="cmt">(the long-form generator)</span></p>
+        <span class="cmd">python3 scripts/shuffle-board.py --minutes 60</span>
+        <p style="margin:4px 0">It prints a <code>render:</code> line with the exact next command and the real filename. Paste that line to render. Repeat a run you liked with <code>--seed NNNN</code>; one season only with <code>--season winter</code>.</p>
+
+        <p><b>Build a composed piece by hand</b> <span class="cmt">(this tool)</span></p>
+        <p style="margin:4px 0">Arrange the board, <b>Export Sequence → JSON</b>, save it (e.g. to the Desktop), then render it:</p>
+        <span class="cmd">python3 scripts/assemble.py ~/Desktop/your-board.json</span>
+        <p style="margin:4px 0">No output name needed — the finished video is named for its places, seasons, and conditions and filed in <code>90 media/assembled clip/</code>. For channel resolution add <code>--width 1920 --height 1080</code>; for hard cuts instead of the default gentle fades add <code>--clip-fade 0</code>.</p>
+
+        <p><b>Check a board's sound</b> <span class="cmt">(flags any bed that fights its season — e.g. rain over snow)</span></p>
+        <span class="cmd">python3 scripts/audio-match.py --board ~/Desktop/your-board.json</span>
+
+        <p><b>Optional polish</b></p>
+        <span class="cmt">age clips to the archive look (the renderer then uses them automatically):</span>
+        <span class="cmd">./scripts/treat.sh "90 media/Landscape Clip/BM/" --batch</span>
+        <span class="cmt">quality-check a finished hour before upload:</span>
+        <span class="cmd">python3 scripts/qc-render.py "90 media/assembled clip/NAME.mp4" --report</span>
+      </div>
+
       <p class="help-lead">A quiet table for arranging Northing material as cards — places, artifacts, photographs, observations, conditions — and, together with <code>scripts/assemble.py</code>, the project's video editor: a board exported as JSON renders directly into a finished video (see section 9). It is an editor with deliberately little freedom — no timeline, no trimming, no grading; three fixed transitions and a position rule for sound. The order of cards is the entire edit, and the register is enforced by what the tool declines to offer. Everything stays on this computer (stored locally in your browser); nothing is uploaded.</p>
 
       <h3>1 · Cards and the library</h3>
@@ -421,39 +457,45 @@
       <p>Pick a <b>geographic sequence mode</b> (Watershed, Eastern tributary, Elevation descent, Viewshed-to-ground, Hidden drainage, Bench-to-valley) to lay down a coherent spine, drawing on matching library cards or light placeholders. The <b>Spatial coherence</b> block in the analysis panel reads your current sequence and tags each transition (descends/ascends, with/against drainage, adjacency, RO viewshed) — again, internal and approximate.</p>
 
       <h3>7 · Importing a media folder</h3>
-      <p><b>Import Media Folder</b> scans a folder you choose for images and video, and proposes a card for each file, inferring type, location, and title from the folder and filename. Review the proposals — adjust type, title, location, and which to include — then add them to the library. Files already in the library (matched by path) are skipped automatically. Files are never uploaded; only thumbnails and metadata are stored locally.</p>
+      <p><b>Import Media Folder</b> scans a folder you choose for images and video, and proposes a card for each file, inferring type, location, and title from the folder and filename. Review the proposals — adjust type, title, location, and which to include — then add them to the library. Files are never uploaded; only thumbnails and metadata are stored locally.</p>
+      <p><b>Clips arrive with their prompt attached.</b> When you import <code>90 media/Landscape Clip</code> (pick the whole folder, not a single location, so the <code>clip-manifest.json</code> beside the clips is found), each clip card is filled in from the manifest — its heading and full prompt text fold into the card's notes, which is what lets it surface in Connections. A clip already in the library is enriched in place rather than skipped, so re-importing after generating more clips tops up the thin early cards. A clip marked <span class="cmt">✓ prompt attached from manifest</span> in the review panel matched the manifest.</p>
+      <p><b>Artifacts live on disk now, like everything else.</b> They sit in <code>90 media/artifact/&lt;LOC&gt;/</code> in the same per-location structure as clips, and you import them the same way — point Import Media Folder at that folder and the images come in as Artifact cards with their location inferred. are.na is your upstream library for collecting and thinking; the pipeline reads the disk copies, so nothing depends on a live link at render time.</p>
 
       <h3>8 · Exporting</h3>
       <p><b>Export Sequence</b> offers three tabs. <b>Markdown outline</b> and <b>JSON</b> are audience-facing and contain no internal map data. <b>Internal notes</b> is opt-in and carries the spatial annotations with their approximate/internal disclaimer — keep it out of finished decks. Copy or download from any tab. <b>The JSON tab is the one the assembler eats</b> — name the sequence in the top bar before exporting, because the finished video inherits the name.</p>
-      <p><b>Library</b> lets you export the whole card library as JSON to back it up or move it to another machine, and import it back later without rescanning. <b>Sync artifact catalog</b> pulls the live online catalog and creates or updates one Artifact card per entry (re-sync updates, never duplicates); the catalog remains the single place artifacts are maintained. Per the project rule, photographs are treated as artifacts — both catalog entries and imported images become Artifact cards.</p>
+      <p><b>Library</b> lets you export the whole card library as JSON to back it up or move it to another machine, and import it back later without rescanning. Per the project rule, photographs are treated as artifacts — imported images become Artifact cards. <b>Sync artifact catalog</b> (the old are.na pull) is legacy now that artifacts live on disk under <code>90 media/artifact/</code> and import like clips; it still works for older boards but new work should import from the disk folder.</p>
 
       <h3>9 · From board to finished video — the production pipeline</h3>
-      <p>The full loop, end to end: <b>Connections</b> suggests combinations → <b>Prompt selected</b> fills the Clip Prompt Generator → <b>Veo</b> renders candidate clips (conditioned on a canonical or reference image — style language in prompts is inert, the reference image is the art direction) → keepers land in their location folder under <code>90 media/Landscape Clip/</code> and come back in through Import Media Folder → <code>scripts/treat.sh</code> applies the house 16mm-archive register → a board exported as JSON goes to <code>scripts/assemble.py</code>, which renders one finished video.</p>
+      <p>The full loop, end to end: <b>Connections</b> suggests combinations → <b>Prompt selected</b> fills the Clip Prompt Generator → <b>Veo</b> renders candidate clips (conditioned on a canonical or reference image — style language in prompts is inert, the reference image is the art direction) → keepers land in their location folder under <code>90 media/Landscape Clip/</code> and come back in through Import Media Folder → <code>scripts/facet-index.py</code> tags every clip and artifact so the tools know what each one shows → a board, made by hand in this tool <i>or</i> generated by <code>scripts/shuffle-board.py</code>, goes to <code>scripts/assemble.py</code>, which renders one finished video into <code>90 media/assembled clip/</code>. <code>scripts/treat.sh</code> can age the clips first; the renderer prefers treated versions automatically.</p>
       <p><b>Run it — the exact steps.</b> Make a board, then turn it into a video. Commands are for the Mac Terminal app (Cmd+Space, type Terminal, Enter). Paste one line at a time, pressing Enter after each.</p>
       <div class="help-callout"><b>One-time setup.</b> The renderer needs a free tool called ffmpeg. Check with <code>ffmpeg -version</code>; if it says "command not found", install it once with <code>brew install ffmpeg</code> (needs Homebrew — <code>brew --version</code> to check, and brew.sh if you don't have it). After this, skip straight to the steps below every time.</div>
       <ol class="help-steps">
-        <li>If your board uses artifact cards from the online catalog, first click <b>Library → Sync artifact catalog</b> here in the deck builder, so newly-added images are known.</li>
-        <li>Click <b>Export Sequence → JSON</b> (the JSON tab, not the library file — they're different shapes) and save it, e.g. to your Desktop as <code>my-board.json</code>.</li>
         <li>Go to the project folder in Terminal:
           <span class="cmd">cd ~/Desktop/Northing</span></li>
-        <li><span class="cmt">Optional — age your clips first for the grainy archive look:</span>
+        <li><span class="cmt">Once after adding new clips or artifacts — tag them so the generator and audio matcher can read them:</span>
+          <span class="cmd">python3 scripts/facet-index.py</span>
+          <span class="cmd">python3 scripts/facet-index.py --artifacts</span>
+          You only need this when there's new material; existing tags are kept.</li>
+        <li><span class="cmt">Optional — age your clips for the grainy archive look:</span>
           <span class="cmd">./scripts/treat.sh "90 media/Landscape Clip/BM/" --batch</span>
           The renderer uses the treated versions automatically; skip this for a quick draft.</li>
-        <li>Render the video (this is the one that makes the movie):
-          <span class="cmd">python3 scripts/assemble.py ~/Desktop/my-board.json --out ~/Desktop/my-video.mp4</span>
-          If a clip reports <span class="cmt">media not found</span>, add the media root so it knows where to look:
-          <span class="cmd">python3 scripts/assemble.py ~/Desktop/my-board.json --out ~/Desktop/my-video.mp4 --media-root ~/Desktop/Northing</span></li>
-        <li>Find <code>my-video.mp4</code> on your Desktop and double-click to watch. For a channel-resolution render, add <code>--width 1920 --height 1080</code>.</li>
+        <li>Get a board. Either <b>Export Sequence → JSON</b> from this tool (the JSON tab, not the library file) and save it to your Desktop, or generate one:
+          <span class="cmd">python3 scripts/shuffle-board.py --minutes 60</span></li>
+        <li>Render it:
+          <span class="cmd">python3 scripts/assemble.py ~/Desktop/my-board.json</span>
+          For a generated board, paste the <code>render:</code> line the generator printed instead. No output name is needed — the video is named for its places, seasons, and conditions and filed in <code>90 media/assembled clip/</code>. Add <code>--width 1920 --height 1080</code> for channel resolution; <code>--clip-fade 0</code> for hard cuts instead of the default gentle fades.</li>
+        <li>Find the finished file in <code>90 media/assembled clip/</code> and double-click to watch.</li>
         <li><span class="cmt">Optional — check a long render before uploading:</span>
-          <span class="cmd">python3 scripts/qc-render.py ~/Desktop/my-video.mp4 --report</span></li>
+          <span class="cmd">python3 scripts/qc-render.py "90 media/assembled clip/NAME.mp4" --report</span></li>
       </ol>
-      <div class="help-callout"><b>Reading the receipt.</b> The render prints what it used and what it <i>skipped</i>. Skipped mood and observation cards are correct — they're guidance, not picture. An artifact that says <code>media not found:</code> with nothing after the colon means that card has no image yet: sync the catalog (step 1) if the image now exists, or it's a text-only entry still waiting for one. The first render after a catalog sync is slower while images download and cache once into <code>90 media/_catalog-cache/</code>; after that they're instant.</div>
+      <div class="help-callout"><b>Reading the receipt.</b> The render prints what it used and what it <i>skipped</i>. Skipped mood and observation cards are correct — they're guidance, not picture. An artifact or clip that says <code>media not found:</code> with a path after the colon means that file isn't where the board expects it; if the board predates the move to disk artifacts, its artifact cards may still point at old catalog paths and need repointing to <code>90 media/artifact/</code>.</div>
 
       <p><b><code>treat.sh</code></b> — run bare (<code>treat.sh clip.mp4</code>) it applies the locked house default: medium intensity plus exposure flicker. Output goes to a <code>treated/</code> subfolder beside the untouched raw; it never modifies keepers and is idempotent, so the whole corpus can be re-treated in one pass if the preset evolves. <code>--batch</code> treats a folder; heavier tiers (<code>--intensity heavy/xheavy</code>) are deliberate register choices for implied-older material, not defaults.</p>
-      <p><b><code>assemble.py</code></b> — reads the exported JSON and renders the board in order: clips play (preferring their <code>treated/</code> sibling automatically), image cards hold for 5 seconds as <b>living stills</b> — house grain and flicker plus a slow, seeded drift (a barely conscious push or pull with slight pan, always the same move for the same file) so they read as filmed inserts, never freeze-frames. Soundscapes follow the position rule in section 2, looping or trimming to their region with edge fades — a bed shorter than its region is loop-extended with a seam crossfade, never a hard cut. Every audio region is then <b>mastered to the same perceived loudness</b> (−20 LUFS house target), so chapters sit at one level across an hour and no soundscape arrives louder than its neighbours. Transition cards render at their fixed durations; a governing soundscape runs through black unbroken. Artifact cards whose file is an online catalog URL are <b>downloaded once and cached</b> in <code>90 media/_catalog-cache/</code>; text-only catalog entries (no image at all) are skipped with a notice — they need an image made before they can appear as picture. Output is 720p/24 by default; pass <code>--width 1920 --height 1080</code> for channel-resolution renders.</p>
-      <p><b><code>shuffle-board.py</code></b> — the long-form generator, for the ambience-channel goal of hour-long videos that re-edit the same material in fresh orders. It scans the media pool and writes an assembler-ready board of any length, structured as <b>location chapters</b>: each chapter is one location's soundscape, then visits — a clip dwelled on for two or three takes with black gaps between, artifact stills folded in about one visit in five, the canonical still once per chapter — with fades through black at chapter boundaries. Every run shuffles differently; <code>--seed</code> reproduces a run you liked. <b>Season</b> rides in filenames as a hyphenated token — <code>BM-winter-001.mp4</code>, <code>reference-BM-winter-001.png</code>, soundscapes the same way — and <code>--season winter</code> builds from that season's material plus anything untagged (untagged files are season-neutral and play in any season; locations with nothing to show that season sit the video out). Typical use: <code>python3 scripts/shuffle-board.py --minutes 60</code>, then assemble the JSON it writes (an hour renders in very roughly half an hour to forty-five minutes). The generator never changes the assembler — it just writes boards, so everything above applies.</p>
+      <p><b><code>assemble.py</code></b> — reads the exported JSON and renders the board in order: clips play (preferring their <code>treated/</code> sibling automatically), image cards hold for 5 seconds as <b>living stills</b> — house grain and flicker plus a slow, seeded drift (a barely conscious push or pull with slight pan, always the same move for the same file) so they read as filmed inserts, never freeze-frames. Every clip and still gets a brief fade up from and down to black at its edges by default, so cuts read as gentle dips rather than hard joins; pass <code>--clip-fade 0</code> for hard cuts, or a larger number for a slower breath. Soundscapes follow the position rule in section 2, looping or trimming to their region with edge fades, and every audio region is <b>mastered to the same perceived loudness</b> (−20 LUFS house target). Transition cards render at their fixed durations; a governing soundscape runs through black unbroken. <b>Naming and filing:</b> with no <code>--out</code>, the finished video is named for the places it visits, in order, each chapter as <code>CODE-season-condition</code> (e.g. <code>TC-autumn-rain-BM-winter-001</code>), and written to <code>90 media/assembled clip/</code>; a season or condition is left out when the footage doesn't clearly carry it. Output is 720p/24 by default; pass <code>--width 1920 --height 1080</code> for channel-resolution renders.</p>
+      <p><b><code>shuffle-board.py</code></b> — the long-form generator, for the ambience-channel goal of hour-long videos that re-edit the same material in fresh orders. It scans the media pool, reads the facet index, and writes an assembler-ready board of any length, structured as <b>location chapters</b>: each chapter opens on a wide to establish the place, then visits — a clip dwelled on for two or three takes with black gaps between, artifact stills folded in about one visit in five, the canonical still once per chapter — with fades through black at chapter boundaries. <b>Seasons are coherent by default:</b> each chapter takes one season and the year runs forward across the video (spring into summer into autumn into winter and round again), so no chapter mixes seasons; <code>--season winter</code> instead pins the whole video to one season. <b>Sound is matched, not guessed:</b> each chapter's bed is chosen for that location and season through the same guard as <code>audio-match.py</code>, so a winter chapter never plays under rain and warm-season frog or insect beds stay out of autumn and winter. Every run shuffles differently; <code>--seed NNNN</code> reproduces one you liked. Typical use: <code>python3 scripts/shuffle-board.py --minutes 60</code>, then paste the <code>render:</code> line it prints (an hour renders in very roughly half an hour to forty-five minutes). The generator never changes the assembler — it just writes boards, so everything above applies.</p>
       <p><b><code>qc-render.py</code></b> — the check before upload, for the hour renders nobody watches end to end. It scans a finished video and prints a timestamped report: black intervals beyond the house transitions, audio dropouts (a governing soundscape runs through transitions, so mid-file silence is always a fault), and level anomalies against the −20 LUFS target. <code>python3 scripts/qc-render.py final.mp4 --report</code> writes the report beside the file; exit code 0 means clean. Housekeeping cousin: <code>sync-canonical.sh --check</code> verifies the site's canonical-image copy still matches the master set in <code>90 media/Photograph/A-CANONICAL-IMAGES/</code>.</p>
       <p>The deck builder remains the place where <i>composed</i> sequences are made — the shuffle generator handles bulk hours; this table handles the ones that are meant.</p>
+      <div class="help-callout"><b>Coming next.</b> Two pieces are planned but not built yet: an <i>affinity-thread</i> mode for the generator, composing along a quiet recurrence (a material, a water-state, a trace) rather than only by season, so subtler connections surface without being announced; and a <i>board linter</i> that reads any board and flags season jumps, mismatched beds, missing establishing shots, and artifact gaps before you render. Until those land, <code>audio-match.py --board</code> already does the sound half of that check.</div>
 
       <h3>Storage</h3>
       <p>Cards, sequence, and settings are saved in this browser (IndexedDB) — but browsers treat storage for local pages as disposable and may clear it on quit. The durable option: <b>Library → Connect library file</b>. Pick your library JSON once per session and every change auto-saves to it; after a reboot, connecting again restores cards, sequence, and name from the file. The file is the store; the browser is just a cache. Export remains available for one-off snapshots.</p>
@@ -1695,26 +1737,54 @@ const IMG_EXT=['jpg','jpeg','png','webp'], VID_EXT=['mp4','mov','webm'],
       AUD_EXT=['mp3','wav','m4a','aac','ogg','flac'];
 const extOf = name=> (name.split('.').pop()||'').toLowerCase();
 const isMedia = name=>{const e=extOf(name);return IMG_EXT.includes(e)||VID_EXT.includes(e)||AUD_EXT.includes(e);};
+const MANIFEST_NAME='clip-manifest.json';
+
+/* Clip prompt manifest (written by scripts/fal-generate.py), keyed by clip
+   filename → {code, season, title, prompt, source}. When the chosen folder
+   contains one, its title + prompt fold into each clip card's notes so the
+   prompt text feeds token-based Connections constellations. */
+let clipManifest={};
+async function loadManifest(file){
+  try{ clipManifest = JSON.parse(await file.text()) || {}; }
+  catch(_){ clipManifest = {}; }
+}
+function manifestEntry(path){
+  return clipManifest[path.split('/').pop()] || null;
+}
+function manifestNotes(entry){
+  if(!entry) return '';
+  const parts=[];
+  if(entry.title) parts.push(String(entry.title).trim());
+  if(entry.prompt) parts.push(String(entry.prompt).trim());
+  return parts.join('\n\n');
+}
 
 $('#btnImport').onclick=async()=>{
+  clipManifest={};
   if(window.showDirectoryPicker){
     try{
       const handle=await window.showDirectoryPicker();
-      const files=[]; await walkFS(handle,'',files);
+      const files=[], ctx={manifest:null}; await walkFS(handle,'',files,ctx);
+      if(ctx.manifest) await loadManifest(ctx.manifest);
       processImport(files);
     }catch(err){ if(err && err.name==='AbortError') return; $('#dirInput').click(); }
   } else { $('#dirInput').click(); }
 };
-$('#dirInput').onchange=e=>{
-  const files=[...e.target.files].filter(f=>isMedia(f.name))
+$('#dirInput').onchange=async e=>{
+  clipManifest={};
+  const all=[...e.target.files];
+  const mf=all.find(f=>f.name===MANIFEST_NAME);
+  if(mf) await loadManifest(mf);
+  const files=all.filter(f=>isMedia(f.name))
     .map(f=>({file:f, path:f.webkitRelativePath||f.name}));
   e.target.value='';
   processImport(files);
 };
-async function walkFS(dir, prefix, out){
+async function walkFS(dir, prefix, out, ctx){
   for await (const entry of dir.values()){
     const p = prefix?prefix+'/'+entry.name:entry.name;
-    if(entry.kind==='directory') await walkFS(entry,p,out);
+    if(entry.kind==='directory') await walkFS(entry,p,out,ctx);
+    else if(ctx && entry.name===MANIFEST_NAME){ try{ ctx.manifest=await entry.getFile(); }catch(_){} }
     else if(isMedia(entry.name)){ try{ out.push({file:await entry.getFile(), path:p}); }catch(_){} }
   }
 }
@@ -1743,20 +1813,49 @@ function inferTitle(path){
 }
 
 async function processImport(files){
-  // dedupe by file path: skip anything already in the library, and repeats within this batch
-  const existingPaths=new Set(state.library.map(c=>c.filePath).filter(Boolean));
-  const seenPaths=new Set();
+  // Existing library cards, indexed by path and by basename (for clips whose
+  // path differs from the current folder selection but whose filename matches).
+  const byPath=new Map(), byBase=new Map();
+  for(const c of state.library){
+    if(!c.filePath) continue;
+    byPath.set(c.filePath,c);
+    byBase.set(c.filePath.split('/').pop(),c);
+  }
   const before=files.length;
-  files=files.filter(({path})=>{
-    if(existingPaths.has(path)||seenPaths.has(path)) return false;
-    seenPaths.add(path); return true;
-  });
-  const skipped=before-files.length;
+  const seenPaths=new Set();
+  let upgraded=0;
+  const fresh=[];
+  for(const f of files){
+    if(seenPaths.has(f.path)) continue;            // repeat within this batch
+    seenPaths.add(f.path);
+    const existing = byPath.get(f.path) || byBase.get(f.path.split('/').pop());
+    if(existing){
+      // Already in the library — enrich a thin card in place from the manifest
+      // rather than skipping it, but never shrink notes the user already has.
+      const notes=manifestNotes(manifestEntry(f.path));
+      if(notes && (existing.notes||'').trim().length < notes.trim().length){
+        existing.notes=notes;
+        await persistCard(existing);
+        upgraded++;
+      }
+      continue;                                    // not a new proposal
+    }
+    fresh.push(f);
+  }
+  files=fresh;
+  const skipped=before - files.length - upgraded;
+  if(upgraded) renderLibrary();
   if(!files.length){
-    toast(skipped?`All ${skipped} file${skipped===1?' is':'s are'} already in the library.`:'No image, video, or audio files found in that folder.');
+    const bits=[];
+    if(upgraded) bits.push(`enriched ${upgraded} existing card${upgraded===1?'':'s'} from the manifest`);
+    if(skipped) bits.push(`${skipped} already up to date`);
+    toast(bits.length ? bits.join('; ')+'.' : 'No image, video, or audio files found in that folder.');
     return;
   }
-  toast(`Scanning ${files.length} file${files.length===1?'':'s'}…${skipped?` (${skipped} already in library, skipped)`:''}`);
+  const tail=[];
+  if(upgraded) tail.push(`${upgraded} existing enriched`);
+  if(skipped) tail.push(`${skipped} already up to date`);
+  toast(`Scanning ${files.length} file${files.length===1?'':'s'}…${tail.length?` (${tail.join(', ')})`:''}`);
   const proposals=[];
   let done=0;
   // bounded concurrency for thumbnail generation
@@ -1771,7 +1870,7 @@ async function processImport(files){
         if(AUD_EXT.includes(ext)) thumb=null;            // audio: no thumbnail, glyph shows instead
         else thumb = VID_EXT.includes(ext) ? await videoThumb(file) : await imageThumb(file);
       }catch(_){ thumb=null; }
-      proposals.push({include:true, type, title:inferTitle(path), location:inferLocation(path), filePath:path, thumb, notes:''});
+      proposals.push({include:true, type, title:inferTitle(path), location:inferLocation(path), filePath:path, thumb, notes:manifestNotes(manifestEntry(path))});
       done++;
     }
   }
@@ -1828,6 +1927,7 @@ function openReview(proposals){
         <select data-f="type">${opts}</select>
         <input data-f="location" value="${esc(p.location)}" placeholder="Location">
         <div class="rev-path" title="${esc(p.filePath)}">${esc(p.filePath)}</div>
+        ${p.notes?`<div class="rev-path" title="${esc(p.notes)}" style="opacity:.75">✓ prompt attached from manifest</div>`:''}
         <label class="rev-inc"><input type="checkbox" data-f="include" ${p.include?'checked':''}> include</label>
       </div>`;
     card.querySelector('[data-f="title"]').oninput=e=>p.title=e.target.value;
