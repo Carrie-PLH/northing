@@ -292,6 +292,7 @@
     <button class="btn" id="btnTemplates">Templates</button>
     <button class="btn" id="btnOrient" title="Internal spatial sequencing (approximate)">Orientation</button>
     <button class="btn" id="btnConnect" title="Suggested combinations — structural affinities across the library">Connections</button>
+    <button class="btn primary" id="btnSaveProject" title="Save this board into the project so Render can find it — no Downloads, no stale files">Save to project</button>
     <button class="btn" id="btnExport">Export Sequence</button>
     <button class="btn" id="btnLibIO">Library</button>
     <button class="btn ghost" id="btnClearSeq" title="Clear the current sequence board">Clear board</button>
@@ -2111,6 +2112,47 @@ function renderOrient(){
 }
 $('#btnLibIO').onclick=()=>{ $('#libStats').textContent=`${state.library.length} cards in library · ${state.library.filter(c=>c.thumb).length} with media.`; show('#libIOOverlay'); };
 $('#btnConnectFile').onclick=connectLibraryFile;
+
+/* Save to project — write the board straight into 90 media/boards/ through a
+   persisted folder handle, so there is no Downloads detour and the Render
+   double-click always finds the current board. */
+let boardsDirHandle=null;
+async function resolveBoardsDir(picked){
+  if(picked.name==='boards') return picked;
+  let media=null;
+  if(picked.name==='90 media') media=picked;
+  else { try{ media=await picked.getDirectoryHandle('90 media'); }catch(_){ } }
+  if(!media) throw new Error('Pick your Northing folder (the one that contains "90 media").');
+  return await media.getDirectoryHandle('boards',{create:true});
+}
+async function ensureBoardsDir(){
+  if(boardsDirHandle){
+    let p=await boardsDirHandle.queryPermission({mode:'readwrite'});
+    if(p!=='granted') p=await boardsDirHandle.requestPermission({mode:'readwrite'});
+    if(p==='granted') return boardsDirHandle;
+  }
+  if(!window.showDirectoryPicker){ toast('Use Chrome or Edge for Save to project (or Export Sequence as a fallback).'); return null; }
+  let picked;
+  try{ picked=await window.showDirectoryPicker({mode:'readwrite'}); }catch(_){ return null; }
+  let dir;
+  try{ dir=await resolveBoardsDir(picked); }catch(e){ toast(e.message); return null; }
+  boardsDirHandle=dir;
+  try{ await idbPut('meta',{key:'boardsDir', handle:dir}); }catch(_){ }
+  return dir;
+}
+async function saveBoardToProject(){
+  const dir=await ensureBoardsDir();
+  if(!dir) return;
+  const safe=(state.seqName||'sequence').replace(/[^\w-]+/g,'-').replace(/^-+|-+$/g,'')||'sequence';
+  try{
+    const fh=await dir.getFileHandle(safe+'.json',{create:true});
+    const w=await fh.createWritable();
+    await w.write(buildJSON());
+    await w.close();
+    toast('Saved '+safe+'.json to 90 media/boards — now double-click "Render latest board".');
+  }catch(err){ toast('Save failed: '+err.message+' — use Export Sequence as a fallback.'); }
+}
+$('#btnSaveProject').onclick=saveBoardToProject;
 $('#btnSyncCatalog').onclick=syncCatalog;
 $('#libExport').onclick=exportLibrary;
 $('#libImportBtn').onclick=()=>$('#libFileInput').click();
@@ -2155,6 +2197,7 @@ async function boot(){
         if(meta.relFilters) Object.assign(state.relFilters, meta.relFilters);
         $('#seqName').value=state.seqName;
       }
+      try{ const bd=await idbGet('meta','boardsDir'); if(bd&&bd.handle) boardsDirHandle=bd.handle; }catch(_){ }
     }
   }catch(err){ /* start empty */ }
   renderNewCardChips();
