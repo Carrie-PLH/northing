@@ -408,7 +408,39 @@
       <div class="cmd-line"><span class="cmd" id="cmdRender"></span><button class="btn sm" data-copy="cmdRender">Copy</button></div>
       <p class="hint">No output name needed — the video is named for its places and conditions and filed in <code>90 media/assembled clip/</code>.</p>
 
-      <h3>Generate an hour automatically</h3>
+      <h3>Generate automatically</h3>
+      <div class="cmd-opts">
+        <label>Sequence purpose
+          <select id="optPurpose">
+            <option value="long">Long-form immersion (an hour)</option>
+            <option value="ig">Instagram post (short, ≤1 artifact)</option>
+            <option value="short">YouTube Short (short, recurrence allowed)</option>
+          </select></label>
+      </div>
+
+      <div id="genShort" style="display:none">
+        <div class="cmd-opts">
+          <label>Curiosity mechanism
+            <select id="optTemplate">
+              <option value="evidence-place">Evidence → Place (artifact reframes the landscape)</option>
+              <option value="place-evidence">Place → Evidence (landscape gains sudden depth)</option>
+              <option value="recurring-object">Recurring Object (one object, two records)</option>
+              <option value="unanswered-question">Unanswered Question (ends before resolution)</option>
+              <option value="seasonal-echo">Seasonal Echo (two seasons of one place)</option>
+              <option value="administrative-record">Administrative Record (dry record vs. landscape)</option>
+            </select></label>
+          <label>Artifact pressure
+            <select id="optPressure">
+              <option value="none">None — landscape only</option>
+              <option value="light">Light — anchor artifact only</option>
+              <option value="moderate" selected>Moderate — as designed</option>
+              <option value="heavy">Heavy — one extra artifact</option>
+            </select></label>
+        </div>
+        <p class="hint" id="tplDesc" style="margin:2px 0 4px"></p>
+      </div>
+
+      <div id="genLong">
       <div class="cmd-opts">
         <label>Minutes <input id="optMin" type="number" min="1" step="1" value="60" style="width:72px"></label>
         <label>Preset
@@ -436,9 +468,11 @@
             <option value="soft">soft</option>
             <option value="off">off</option></select></label>
       </div>
+      </div><!-- /genLong -->
       <div class="cmd-line"><span class="cmd" id="cmdGen"></span><button class="btn sm" data-copy="cmdGen">Copy</button></div>
       <div style="margin:6px 0 2px"><button class="btn primary" id="btnGenProject" title="Save these settings into the project, then double-click 'Generate to project' to build and render — no Terminal">Generate to project</button> <span class="cmt">no Terminal: saves these settings, then double-click <b>Generate to project</b> in your Northing folder and it builds and renders straight through</span></div>
       <p class="hint">Prefer no command line? Use <b>Generate to project</b> above: it saves your options into the project, then the <b>Generate to project</b> double-click makes the board and renders it for you (same idea as <b>Save this board</b>, but for a generated hour). The command line below does the same thing if you'd rather paste it. It prints its own <code>render:</code> line when it finishes — paste that to render the generated board. <b>Preset</b> sets the production register: <b>Field</b> is the documentary default (reproduces exactly); <b>Wander</b> loosens the season order and softens the arc while staying place-based; <b>Drift</b> dissolves location into one associative stream under a single neutral bed. <b>weather coherent</b> (Field/Wander) keeps each chapter to one condition for a stricter-realism cut; <b>let images return</b> (Drift) brings a recent shot back as a sparse echo; <b>harder joins</b> (Drift) mixes flash frames and the odd hard cut into the black gaps for a more disjunctive stream. <b>Season order</b> and <b>Arc</b> override the preset's defaults when set. <b>Affinity thread</b> (optional) lays a quiet recurrence along one facet — <code>condition:fog</code>, <code>water_state:frozen</code>, <code>trace:beaver</code>, <code>subjects:stone</code> — so it reappears without being announced; leave it blank for none. Works best on a facet present in several places but never dominant.</p>
+      <p class="hint"><b>Sequence purpose</b> switches the generator's whole grammar. <b>Long-form immersion</b> is everything above: an hour where the order is felt, not read. <b>Instagram post</b> and <b>YouTube Short</b> build a short fixed sequence (three to seven cards) from a <b>curiosity mechanism</b> instead — the order is the meaning. Pick a mechanism: <b>Evidence → Place</b> (an artifact opens, then the landscape it reframes), <b>Place → Evidence</b> (the landscape gains sudden depth from a record, then returns), <b>Recurring Object</b> (one object in two different records, continuity across time), <b>Unanswered Question</b> (a record between two looks at a place, then black, nothing resolved), <b>Seasonal Echo</b> (two seasons of one place alternate, fading between), <b>Administrative Record</b> (a dry record hard-cut against an evocative landscape). All six stay one real place and never caption or explain — the mechanism completes in the viewer. <b>Artifact pressure</b> sets how often evidence intrudes: <b>None</b> drops every artifact to landscape (the mechanism muted, a pure-place variant), <b>Light</b> keeps only the anchor artifact, <b>Moderate</b> is the mechanism as designed, <b>Heavy</b> adds one more. Instagram caps the piece at one artifact; the Short allows more. <b>Generate to project</b> builds and renders a short piece the same way it builds an hour. Short pieces render full-bleed vertical (1080×1920) so they look native on a phone: the landscape sits at its true composition over an enlarged, blurred copy of itself, so the frame fills top to bottom with no black bars and nothing is cropped away. (Documents are held still over the same blurred fill.) Long-form stays landscape.</p>
 
       <h3>Prepare &amp; check</h3>
       <div class="cmd-line"><span class="cmd" id="cmdTagClips">python3 scripts/facet-index.py</span><button class="btn sm" data-copy="cmdTagClips">Copy</button></div>
@@ -483,6 +517,9 @@
         <p><b>Build an hour automatically</b> <span class="cmt">(the long-form generator)</span></p>
         <span class="cmd">python3 scripts/shuffle-board.py --minutes 60</span>
         <p style="margin:4px 0">It prints a <code>render:</code> line with the exact next command and the real filename. Paste that line to render. Repeat a run you liked with <code>--seed NNNN</code>; one season only with <code>--season winter</code>. Pick a <b>production register</b> with <code>--preset</code>: <code>field</code> (documentary, the default), <code>wander</code> (looser, still place-based), or <code>drift</code> (one associative stream); on <code>drift</code> add <code>--recurrence refrain</code> to let a shot return or <code>--transitions mixed</code> for flash frames and hard cuts, on <code>field</code>/<code>wander</code> add <code>--weather coherent</code> for one condition per chapter. <b>No Terminal at all:</b> set these in the deck builder's <b>Commands</b> screen and click <b>Generate to project</b>, then double-click <b>Generate to project</b> in your Northing folder.</p>
+        <p><b>Build a short-form piece</b> <span class="cmt">(Instagram / YouTube Short — a curiosity mechanism, not an hour)</span></p>
+        <span class="cmd">python3 scripts/shuffle-board.py --purpose short --template evidence-place</span>
+        <p style="margin:4px 0">Short-form builds a three-to-seven-card fixed sequence where the order carries the meaning. Pick a <code>--template</code>: <code>evidence-place</code>, <code>place-evidence</code>, <code>recurring-object</code>, <code>unanswered-question</code>, <code>seasonal-echo</code>, <code>administrative-record</code>. Use <code>--purpose ig</code> for Instagram (caps at one artifact) or <code>--purpose short</code> for a Short. <code>--pressure none|light|moderate|heavy</code> sets how often evidence intrudes (default moderate). All of it is in the deck builder's <b>Commands</b> screen under <b>Sequence purpose</b>, with <b>Generate to project</b> for a no-Terminal build-and-render.</p>
 
         <p><b>Build a composed piece by hand</b> <span class="cmt">(this tool)</span></p>
         <p style="margin:4px 0">Arrange the board, <b>Export Sequence → JSON</b>, save it (e.g. to the Desktop), then render it:</p>
@@ -2054,7 +2091,27 @@ $('#btnHelp').onclick=()=>show('#helpOverlay');
 function cmdSafeName(s){ return (s||'').replace(/[^\w-]+/g,'-').replace(/^-+|-+$/g,'')||'sequence'; }
 /* weather coherent only bites in the place-based presets; refrain only in Drift.
    Show whichever applies to the chosen preset so the panel never offers a no-op. */
+/* Short-form template blurbs, mirroring shuffle-board.py's TEMPLATES descriptions
+   so the panel explains the mechanism the same way the generator documents it. */
+const TPL_DESC={
+  'evidence-place':'An artifact opens cold, then the landscape it reframes, closing on an observational note. The evidence makes you reread the place.',
+  'place-evidence':'The landscape settles, an artifact drops in and gives it sudden depth, then a return to the opening shot — now read differently.',
+  'recurring-object':'The same object surfaces in two different records, a landscape between and a return after. Continuity across time, no explanation.',
+  'unanswered-question':'A landscape, a record that raises a question, the landscape again, then end on black. Nothing answers it.',
+  'seasonal-echo':'Two seasons of the same place alternate around an artifact, fading between. The place held across the turning year.',
+  'administrative-record':'A dry bureaucratic record hard-cut against an evocative landscape, twice. You sense significance without being told why.'
+};
+/* purpose decides the whole panel: long-form shows the register controls; the
+   short-form purposes (ig/short) show the curiosity-template + pressure controls.
+   Within long-form, weather coherent only bites in place-based presets and
+   refrain/mixed only in Drift, so we show whichever applies and never a no-op. */
 function updateGenUI(preset){
+  const purpose=(($('#optPurpose')||{}).value)||'long';
+  const isShort = (purpose==='ig'||purpose==='short');
+  const gL=$('#genLong'), gS=$('#genShort');
+  if(gL) gL.style.display = isShort ? 'none' : '';
+  if(gS) gS.style.display = isShort ? '' : 'none';
+  const td=$('#tplDesc'); if(td) td.textContent = TPL_DESC[(($('#optTemplate')||{}).value)]||'';
   preset = preset || (($('#optPreset')||{}).value)||'field';
   const wW=$('#optWeatherWrap'), rW=$('#optRefrainWrap'), mW=$('#optMixedWrap');
   if(wW) wW.style.display = (preset==='drift') ? 'none' : '';
@@ -2065,9 +2122,17 @@ function updateGenUI(preset){
    copy-paste command line and the "Generate to project" request file derive
    from this, so they can never drift apart. Suppression rules live here only. */
 function genArgsFromUI(){
-  const preset = (($('#optPreset')||{}).value)||'field';
-  updateGenUI(preset);
+  const purpose=(($('#optPurpose')||{}).value)||'long';
+  updateGenUI();
   const a=[];
+  if(purpose==='ig'||purpose==='short'){
+    a.push('--purpose',purpose);
+    a.push('--template',(($('#optTemplate')||{}).value)||'evidence-place');
+    const pr=(($('#optPressure')||{}).value)||'moderate';
+    if(pr!=='moderate') a.push('--pressure',pr);
+    return a;
+  }
+  const preset = (($('#optPreset')||{}).value)||'field';
   if(preset!=='field') a.push('--preset',preset);
   const season1=$('#optSeason1').checked;
   if(season1) a.push('--season',$('#optSeasonName').value);
@@ -2091,9 +2156,11 @@ function buildCommands(){
   const stillV = parseFloat($('#optStill').value);
   const still = (!isNaN(stillV) && stillV!==5) ? ` --still-duration ${stillV}` : '';
   $('#cmdRender').textContent = `python3 scripts/assemble.py ${board}${res}${fade}${still}`;
+  const purpose=(($('#optPurpose')||{}).value)||'long';
   const mins = parseFloat($('#optMin').value)||60;
+  const minTok = (purpose==='long') ? `--minutes ${mins}` : '';   // ignored by short-form
   const disp = genArgsFromUI().map(t=> t.includes(' ')?`"${t}"`:t).join(' ');
-  $('#cmdGen').textContent = `python3 scripts/shuffle-board.py --minutes ${mins}${disp?' '+disp:''}`;
+  $('#cmdGen').textContent = `python3 scripts/shuffle-board.py ${[minTok,disp].filter(Boolean).join(' ')}`;
   $('#cmdLint').textContent = `python3 scripts/lint-board.py ${board}`;
   $('#cmdAudit').textContent = `python3 scripts/audio-match.py --board ${board}`;
 }
@@ -2101,7 +2168,7 @@ $('#btnCommands').onclick=()=>{
   if(!$('#optBoard').value) $('#optBoard').value=`~/Desktop/${cmdSafeName(state.seqName)}.json`;
   buildCommands(); show('#cmdOverlay');
 };
-['optBoard','optRes','optFade','optStill','optMin','optPreset','optSeason1','optSeasonName','optThread','optWeather','optRefrain','optMixed','optSeasonMode','optArc'].forEach(id=>{
+['optBoard','optRes','optFade','optStill','optMin','optPurpose','optTemplate','optPressure','optPreset','optSeason1','optSeasonName','optThread','optWeather','optRefrain','optMixed','optSeasonMode','optArc'].forEach(id=>{
   const el=$('#'+id); if(el){ el.addEventListener('input',buildCommands); el.addEventListener('change',buildCommands); }
 });
 document.querySelectorAll('#cmdOverlay [data-copy]').forEach(b=>{
