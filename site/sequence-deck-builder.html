@@ -436,7 +436,8 @@
             <option value="off">off</option></select></label>
       </div>
       <div class="cmd-line"><span class="cmd" id="cmdGen"></span><button class="btn sm" data-copy="cmdGen">Copy</button></div>
-      <p class="hint">It prints its own <code>render:</code> line when it finishes — paste that to render the generated board. <b>Preset</b> sets the production register: <b>Field</b> is the documentary default (reproduces exactly); <b>Wander</b> loosens the season order and softens the arc while staying place-based; <b>Drift</b> dissolves location into one associative stream under a single neutral bed. <b>weather coherent</b> (Field/Wander) keeps each chapter to one condition for a stricter-realism cut; <b>let images return</b> (Drift) brings a recent shot back as a sparse echo. <b>Season order</b> and <b>Arc</b> override the preset's defaults when set. <b>Affinity thread</b> (optional) lays a quiet recurrence along one facet — <code>condition:fog</code>, <code>water_state:frozen</code>, <code>trace:beaver</code>, <code>subjects:stone</code> — so it reappears without being announced; leave it blank for none. Works best on a facet present in several places but never dominant.</p>
+      <div style="margin:6px 0 2px"><button class="btn primary" id="btnGenProject" title="Save these settings into the project, then double-click 'Generate to project' to build and render — no Terminal">Generate to project</button> <span class="cmt">no Terminal: saves these settings, then double-click <b>Generate to project</b> in your Northing folder and it builds and renders straight through</span></div>
+      <p class="hint">Prefer no command line? Use <b>Generate to project</b> above: it saves your options into the project, then the <b>Generate to project</b> double-click makes the board and renders it for you (same idea as <b>Save to project</b>, but for a generated hour). The command line below does the same thing if you'd rather paste it. It prints its own <code>render:</code> line when it finishes — paste that to render the generated board. <b>Preset</b> sets the production register: <b>Field</b> is the documentary default (reproduces exactly); <b>Wander</b> loosens the season order and softens the arc while staying place-based; <b>Drift</b> dissolves location into one associative stream under a single neutral bed. <b>weather coherent</b> (Field/Wander) keeps each chapter to one condition for a stricter-realism cut; <b>let images return</b> (Drift) brings a recent shot back as a sparse echo. <b>Season order</b> and <b>Arc</b> override the preset's defaults when set. <b>Affinity thread</b> (optional) lays a quiet recurrence along one facet — <code>condition:fog</code>, <code>water_state:frozen</code>, <code>trace:beaver</code>, <code>subjects:stone</code> — so it reappears without being announced; leave it blank for none. Works best on a facet present in several places but never dominant.</p>
 
       <h3>Prepare &amp; check</h3>
       <div class="cmd-line"><span class="cmd" id="cmdTagClips">python3 scripts/facet-index.py</span><button class="btn sm" data-copy="cmdTagClips">Copy</button></div>
@@ -2057,6 +2058,26 @@ function updateGenUI(preset){
   if(wW) wW.style.display = (preset==='drift') ? 'none' : '';
   if(rW) rW.style.display = (preset==='drift') ? '' : 'none';
 }
+/* The single source of truth for the generate flags, as argv tokens. Both the
+   copy-paste command line and the "Generate to project" request file derive
+   from this, so they can never drift apart. Suppression rules live here only. */
+function genArgsFromUI(){
+  const preset = (($('#optPreset')||{}).value)||'field';
+  updateGenUI(preset);
+  const a=[];
+  if(preset!=='field') a.push('--preset',preset);
+  const season1=$('#optSeason1').checked;
+  if(season1) a.push('--season',$('#optSeasonName').value);
+  const smv=($('#optSeasonMode')||{}).value;
+  if(smv && !season1) a.push('--season-mode',smv);
+  const arcv=($('#optArc')||{}).value;
+  if(arcv) a.push('--arc',arcv);
+  if(($('#optWeather')||{}).checked && preset!=='drift') a.push('--weather','coherent');
+  if(($('#optRefrain')||{}).checked && preset==='drift') a.push('--recurrence','refrain');
+  const thr=(($('#optThread')||{}).value||'').trim();
+  if(thr) a.push('--thread',thr);
+  return a;
+}
 function buildCommands(){
   const raw=($('#optBoard').value||'').trim() || `~/Desktop/${cmdSafeName(state.seqName)}.json`;
   const board = raw.includes(' ') ? `"${raw}"` : raw;
@@ -2067,19 +2088,8 @@ function buildCommands(){
   const still = (!isNaN(stillV) && stillV!==5) ? ` --still-duration ${stillV}` : '';
   $('#cmdRender').textContent = `python3 scripts/assemble.py ${board}${res}${fade}${still}`;
   const mins = parseFloat($('#optMin').value)||60;
-  const preset = (($('#optPreset')||{}).value)||'field';
-  updateGenUI(preset);
-  const presetArg = preset!=='field' ? ` --preset ${preset}` : '';
-  const seas = $('#optSeason1').checked ? ` --season ${$('#optSeasonName').value}` : '';
-  const thr = (($('#optThread')||{}).value||'').trim();
-  const thread = thr ? ` --thread ${thr.includes(' ')?`"${thr}"`:thr}` : '';
-  const wx = (($('#optWeather')||{}).checked && preset!=='drift') ? ' --weather coherent' : '';
-  const refrain = (($('#optRefrain')||{}).checked && preset==='drift') ? ' --recurrence refrain' : '';
-  const smv = ($('#optSeasonMode')||{}).value;
-  const smode = (smv && !$('#optSeason1').checked) ? ` --season-mode ${smv}` : '';
-  const arcv = ($('#optArc')||{}).value;
-  const arc = arcv ? ` --arc ${arcv}` : '';
-  $('#cmdGen').textContent = `python3 scripts/shuffle-board.py --minutes ${mins}${presetArg}${seas}${smode}${arc}${wx}${refrain}${thread}`;
+  const disp = genArgsFromUI().map(t=> t.includes(' ')?`"${t}"`:t).join(' ');
+  $('#cmdGen').textContent = `python3 scripts/shuffle-board.py --minutes ${mins}${disp?' '+disp:''}`;
   $('#cmdLint').textContent = `python3 scripts/lint-board.py ${board}`;
   $('#cmdAudit').textContent = `python3 scripts/audio-match.py --board ${board}`;
 }
@@ -2211,6 +2221,26 @@ async function saveBoardToProject(){
   }catch(err){ toast('Save failed: '+err.message+' — use Export Sequence as a fallback.'); }
 }
 $('#btnSaveProject').onclick=saveBoardToProject;
+
+/* Generate to project — write the chosen generate settings into the project so
+   the "Generate to project" double-click can build the board (with these exact
+   options) and render it, with no Terminal. Mirrors saveBoardToProject's use of
+   the remembered boards-folder handle. */
+async function saveGenerateRequest(){
+  const dir=await ensureBoardsDir();
+  if(!dir) return;
+  const req={ minutes: parseFloat($('#optMin').value)||60,
+              args: genArgsFromUI(),
+              saved: new Date().toISOString() };
+  try{
+    const fh=await dir.getFileHandle('.generate-request.json',{create:true});
+    const w=await fh.createWritable();
+    await w.write(JSON.stringify(req,null,2));
+    await w.close();
+    toast('Saved your generate settings — now double-click "Generate to project" in your Northing folder.');
+  }catch(err){ toast('Save failed: '+err.message); }
+}
+$('#btnGenProject').onclick=saveGenerateRequest;
 $('#btnSyncCatalog').onclick=syncCatalog;
 $('#libExport').onclick=exportLibrary;
 $('#libImportBtn').onclick=()=>$('#libFileInput').click();
