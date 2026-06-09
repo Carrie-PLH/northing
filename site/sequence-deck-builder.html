@@ -259,6 +259,8 @@
   .tpl-list{display:flex;flex-direction:column;gap:7px;}
   .tpl{border:1px solid var(--line);background:var(--field);border-radius:6px;padding:9px 11px;}
   .tpl:hover{background:#fff;}
+  .tpl.sel{border-color:var(--accent);background:#fff;box-shadow:inset 0 0 0 1px var(--accent);}
+  .tpl{cursor:pointer;}
   .tpl .tpl-name{font-size:13.5px;margin-bottom:2px;}
   .tpl .tpl-seq{font-size:11px;color:var(--ink-faint);}
 
@@ -292,7 +294,8 @@
     <button class="btn" id="btnTemplates" style="display:none">Templates</button>
     <button class="btn" id="btnOrient" title="Internal spatial sequencing (approximate)" style="display:none">Orientation</button>
     <button class="btn" id="btnConnect" title="Suggested combinations — structural affinities across the library">Connections</button>
-    <button class="btn primary" id="btnSaveProject" title="Save this board into the project so Render can find it — no Downloads, no stale files">Save this board</button>
+    <button class="btn primary" id="btnGenerate" title="Generate a short or an hour automatically — the plain-language panel">Generate</button>
+    <button class="btn" id="btnSaveProject" title="Save this board into the project so Render can find it — no Downloads, no stale files">Save this board</button>
     <button class="btn" id="btnExport">Export Sequence</button>
     <button class="btn" id="btnLibIO">Library</button>
     <button class="btn ghost" id="btnClearSeq" title="Clear the current sequence board">Clear board</button>
@@ -409,70 +412,7 @@
       <p class="hint">No output name needed — the video is named for its places and conditions and filed in <code>90 media/assembled clip/</code>.</p>
 
       <h3>Generate automatically</h3>
-      <div class="cmd-opts">
-        <label>Sequence purpose
-          <select id="optPurpose">
-            <option value="long">Long-form immersion (an hour)</option>
-            <option value="ig">Instagram post (short, ≤1 artifact)</option>
-            <option value="short">YouTube Short (short, recurrence allowed)</option>
-          </select></label>
-      </div>
-
-      <div id="genShort" style="display:none">
-        <div class="cmd-opts">
-          <label>Curiosity mechanism
-            <select id="optTemplate">
-              <option value="evidence-place">Evidence → Place (artifact reframes the landscape)</option>
-              <option value="place-evidence">Place → Evidence (landscape gains sudden depth)</option>
-              <option value="recurring-object">Recurring Object (one object, two records)</option>
-              <option value="unanswered-question">Unanswered Question (ends before resolution)</option>
-              <option value="seasonal-echo">Seasonal Echo (two seasons of one place)</option>
-              <option value="administrative-record">Administrative Record (dry record vs. landscape)</option>
-            </select></label>
-          <label>Artifact pressure
-            <select id="optPressure">
-              <option value="none">None — landscape only</option>
-              <option value="light">Light — anchor artifact only</option>
-              <option value="moderate" selected>Moderate — as designed</option>
-              <option value="heavy">Heavy — one extra artifact</option>
-            </select></label>
-        </div>
-        <p class="hint" id="tplDesc" style="margin:2px 0 4px"></p>
-      </div>
-
-      <div id="genLong">
-      <div class="cmd-opts">
-        <label>Minutes <input id="optMin" type="number" min="1" step="1" value="60" style="width:72px"></label>
-        <label>Preset
-          <select id="optPreset">
-            <option value="field">Field — documentary (default)</option>
-            <option value="wander">Wander — looser place-based ramble</option>
-            <option value="drift">Drift — stream-of-consciousness</option>
-          </select></label>
-        <label><input type="checkbox" id="optSeason1"> one season only</label>
-        <select id="optSeasonName"><option>winter</option><option>spring</option><option>summer</option><option>autumn</option></select>
-        <label>Affinity thread <input id="optThread" class="seq-name" style="width:auto;min-width:150px" spellcheck="false" placeholder="e.g. trace:beaver"></label>
-      </div>
-      <div class="cmd-opts" id="genRefine">
-        <label id="optWeatherWrap"><input type="checkbox" id="optWeather"> weather coherent <span class="cmt">(one condition per chapter)</span></label>
-        <label id="optRefrainWrap" style="display:none"><input type="checkbox" id="optRefrain"> let images return <span class="cmt">(refrain)</span></label>
-        <label id="optMixedWrap" style="display:none"><input type="checkbox" id="optMixed"> harder joins <span class="cmt">(mixed — flash frames &amp; hard cuts)</span></label>
-        <label>Season order <select id="optSeasonMode">
-            <option value="">preset default</option>
-            <option value="forward">forward (year marches)</option>
-            <option value="shuffle">shuffle</option>
-            <option value="free">free</option></select></label>
-        <label>Arc <select id="optArc">
-            <option value="">preset default</option>
-            <option value="arc">establish/detail/settle</option>
-            <option value="soft">soft</option>
-            <option value="off">off</option></select></label>
-      </div>
-      </div><!-- /genLong -->
-      <div class="cmd-line"><span class="cmd" id="cmdGen"></span><button class="btn sm" data-copy="cmdGen">Copy</button></div>
-      <div style="margin:6px 0 2px"><button class="btn primary" id="btnGenProject" title="Save these settings into the project, then double-click 'Generate to project' to build and render — no Terminal">Generate to project</button> <span class="cmt">no Terminal: saves these settings, then double-click <b>Generate to project</b> in your Northing folder and it builds and renders straight through</span></div>
-      <p class="hint">Prefer no command line? Use <b>Generate to project</b> above: it saves your options into the project, then the <b>Generate to project</b> double-click makes the board and renders it for you (same idea as <b>Save this board</b>, but for a generated hour). The command line below does the same thing if you'd rather paste it. It prints its own <code>render:</code> line when it finishes — paste that to render the generated board. <b>Preset</b> sets the production register: <b>Field</b> is the documentary default (reproduces exactly); <b>Wander</b> loosens the season order and softens the arc while staying place-based; <b>Drift</b> dissolves location into one associative stream under a single neutral bed. <b>weather coherent</b> (Field/Wander) keeps each chapter to one condition for a stricter-realism cut; <b>let images return</b> (Drift) brings a recent shot back as a sparse echo; <b>harder joins</b> (Drift) mixes flash frames and the odd hard cut into the black gaps for a more disjunctive stream. <b>Season order</b> and <b>Arc</b> override the preset's defaults when set. <b>Affinity thread</b> (optional) lays a quiet recurrence along one facet — <code>condition:fog</code>, <code>water_state:frozen</code>, <code>trace:beaver</code>, <code>subjects:stone</code> — so it reappears without being announced; leave it blank for none. Works best on a facet present in several places but never dominant.</p>
-      <p class="hint"><b>Sequence purpose</b> switches the generator's whole grammar. <b>Long-form immersion</b> is everything above: an hour where the order is felt, not read. <b>Instagram post</b> and <b>YouTube Short</b> build a short fixed sequence (three to seven cards) from a <b>curiosity mechanism</b> instead — the order is the meaning. Pick a mechanism: <b>Evidence → Place</b> (an artifact opens, then the landscape it reframes), <b>Place → Evidence</b> (the landscape gains sudden depth from a record, then returns), <b>Recurring Object</b> (one object in two different records, continuity across time), <b>Unanswered Question</b> (a record between two looks at a place, then black, nothing resolved), <b>Seasonal Echo</b> (two seasons of one place alternate, fading between), <b>Administrative Record</b> (a dry record hard-cut against an evocative landscape). All six stay one real place and never caption or explain — the mechanism completes in the viewer. <b>Artifact pressure</b> sets how often evidence intrudes: <b>None</b> drops every artifact to landscape (the mechanism muted, a pure-place variant), <b>Light</b> keeps only the anchor artifact, <b>Moderate</b> is the mechanism as designed, <b>Heavy</b> adds one more. Instagram caps the piece at one artifact; the Short allows more. <b>Generate to project</b> builds and renders a short piece the same way it builds an hour. Short pieces render full-bleed vertical (1080×1920) so they look native on a phone: the landscape sits at its true composition over an enlarged, blurred copy of itself, so the frame fills top to bottom with no black bars and nothing is cropped away. (Documents are held still over the same blurred fill.) Long-form stays landscape.</p>
+      <p class="hint" style="margin-top:0">This moved to its own screen. Close this and click <b>Generate</b> in the toolbar: a plain panel with the short-form curiosity mechanisms, artifact pressure, and the long-form hour, plus one button that builds and renders with no Terminal. You only need this Commands screen for manual render tuning or the upkeep commands below.</p>
 
       <h3>Prepare &amp; check</h3>
       <div class="cmd-line"><span class="cmd" id="cmdTagClips">python3 scripts/facet-index.py</span><button class="btn sm" data-copy="cmdTagClips">Copy</button></div>
@@ -481,6 +421,101 @@
       <div class="cmd-line"><span class="cmd" id="cmdLint"></span><button class="btn sm" data-copy="cmdLint">Copy</button></div>
       <div class="cmd-line"><span class="cmd" id="cmdAudit"></span><button class="btn sm" data-copy="cmdAudit">Copy</button></div>
       <p class="hint" style="margin-bottom:0"><b>Keep the index current:</b> whenever you add clips or artifacts, re-tag with <code>facet-index.py</code> (and <code>--artifacts</code>); whenever you add soundscapes, re-run <code>audio-match.py --scan</code>. <b>lint-board</b> is the full pre-render check (picture, audio, artifacts, establishing shots) — the <b>Render latest board</b> double-click runs it for you and stops on render-breaking problems; <b>audit</b> is the audio-only deep dive against the season guard.</p>
+    </div>
+  </div>
+</div>
+
+<!-- generate modal (primary, plain-language; replaces the Commands generate panel) -->
+<div class="overlay" id="genOverlay">
+  <div class="modal">
+    <div class="modal-head"><h2>Generate a sequence</h2><button class="btn ghost close" data-close>✕</button></div>
+    <div class="modal-body">
+      <div class="cmd-opts" style="margin-top:0">
+        <label>What are you making?
+          <select id="optPurpose">
+            <option value="short">A short for YouTube Shorts</option>
+            <option value="ig">A short for Instagram</option>
+            <option value="long">A long immersive hour</option>
+          </select></label>
+      </div>
+
+      <!-- SHORT-FORM -->
+      <div id="genShort">
+        <p class="section-label" style="margin-top:6px">Curiosity mechanism <span class="cmt">— pick the shape of the short</span></p>
+        <div class="tpl-list" id="mechList"></div>
+        <select id="optTemplate" style="display:none">
+          <option value="evidence-place">Evidence → Place</option>
+          <option value="place-evidence">Place → Evidence</option>
+          <option value="recurring-object">Recurring Object</option>
+          <option value="unanswered-question">Unanswered Question</option>
+          <option value="seasonal-echo">Seasonal Echo</option>
+          <option value="administrative-record">Administrative Record</option>
+        </select>
+        <div class="cmd-opts" style="margin-top:12px">
+          <label>Artifact pressure <span class="cmt">— how often evidence intrudes</span>
+            <select id="optPressure">
+              <option value="none">None — landscape only</option>
+              <option value="light">Light — anchor artifact only</option>
+              <option value="moderate" selected>Moderate — as designed</option>
+              <option value="heavy">Heavy — one extra artifact</option>
+            </select></label>
+        </div>
+        <p class="hint" id="tplDesc" style="margin:2px 0 4px"></p>
+        <p class="hint" style="margin-top:0">Shorts render full-bleed vertical (1080×1920) for phones — no bars, nothing cropped. Each stays one real place and never captions or explains.</p>
+      </div>
+
+      <!-- LONG-FORM -->
+      <div id="genLong" style="display:none">
+        <div class="cmd-opts">
+          <label>Minutes <input id="optMin" type="number" min="1" step="1" value="60" style="width:72px"></label>
+          <label>Feel
+            <select id="optPreset">
+              <option value="field">Field — documentary (default)</option>
+              <option value="wander">Wander — looser place-based ramble</option>
+              <option value="drift">Drift — stream-of-consciousness</option>
+            </select></label>
+          <label><input type="checkbox" id="optSeason1"> one season only</label>
+          <select id="optSeasonName"><option>winter</option><option>spring</option><option>summer</option><option>autumn</option></select>
+        </div>
+        <details style="margin:4px 0 2px">
+          <summary class="cmt" style="cursor:pointer">More options (affinity thread, season order, arc, register tweaks)</summary>
+          <div class="cmd-opts">
+            <label>Affinity thread <input id="optThread" class="seq-name" style="width:auto;min-width:150px" spellcheck="false" placeholder="e.g. trace:beaver"></label>
+          </div>
+          <div class="cmd-opts" id="genRefine">
+            <label id="optWeatherWrap"><input type="checkbox" id="optWeather"> weather coherent <span class="cmt">(one condition per chapter)</span></label>
+            <label id="optRefrainWrap" style="display:none"><input type="checkbox" id="optRefrain"> let images return <span class="cmt">(refrain)</span></label>
+            <label id="optMixedWrap" style="display:none"><input type="checkbox" id="optMixed"> harder joins <span class="cmt">(mixed — flash frames &amp; hard cuts)</span></label>
+            <label>Season order <select id="optSeasonMode">
+                <option value="">preset default</option>
+                <option value="forward">forward (year marches)</option>
+                <option value="shuffle">shuffle</option>
+                <option value="free">free</option></select></label>
+            <label>Arc <select id="optArc">
+                <option value="">preset default</option>
+                <option value="arc">establish/detail/settle</option>
+                <option value="soft">soft</option>
+                <option value="off">off</option></select></label>
+          </div>
+        </details>
+        <p class="hint" style="margin-top:0"><b>Field</b> reproduces the documentary default exactly; <b>Wander</b> loosens season order and softens the arc; <b>Drift</b> dissolves location into one associative stream. Long-form renders landscape.</p>
+      </div>
+
+      <div class="help-callout" style="margin-top:8px">
+        <b>Two steps to a finished video, no Terminal.</b>
+        <p style="margin:4px 0 0">1. Click <b>Generate to project</b> below — it saves these choices into your Northing folder.<br>
+        2. In your Northing folder, double-click <b>Generate to project</b>. It builds the sequence and renders it for you (shorts come out vertical), then opens the finished-video folder.</p>
+        <p style="margin:6px 0 0" class="cmt">Arranging a board by hand instead? Use <b>Save this board</b> in the toolbar, then double-click <b>Render latest board</b>.</p>
+      </div>
+
+      <details style="margin-top:8px">
+        <summary class="cmt" style="cursor:pointer">Prefer the command line?</summary>
+        <div class="cmd-line" style="margin-top:6px"><span class="cmd" id="cmdGen"></span><button class="btn sm" data-copy="cmdGen">Copy</button></div>
+      </details>
+    </div>
+    <div class="modal-foot">
+      <span class="cmt" id="genReadout" style="margin-right:auto"></span>
+      <button class="btn primary" id="btnGenProject" title="Save these choices into the project, then double-click 'Generate to project' in your Northing folder">Generate to project</button>
     </div>
   </div>
 </div>
@@ -516,10 +551,10 @@
 
         <p><b>Build an hour automatically</b> <span class="cmt">(the long-form generator)</span></p>
         <span class="cmd">python3 scripts/shuffle-board.py --minutes 60</span>
-        <p style="margin:4px 0">It prints a <code>render:</code> line with the exact next command and the real filename. Paste that line to render. Repeat a run you liked with <code>--seed NNNN</code>; one season only with <code>--season winter</code>. Pick a <b>production register</b> with <code>--preset</code>: <code>field</code> (documentary, the default), <code>wander</code> (looser, still place-based), or <code>drift</code> (one associative stream); on <code>drift</code> add <code>--recurrence refrain</code> to let a shot return or <code>--transitions mixed</code> for flash frames and hard cuts, on <code>field</code>/<code>wander</code> add <code>--weather coherent</code> for one condition per chapter. <b>No Terminal at all:</b> set these in the deck builder's <b>Commands</b> screen and click <b>Generate to project</b>, then double-click <b>Generate to project</b> in your Northing folder.</p>
+        <p style="margin:4px 0">It prints a <code>render:</code> line with the exact next command and the real filename. Paste that line to render. Repeat a run you liked with <code>--seed NNNN</code>; one season only with <code>--season winter</code>. Pick a <b>production register</b> with <code>--preset</code>: <code>field</code> (documentary, the default), <code>wander</code> (looser, still place-based), or <code>drift</code> (one associative stream); on <code>drift</code> add <code>--recurrence refrain</code> to let a shot return or <code>--transitions mixed</code> for flash frames and hard cuts, on <code>field</code>/<code>wander</code> add <code>--weather coherent</code> for one condition per chapter. <b>No Terminal at all:</b> click <b>Generate</b> in the toolbar, set your options, click <b>Generate to project</b>, then double-click <b>Generate to project</b> in your Northing folder.</p>
         <p><b>Build a short-form piece</b> <span class="cmt">(Instagram / YouTube Short — a curiosity mechanism, not an hour)</span></p>
         <span class="cmd">python3 scripts/shuffle-board.py --purpose short --template evidence-place</span>
-        <p style="margin:4px 0">Short-form builds a three-to-seven-card fixed sequence where the order carries the meaning. Pick a <code>--template</code>: <code>evidence-place</code>, <code>place-evidence</code>, <code>recurring-object</code>, <code>unanswered-question</code>, <code>seasonal-echo</code>, <code>administrative-record</code>. Use <code>--purpose ig</code> for Instagram (caps at one artifact) or <code>--purpose short</code> for a Short. <code>--pressure none|light|moderate|heavy</code> sets how often evidence intrudes (default moderate). All of it is in the deck builder's <b>Commands</b> screen under <b>Sequence purpose</b>, with <b>Generate to project</b> for a no-Terminal build-and-render.</p>
+        <p style="margin:4px 0">Short-form builds a three-to-seven-card fixed sequence where the order carries the meaning. Pick a <code>--template</code>: <code>evidence-place</code>, <code>place-evidence</code>, <code>recurring-object</code>, <code>unanswered-question</code>, <code>seasonal-echo</code>, <code>administrative-record</code>. Use <code>--purpose ig</code> for Instagram (caps at one artifact) or <code>--purpose short</code> for a Short. <code>--pressure none|light|moderate|heavy</code> sets how often evidence intrudes (default moderate). All of it is in the deck builder's <b>Generate</b> panel (the toolbar button), with <b>Generate to project</b> for a no-Terminal build-and-render.</p>
 
         <p><b>Build a composed piece by hand</b> <span class="cmt">(this tool)</span></p>
         <p style="margin:4px 0">Arrange the board, <b>Export Sequence → JSON</b>, save it (e.g. to the Desktop), then render it:</p>
@@ -577,7 +612,7 @@
       <div class="help-callout"><b>Keeping the index current.</b> The generator, the audio matcher, and the linter all read two indexes built from your material, so keep them fresh: <b>whenever you add clips or artifacts, re-tag with <code>python3 scripts/facet-index.py</code> (and <code>python3 scripts/facet-index.py --artifacts</code> for new artifacts); whenever you add soundscapes, re-run <code>python3 scripts/audio-match.py --scan</code></b>. Both are incremental — they only touch what's new and keep existing tags — and both are one click away in the <b>Commands</b> panel. Skipping them doesn't break a render, but new clips will sit untagged (invisible to the season, arc, and thread logic) and new beds won't be considered until scanned.</div>
       <p><b>Run it.</b> Two no-Terminal paths, and which you want depends only on where the board comes from. <b>Save this board</b> sends the sequence you arranged on the table here — it saves exactly what's on screen. <b>Generate to project</b> ignores the table and has the generator build a fresh board from the options you pick (preset, season, axes, thread). Each then pairs with its own double-click that renders the result. The manual Terminal path below is for when you want extra control over resolution or fades.</p>
       <div class="help-callout"><b>The easy path for a hand-built board — no Terminal.</b> Make your edits, then click <b>Save this board</b> in the toolbar. The first time it asks for your Northing folder and then remembers it; it writes the board into <code>90 media/boards/</code>, always overwriting, so there's no Downloads copy and no stale version. Then double-click <b>Render latest board</b> (the <code>.command</code> file in your Northing folder — keep a copy on the Desktop if you like). It first runs the board linter and, if the board is sound, renders it at 1920×1080 and opens the assembled-clip folder when it finishes. If the linter finds a render-breaking problem (a missing file, a card still pointing at a web link) it stops and tells you what to fix rather than producing a broken video; coherence warnings print but don't stop the render. So: edit, Save this board, double-click. No file names, no <code>cd</code>, nothing to mistype. The Save button needs Chrome or Edge.</div>
-      <div class="help-callout"><b>The easy path for a generated hour — no Terminal.</b> When you'd rather the generator build the board, open <b>Commands</b> and set your options under <i>Generate an hour automatically</i> — minutes, <b>preset</b> (Field / Wander / Drift), one season only, the <b>weather coherent</b>, <b>let images return</b>, or <b>harder joins</b> checkbox, Season-order and Arc overrides, an optional affinity thread. Then click <b>Generate to project</b>: it saves those settings into the project (same one-time folder permission as Save this board). Double-click <b>Generate to project</b> (the <code>.command</code> in your Northing folder) and it builds the board with exactly those options, lints it, and renders it at 1920×1080 straight through, opening the assembled-clip folder when done. It's the generator's version of Save this board → Render, collapsed into one click and one double-click, so you never paste a command or choose a seed by hand. Like Save this board, it needs Chrome or Edge.</div>
+      <div class="help-callout"><b>The easy path for a generated hour — no Terminal.</b> When you'd rather the generator build the board, click <b>Generate</b> in the toolbar and set your options — minutes, <b>feel</b> (Field / Wander / Drift), one season only, and under <i>More options</i> the <b>weather coherent</b>, <b>let images return</b>, or <b>harder joins</b> checkbox, Season-order and Arc overrides, an optional affinity thread. Then click <b>Generate to project</b>: it saves those settings into the project (same one-time folder permission as Save this board). Double-click <b>Generate to project</b> (the <code>.command</code> in your Northing folder) and it builds the board with exactly those options, lints it, and renders it at 1920×1080 straight through, opening the assembled-clip folder when done. It's the generator's version of Save this board → Render, collapsed into one click and one double-click, so you never paste a command or choose a seed by hand. Like Save this board, it needs Chrome or Edge.</div>
       <p><b>The manual path — exact Terminal steps.</b> Use this when you want to set resolution or fades, or to generate an hour. Commands are for the Mac Terminal app (Cmd+Space, type Terminal, Enter). Paste one line at a time, pressing Enter after each.</p>
       <div class="help-callout"><b>One-time setup.</b> The renderer needs a free tool called ffmpeg. Check with <code>ffmpeg -version</code>; if it says "command not found", install it once with <code>brew install ffmpeg</code> (needs Homebrew — <code>brew --version</code> to check, and brew.sh if you don't have it). After this, skip straight to the steps below every time.</div>
       <ol class="help-steps">
@@ -607,7 +642,7 @@
 
       <p><b><code>treat.sh</code></b> — run bare (<code>treat.sh clip.mp4</code>) it applies the locked house default: medium intensity plus exposure flicker. Output goes to a <code>treated/</code> subfolder beside the untouched raw; it never modifies keepers and is idempotent, so the whole corpus can be re-treated in one pass if the preset evolves. <code>--batch</code> treats a folder; heavier tiers (<code>--intensity heavy/xheavy</code>) are deliberate register choices for implied-older material, not defaults.</p>
       <p><b><code>assemble.py</code></b> — reads the exported JSON and renders the board in order: clips play (preferring their <code>treated/</code> sibling automatically), image cards hold for 5 seconds as <b>living stills</b> — house grain and flicker plus a slow, seeded drift (a barely conscious push or pull with slight pan, always the same move for the same file) so they read as filmed inserts, never freeze-frames. Every clip and still eases up from and down to black at its edges (default 0.6s), so cuts read as gentle breaths rather than quick blinks; pass <code>--clip-fade 0.9</code> or <code>1.2</code> for slower fades, <code>--clip-fade 0</code> for hard cuts. Soundscapes follow the position rule in section 2, looping or trimming to their region with edge fades, and every audio region is <b>mastered to the same perceived loudness</b> (−20 LUFS house target). Transition cards render at their fixed durations; a governing soundscape runs through black unbroken. <b>Naming and filing:</b> with no <code>--out</code>, the finished video is named for the places it visits, in order, each chapter as <code>CODE-season-condition</code> (e.g. <code>TC-autumn-rain-BM-winter-001</code>), and written to <code>90 media/assembled clip/</code>; a season or condition is left out when the footage doesn't clearly carry it. Output is 720p/24 by default; pass <code>--width 1920 --height 1080</code> for channel-resolution renders.</p>
-      <p><b><code>shuffle-board.py</code></b> — the long-form generator, for the ambience-channel goal of hour-long videos that re-edit the same material in fresh orders. It scans the media pool, reads the facet index, and writes an assembler-ready board of any length, structured as <b>location chapters</b>. <b>A production register sets how coherent the edit is.</b> <code>--preset field</code> (the default) is the documentary mode described in the rest of this paragraph, and reproduces a given <code>--seed</code> exactly. <code>--preset wander</code> keeps the location chapters but unshackles the season order and softens the arc, for a looser ramble. <code>--preset drift</code> dissolves the chapters into one continuous <b>associative stream</b> that moves by what successive clips physically share — subject, water state, condition — rather than by place, under a single neutral water bed chosen once; on drift, <code>--recurrence refrain</code> lets a recent shot return as a sparse, irregular echo and <code>--transitions mixed</code> mixes flash frames and hard cuts into the black gaps for a more disjunctive stream. Single axes can also be set on their own: <code>--weather coherent</code> holds each chapter to one condition (a stricter-realism Field/Wander cut), and <code>--season-mode</code> / <code>--arc</code> override a preset's defaults. All of this is exposed in the deck builder's <b>Commands</b> screen, with <b>Generate to project</b> for a no-Terminal build-and-render. Everything below describes the Field/Wander (location-chapter) behaviour; Drift replaces the chapter machinery with the associative stream but draws on the same clips, facets, and neutral beds. <b>Each chapter follows a soft arc</b> — it establishes the place on a wide, settles into closer detail through the middle, then withdraws to quieter wide or immersive shots before the fade — built from visits, a clip dwelled on for two or three takes with black gaps between, artifact stills folded in after the place is established, the canonical still landing in the settle as a resting image, with fades through black at chapter boundaries. The arc is a preference, never forced: a location that only carries one kind of shot this season simply reads in that register rather than having a shape imposed on it. <b>Seasons are coherent by default:</b> each chapter takes one season and the year runs forward across the video (spring into summer into autumn into winter and round again), so no chapter mixes seasons; <code>--season winter</code> instead pins the whole video to one season. <b>Sound is matched, not guessed:</b> each chapter's bed is chosen for that location and season through the same guard as <code>audio-match.py</code>, so a winter chapter never plays under rain and warm-season frog or insect beds stay out of autumn and winter. <b>Long chapters split their sound:</b> when a chapter runs several minutes and its best-fitting bed is short enough to loop audibly, the generator lays a second, distinct, still-compatible bed across the back half — a quiet audio shift inside the same place, never a location change, so no short bed repeats itself; <code>--max-beds 1</code> keeps a single bed per chapter. <b>An optional affinity thread</b> — <code>--thread condition:fog</code>, <code>--thread water_state:frozen</code>, <code>--thread trace:beaver</code> — lays a quiet recurrence along one facet so it reappears across the hour without being announced: it never adds visits or pulls in off-location material, only nudges which clip or still a visit already about to happen reaches for, and only where the place actually carries it. It reads best on a facet that turns up in several locations but dominates none. Every run shuffles differently; <code>--seed NNNN</code> reproduces one you liked. Typical use: <code>python3 scripts/shuffle-board.py --minutes 60</code>, then paste the <code>render:</code> line it prints (an hour renders in very roughly half an hour to forty-five minutes). The generator never changes the assembler — it just writes boards, so everything above applies.</p>
+      <p><b><code>shuffle-board.py</code></b> — the long-form generator, for the ambience-channel goal of hour-long videos that re-edit the same material in fresh orders. It scans the media pool, reads the facet index, and writes an assembler-ready board of any length, structured as <b>location chapters</b>. <b>A production register sets how coherent the edit is.</b> <code>--preset field</code> (the default) is the documentary mode described in the rest of this paragraph, and reproduces a given <code>--seed</code> exactly. <code>--preset wander</code> keeps the location chapters but unshackles the season order and softens the arc, for a looser ramble. <code>--preset drift</code> dissolves the chapters into one continuous <b>associative stream</b> that moves by what successive clips physically share — subject, water state, condition — rather than by place, under a single neutral water bed chosen once; on drift, <code>--recurrence refrain</code> lets a recent shot return as a sparse, irregular echo and <code>--transitions mixed</code> mixes flash frames and hard cuts into the black gaps for a more disjunctive stream. Single axes can also be set on their own: <code>--weather coherent</code> holds each chapter to one condition (a stricter-realism Field/Wander cut), and <code>--season-mode</code> / <code>--arc</code> override a preset's defaults. All of this is exposed in the deck builder's <b>Generate</b> panel, with <b>Generate to project</b> for a no-Terminal build-and-render. Everything below describes the Field/Wander (location-chapter) behaviour; Drift replaces the chapter machinery with the associative stream but draws on the same clips, facets, and neutral beds. <b>Each chapter follows a soft arc</b> — it establishes the place on a wide, settles into closer detail through the middle, then withdraws to quieter wide or immersive shots before the fade — built from visits, a clip dwelled on for two or three takes with black gaps between, artifact stills folded in after the place is established, the canonical still landing in the settle as a resting image, with fades through black at chapter boundaries. The arc is a preference, never forced: a location that only carries one kind of shot this season simply reads in that register rather than having a shape imposed on it. <b>Seasons are coherent by default:</b> each chapter takes one season and the year runs forward across the video (spring into summer into autumn into winter and round again), so no chapter mixes seasons; <code>--season winter</code> instead pins the whole video to one season. <b>Sound is matched, not guessed:</b> each chapter's bed is chosen for that location and season through the same guard as <code>audio-match.py</code>, so a winter chapter never plays under rain and warm-season frog or insect beds stay out of autumn and winter. <b>Long chapters split their sound:</b> when a chapter runs several minutes and its best-fitting bed is short enough to loop audibly, the generator lays a second, distinct, still-compatible bed across the back half — a quiet audio shift inside the same place, never a location change, so no short bed repeats itself; <code>--max-beds 1</code> keeps a single bed per chapter. <b>An optional affinity thread</b> — <code>--thread condition:fog</code>, <code>--thread water_state:frozen</code>, <code>--thread trace:beaver</code> — lays a quiet recurrence along one facet so it reappears across the hour without being announced: it never adds visits or pulls in off-location material, only nudges which clip or still a visit already about to happen reaches for, and only where the place actually carries it. It reads best on a facet that turns up in several locations but dominates none. Every run shuffles differently; <code>--seed NNNN</code> reproduces one you liked. Typical use: <code>python3 scripts/shuffle-board.py --minutes 60</code>, then paste the <code>render:</code> line it prints (an hour renders in very roughly half an hour to forty-five minutes). The generator never changes the assembler — it just writes boards, so everything above applies.</p>
       <p><b><code>qc-render.py</code></b> — the check before upload, for the hour renders nobody watches end to end. It scans a finished video and prints a timestamped report: black intervals beyond the house transitions, audio dropouts (a governing soundscape runs through transitions, so mid-file silence is always a fault), and level anomalies against the −20 LUFS target. <code>python3 scripts/qc-render.py final.mp4 --report</code> writes the report beside the file; exit code 0 means clean. Housekeeping cousin: <code>sync-canonical.sh --check</code> verifies the site's canonical-image copy still matches the master set in <code>90 media/Photograph/A-CANONICAL-IMAGES/</code>.</p>
       <p>The deck builder remains the place where <i>composed</i> sequences are made — the shuffle generator handles bulk hours; this table handles the ones that are meant.</p>
       <p><b><code>lint-board.py</code></b> — the whole-board check before a render. <code>python3 scripts/lint-board.py board.json</code> walks the board and reports, by chapter: pictures and artifacts that don't resolve to a real file or still point at a web link, soundscapes that fail the season guard, artifacts sitting in the wrong location's chapter, chapters that don't open on a wide when their location has one, and clips from the wrong season. <code>[x]</code> marks render-breaking faults (it exits non-zero, which is how the double-click render knows to stop); <code>[!]</code> marks coherence notes that print but don't block, unless you pass <code>--strict</code>. It shares the audio guard with <code>audio-match.py</code>, so the two never disagree; <code>audio-match.py --board</code> remains the audio-only deep dive when you want suggested beds, not just pass/fail.</p>
@@ -2161,6 +2196,15 @@ function buildCommands(){
   const minTok = (purpose==='long') ? `--minutes ${mins}` : '';   // ignored by short-form
   const disp = genArgsFromUI().map(t=> t.includes(' ')?`"${t}"`:t).join(' ');
   $('#cmdGen').textContent = `python3 scripts/shuffle-board.py ${[minTok,disp].filter(Boolean).join(' ')}`;
+  const ro=$('#genReadout');
+  if(ro){
+    if(purpose==='long'){ ro.textContent=`Will make a ${mins}-minute ${(($('#optPreset')||{}).value)||'field'} hour (landscape).`; }
+    else{
+      const mech=(MECH.find(m=>m.id===((($('#optTemplate')||{}).value)))||{}).label||'';
+      const plat=purpose==='ig'?'Instagram':'YouTube Short';
+      ro.textContent=`Will make a ${plat} short — ${mech} (vertical).`;
+    }
+  }
   $('#cmdLint').textContent = `python3 scripts/lint-board.py ${board}`;
   $('#cmdAudit').textContent = `python3 scripts/audio-match.py --board ${board}`;
 }
@@ -2168,6 +2212,37 @@ $('#btnCommands').onclick=()=>{
   if(!$('#optBoard').value) $('#optBoard').value=`~/Desktop/${cmdSafeName(state.seqName)}.json`;
   buildCommands(); show('#cmdOverlay');
 };
+
+/* ---------- Generate panel (the primary, plain-language path) ---------- */
+/* The six curiosity mechanisms as selectable cards: name, the slot pattern as a
+   one-line shape, and what it does. Clicking a card drives the hidden #optTemplate
+   select that genArgsFromUI already reads, so the wiring stays single-source. */
+const MECH=[
+  {id:'evidence-place',   label:'Evidence → Place',       shape:'Artifact · Landscape · Landscape · Note'},
+  {id:'place-evidence',   label:'Place → Evidence',       shape:'Landscape · Detail · Artifact · Return'},
+  {id:'recurring-object', label:'Recurring Object',       shape:'Artifact · Landscape · Artifact (same object) · Return'},
+  {id:'unanswered-question',label:'Unanswered Question',  shape:'Landscape · Record · Landscape · End on black'},
+  {id:'seasonal-echo',    label:'Seasonal Echo',          shape:'Season A · Artifact · Season B · Return'},
+  {id:'administrative-record',label:'Administrative Record',shape:'Record · Landscape · Record · Return (hard cuts)'},
+];
+function renderMechCards(){
+  const wrap=$('#mechList'); if(!wrap) return;
+  const sel=(($('#optTemplate')||{}).value)||MECH[0].id;
+  wrap.innerHTML='';
+  MECH.forEach(m=>{
+    const card=el('button','tpl'+(m.id===sel?' sel':''));
+    card.type='button';
+    card.innerHTML=`<div class="tpl-name">${esc(m.label)}</div>`
+                  +`<div class="tpl-seq"><span class="modecodes">${esc(m.shape)}</span></div>`
+                  +`<div class="tpl-seq" style="margin-top:3px">${esc(TPL_DESC[m.id]||'')}</div>`;
+    card.onclick=()=>{ const s=$('#optTemplate'); if(s) s.value=m.id; renderMechCards(); buildCommands(); };
+    wrap.appendChild(card);
+  });
+}
+$('#btnGenerate').onclick=()=>{ renderMechCards(); buildCommands(); show('#genOverlay'); };
+document.querySelectorAll('#genOverlay [data-copy]').forEach(b=>{
+  b.onclick=()=>{ const el=$('#'+b.dataset.copy); if(el){ navigator.clipboard?.writeText(el.textContent); toast('Copied.'); } };
+});
 ['optBoard','optRes','optFade','optStill','optMin','optPurpose','optTemplate','optPressure','optPreset','optSeason1','optSeasonName','optThread','optWeather','optRefrain','optMixed','optSeasonMode','optArc'].forEach(id=>{
   const el=$('#'+id); if(el){ el.addEventListener('input',buildCommands); el.addEventListener('change',buildCommands); }
 });
