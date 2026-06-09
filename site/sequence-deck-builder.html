@@ -2161,6 +2161,15 @@ async function saveBoardToProject(){
     const w=await fh.createWritable();
     await w.write(buildJSON());
     await w.close();
+    /* Render-target pointer: name the board "Render latest board" should pick,
+       so a newer stray save (e.g. an old "Untitled sequence.json") can't hijack
+       the render. This save is the most recent intent, so it wins. */
+    try{
+      const ph=await dir.getFileHandle('.render-target',{create:true});
+      const pw=await ph.createWritable();
+      await pw.write(safe+'.json\n');
+      await pw.close();
+    }catch(_){ /* pointer is best-effort; render falls back to newest board */ }
     toast('Saved '+safe+'.json to 90 media/boards — now double-click "Render latest board".');
   }catch(err){ toast('Save failed: '+err.message+' — use Export Sequence as a fallback.'); }
 }
