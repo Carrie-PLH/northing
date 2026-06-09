@@ -411,12 +411,32 @@
       <h3>Generate an hour automatically</h3>
       <div class="cmd-opts">
         <label>Minutes <input id="optMin" type="number" min="1" step="1" value="60" style="width:72px"></label>
+        <label>Preset
+          <select id="optPreset">
+            <option value="field">Field — documentary (default)</option>
+            <option value="wander">Wander — looser place-based ramble</option>
+            <option value="drift">Drift — stream-of-consciousness</option>
+          </select></label>
         <label><input type="checkbox" id="optSeason1"> one season only</label>
         <select id="optSeasonName"><option>winter</option><option>spring</option><option>summer</option><option>autumn</option></select>
         <label>Affinity thread <input id="optThread" class="seq-name" style="width:auto;min-width:150px" spellcheck="false" placeholder="e.g. trace:beaver"></label>
       </div>
+      <div class="cmd-opts" id="genRefine">
+        <label id="optWeatherWrap"><input type="checkbox" id="optWeather"> weather coherent <span class="cmt">(one condition per chapter)</span></label>
+        <label id="optRefrainWrap" style="display:none"><input type="checkbox" id="optRefrain"> let images return <span class="cmt">(refrain)</span></label>
+        <label>Season order <select id="optSeasonMode">
+            <option value="">preset default</option>
+            <option value="forward">forward (year marches)</option>
+            <option value="shuffle">shuffle</option>
+            <option value="free">free</option></select></label>
+        <label>Arc <select id="optArc">
+            <option value="">preset default</option>
+            <option value="arc">establish/detail/settle</option>
+            <option value="soft">soft</option>
+            <option value="off">off</option></select></label>
+      </div>
       <div class="cmd-line"><span class="cmd" id="cmdGen"></span><button class="btn sm" data-copy="cmdGen">Copy</button></div>
-      <p class="hint">It prints its own <code>render:</code> line when it finishes — paste that to render the generated board. <b>Affinity thread</b> (optional) lays a quiet recurrence along one facet — <code>condition:fog</code>, <code>water_state:frozen</code>, <code>trace:beaver</code>, <code>subjects:stone</code> — so it reappears across the hour without being announced; leave it blank for none. Works best on a facet that's present in several places but never dominant.</p>
+      <p class="hint">It prints its own <code>render:</code> line when it finishes — paste that to render the generated board. <b>Preset</b> sets the production register: <b>Field</b> is the documentary default (reproduces exactly); <b>Wander</b> loosens the season order and softens the arc while staying place-based; <b>Drift</b> dissolves location into one associative stream under a single neutral bed. <b>weather coherent</b> (Field/Wander) keeps each chapter to one condition for a stricter-realism cut; <b>let images return</b> (Drift) brings a recent shot back as a sparse echo. <b>Season order</b> and <b>Arc</b> override the preset's defaults when set. <b>Affinity thread</b> (optional) lays a quiet recurrence along one facet — <code>condition:fog</code>, <code>water_state:frozen</code>, <code>trace:beaver</code>, <code>subjects:stone</code> — so it reappears without being announced; leave it blank for none. Works best on a facet present in several places but never dominant.</p>
 
       <h3>Prepare &amp; check</h3>
       <div class="cmd-line"><span class="cmd" id="cmdTagClips">python3 scripts/facet-index.py</span><button class="btn sm" data-copy="cmdTagClips">Copy</button></div>
@@ -2029,6 +2049,14 @@ $('#btnHelp').onclick=()=>show('#helpOverlay');
    and the chosen render options. The browser can't run shell, so it produces
    the exact lines to paste. */
 function cmdSafeName(s){ return (s||'').replace(/[^\w-]+/g,'-').replace(/^-+|-+$/g,'')||'sequence'; }
+/* weather coherent only bites in the place-based presets; refrain only in Drift.
+   Show whichever applies to the chosen preset so the panel never offers a no-op. */
+function updateGenUI(preset){
+  preset = preset || (($('#optPreset')||{}).value)||'field';
+  const wW=$('#optWeatherWrap'), rW=$('#optRefrainWrap');
+  if(wW) wW.style.display = (preset==='drift') ? 'none' : '';
+  if(rW) rW.style.display = (preset==='drift') ? '' : 'none';
+}
 function buildCommands(){
   const raw=($('#optBoard').value||'').trim() || `~/Desktop/${cmdSafeName(state.seqName)}.json`;
   const board = raw.includes(' ') ? `"${raw}"` : raw;
@@ -2039,10 +2067,19 @@ function buildCommands(){
   const still = (!isNaN(stillV) && stillV!==5) ? ` --still-duration ${stillV}` : '';
   $('#cmdRender').textContent = `python3 scripts/assemble.py ${board}${res}${fade}${still}`;
   const mins = parseFloat($('#optMin').value)||60;
+  const preset = (($('#optPreset')||{}).value)||'field';
+  updateGenUI(preset);
+  const presetArg = preset!=='field' ? ` --preset ${preset}` : '';
   const seas = $('#optSeason1').checked ? ` --season ${$('#optSeasonName').value}` : '';
   const thr = (($('#optThread')||{}).value||'').trim();
   const thread = thr ? ` --thread ${thr.includes(' ')?`"${thr}"`:thr}` : '';
-  $('#cmdGen').textContent = `python3 scripts/shuffle-board.py --minutes ${mins}${seas}${thread}`;
+  const wx = (($('#optWeather')||{}).checked && preset!=='drift') ? ' --weather coherent' : '';
+  const refrain = (($('#optRefrain')||{}).checked && preset==='drift') ? ' --recurrence refrain' : '';
+  const smv = ($('#optSeasonMode')||{}).value;
+  const smode = (smv && !$('#optSeason1').checked) ? ` --season-mode ${smv}` : '';
+  const arcv = ($('#optArc')||{}).value;
+  const arc = arcv ? ` --arc ${arcv}` : '';
+  $('#cmdGen').textContent = `python3 scripts/shuffle-board.py --minutes ${mins}${presetArg}${seas}${smode}${arc}${wx}${refrain}${thread}`;
   $('#cmdLint').textContent = `python3 scripts/lint-board.py ${board}`;
   $('#cmdAudit').textContent = `python3 scripts/audio-match.py --board ${board}`;
 }
@@ -2050,7 +2087,7 @@ $('#btnCommands').onclick=()=>{
   if(!$('#optBoard').value) $('#optBoard').value=`~/Desktop/${cmdSafeName(state.seqName)}.json`;
   buildCommands(); show('#cmdOverlay');
 };
-['optBoard','optRes','optFade','optStill','optMin','optSeason1','optSeasonName','optThread'].forEach(id=>{
+['optBoard','optRes','optFade','optStill','optMin','optPreset','optSeason1','optSeasonName','optThread','optWeather','optRefrain','optSeasonMode','optArc'].forEach(id=>{
   const el=$('#'+id); if(el){ el.addEventListener('input',buildCommands); el.addEventListener('change',buildCommands); }
 });
 document.querySelectorAll('#cmdOverlay [data-copy]').forEach(b=>{
