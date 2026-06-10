@@ -476,6 +476,15 @@
             </select></label>
           <label><input type="checkbox" id="optSeason1"> one season only</label>
           <select id="optSeasonName"><option>winter</option><option>spring</option><option>summer</option><option>autumn</option></select>
+          <label>Sound bed
+            <select id="optBed" title="Theme-pure audible environment: keeps the whole hour to one listening environment (for single-environment streams and uploads)">
+              <option value="">Mixed — every environment (default)</option>
+              <option value="rain">Rain</option>
+              <option value="water">Moving water</option>
+              <option value="wind">Wind (thin pool — short rotation)</option>
+              <option value="deep-quiet">Deep quiet</option>
+              <option value="winter-quiet">Winter quiet</option>
+            </select></label>
         </div>
         <details style="margin:4px 0 2px">
           <summary class="cmt" style="cursor:pointer">More options (affinity thread, season order, arc, register tweaks)</summary>
@@ -499,6 +508,7 @@
           </div>
         </details>
         <p class="hint" style="margin-top:0"><b>Field</b> reproduces the documentary default exactly; <b>Wander</b> loosens season order and softens the arc; <b>Drift</b> dissolves location into one associative stream. Long-form renders landscape.</p>
+        <p class="hint" style="margin-top:4px"><b>Sound bed</b> keeps the whole hour to one audible environment — <b>rain</b>, <b>moving water</b>, <b>deep quiet</b>, or <b>winter quiet</b> — instead of the default mix, so the soundscape stays consistent. This is what makes a single-environment upload or stream (an hour that is all rain, all moving water). It filters the clip pool to that environment across every location and lets the audio matcher follow; thin environments (<b>wind</b>) make a short rotation, so prefer the four with deep pools. Leave it on <b>Mixed</b> for an ordinary varied hour.</p>
       </div>
 
       <div class="help-callout" style="margin-top:8px">
@@ -551,7 +561,10 @@
 
         <p><b>Build an hour automatically</b> <span class="cmt">(the long-form generator)</span></p>
         <span class="cmd">python3 scripts/shuffle-board.py --minutes 60</span>
-        <p style="margin:4px 0">It prints a <code>render:</code> line with the exact next command and the real filename. Paste that line to render. Repeat a run you liked with <code>--seed NNNN</code>; one season only with <code>--season winter</code>. Pick a <b>production register</b> with <code>--preset</code>: <code>field</code> (documentary, the default), <code>wander</code> (looser, still place-based), or <code>drift</code> (one associative stream); on <code>drift</code> add <code>--recurrence refrain</code> to let a shot return or <code>--transitions mixed</code> for flash frames and hard cuts, on <code>field</code>/<code>wander</code> add <code>--weather coherent</code> for one condition per chapter. <b>No Terminal at all:</b> click <b>Generate</b> in the toolbar, set your options, click <b>Generate to project</b>, then double-click <b>Generate to project</b> in your Northing folder.</p>
+        <p style="margin:4px 0">It prints a <code>render:</code> line with the exact next command and the real filename. Paste that line to render. Repeat a run you liked with <code>--seed NNNN</code>; one season only with <code>--season winter</code>. Pick a <b>production register</b> with <code>--preset</code>: <code>field</code> (documentary, the default), <code>wander</code> (looser, still place-based), or <code>drift</code> (one associative stream); on <code>drift</code> add <code>--recurrence refrain</code> to let a shot return or <code>--transitions mixed</code> for flash frames and hard cuts, on <code>field</code>/<code>wander</code> add <code>--weather coherent</code> for one condition per chapter. Keep the hour to <b>one audible environment</b> with <code>--bed</code>: <code>rain</code>, <code>water</code>, <code>deep-quiet</code>, or <code>winter-quiet</code> (filters the pool to that environment so the soundscape stays consistent — the basis of a single-environment upload or stream); <code>wind</code> exists but its pool is thin. Raw <code>--condition</code> / <code>--water-state</code> CSVs do the same by hand. <b>No Terminal at all:</b> click <b>Generate</b> in the toolbar, set your options (including <b>Sound bed</b>), click <b>Generate to project</b>, then double-click <b>Generate to project</b> in your Northing folder.</p>
+        <p><b>Build all four bed uploads at once</b> <span class="cmt">(one theme-pure hour each: rain, water, deep-quiet, winter-quiet — renders 1080p)</span></p>
+        <span class="cmd">python3 scripts/generate-beds.py</span>
+        <span class="cmt">reproduce the same set later with</span> <code>--seed N</code>, <span class="cmt">or a subset with</span> <code>--beds rain,water</code><span class="cmt">. No Terminal: double-click <b>Generate bed uploads</b> in your Northing folder.</span>
         <p><b>Build a short-form piece</b> <span class="cmt">(Instagram / YouTube Short — a curiosity mechanism, not an hour)</span></p>
         <span class="cmd">python3 scripts/shuffle-board.py --purpose short --template evidence-place</span>
         <p style="margin:4px 0">Short-form builds a three-to-seven-card fixed sequence where the order carries the meaning. Pick a <code>--template</code>: <code>evidence-place</code>, <code>place-evidence</code>, <code>recurring-object</code>, <code>unanswered-question</code>, <code>seasonal-echo</code>, <code>administrative-record</code>. Use <code>--purpose ig</code> for Instagram (caps at one artifact) or <code>--purpose short</code> for a Short. <code>--pressure none|light|moderate|heavy</code> sets how often evidence intrudes (default moderate). All of it is in the deck builder's <b>Generate</b> panel (the toolbar button), with <b>Generate to project</b> for a no-Terminal build-and-render.</p>
@@ -612,7 +625,7 @@
       <div class="help-callout"><b>Keeping the index current.</b> The generator, the audio matcher, and the linter all read two indexes built from your material, so keep them fresh: <b>whenever you add clips or artifacts, re-tag with <code>python3 scripts/facet-index.py</code> (and <code>python3 scripts/facet-index.py --artifacts</code> for new artifacts); whenever you add soundscapes, re-run <code>python3 scripts/audio-match.py --scan</code></b>. Both are incremental — they only touch what's new and keep existing tags — and both are one click away in the <b>Commands</b> panel. Skipping them doesn't break a render, but new clips will sit untagged (invisible to the season, arc, and thread logic) and new beds won't be considered until scanned.</div>
       <p><b>Run it.</b> Two no-Terminal paths, and which you want depends only on where the board comes from. <b>Save this board</b> sends the sequence you arranged on the table here — it saves exactly what's on screen. <b>Generate to project</b> ignores the table and has the generator build a fresh board from the options you pick (preset, season, axes, thread). Each then pairs with its own double-click that renders the result. The manual Terminal path below is for when you want extra control over resolution or fades.</p>
       <div class="help-callout"><b>The easy path for a hand-built board — no Terminal.</b> Make your edits, then click <b>Save this board</b> in the toolbar. The first time it asks for your Northing folder and then remembers it; it writes the board into <code>90 media/boards/</code>, always overwriting, so there's no Downloads copy and no stale version. Then double-click <b>Render latest board</b> (the <code>.command</code> file in your Northing folder — keep a copy on the Desktop if you like). It first runs the board linter and, if the board is sound, renders it at 1920×1080 and opens the assembled-clip folder when it finishes. If the linter finds a render-breaking problem (a missing file, a card still pointing at a web link) it stops and tells you what to fix rather than producing a broken video; coherence warnings print but don't stop the render. So: edit, Save this board, double-click. No file names, no <code>cd</code>, nothing to mistype. The Save button needs Chrome or Edge.</div>
-      <div class="help-callout"><b>The easy path for a generated hour — no Terminal.</b> When you'd rather the generator build the board, click <b>Generate</b> in the toolbar and set your options — minutes, <b>feel</b> (Field / Wander / Drift), one season only, and under <i>More options</i> the <b>weather coherent</b>, <b>let images return</b>, or <b>harder joins</b> checkbox, Season-order and Arc overrides, an optional affinity thread. Then click <b>Generate to project</b>: it saves those settings into the project (same one-time folder permission as Save this board). Double-click <b>Generate to project</b> (the <code>.command</code> in your Northing folder) and it builds the board with exactly those options, lints it, and renders it at 1920×1080 straight through, opening the assembled-clip folder when done. It's the generator's version of Save this board → Render, collapsed into one click and one double-click, so you never paste a command or choose a seed by hand. Like Save this board, it needs Chrome or Edge.</div>
+      <div class="help-callout"><b>The easy path for a generated hour — no Terminal.</b> When you'd rather the generator build the board, click <b>Generate</b> in the toolbar and set your options — minutes, <b>feel</b> (Field / Wander / Drift), one season only, a <b>Sound bed</b> to hold the whole hour to one audible environment (rain, moving water, deep quiet, winter quiet) for a single-environment upload or stream, and under <i>More options</i> the <b>weather coherent</b>, <b>let images return</b>, or <b>harder joins</b> checkbox, Season-order and Arc overrides, an optional affinity thread. Then click <b>Generate to project</b>: it saves those settings into the project (same one-time folder permission as Save this board). Double-click <b>Generate to project</b> (the <code>.command</code> in your Northing folder) and it builds the board with exactly those options, lints it, and renders it at 1920×1080 straight through, opening the assembled-clip folder when done. It's the generator's version of Save this board → Render, collapsed into one click and one double-click, so you never paste a command or choose a seed by hand. Like Save this board, it needs Chrome or Edge.</div>
       <p><b>The manual path — exact Terminal steps.</b> Use this when you want to set resolution or fades, or to generate an hour. Commands are for the Mac Terminal app (Cmd+Space, type Terminal, Enter). Paste one line at a time, pressing Enter after each.</p>
       <div class="help-callout"><b>One-time setup.</b> The renderer needs a free tool called ffmpeg. Check with <code>ffmpeg -version</code>; if it says "command not found", install it once with <code>brew install ffmpeg</code> (needs Homebrew — <code>brew --version</code> to check, and brew.sh if you don't have it). After this, skip straight to the steps below every time.</div>
       <ol class="help-steps">
@@ -2169,6 +2182,8 @@ function genArgsFromUI(){
   }
   const preset = (($('#optPreset')||{}).value)||'field';
   if(preset!=='field') a.push('--preset',preset);
+  const bed=(($('#optBed')||{}).value)||'';
+  if(bed) a.push('--bed',bed);
   const season1=$('#optSeason1').checked;
   if(season1) a.push('--season',$('#optSeasonName').value);
   const smv=($('#optSeasonMode')||{}).value;
@@ -2198,7 +2213,7 @@ function buildCommands(){
   $('#cmdGen').textContent = `python3 scripts/shuffle-board.py ${[minTok,disp].filter(Boolean).join(' ')}`;
   const ro=$('#genReadout');
   if(ro){
-    if(purpose==='long'){ ro.textContent=`Will make a ${mins}-minute ${(($('#optPreset')||{}).value)||'field'} hour (landscape).`; }
+    if(purpose==='long'){ const bd=(($('#optBed')||{}).value)||''; const bedTxt=bd?` · ${bd.replace('-',' ')} bed`:''; ro.textContent=`Will make a ${mins}-minute ${(($('#optPreset')||{}).value)||'field'} hour (landscape)${bedTxt}.`; }
     else{
       const mech=(MECH.find(m=>m.id===((($('#optTemplate')||{}).value)))||{}).label||'';
       const plat=purpose==='ig'?'Instagram':'YouTube Short';
@@ -2243,7 +2258,7 @@ $('#btnGenerate').onclick=()=>{ renderMechCards(); buildCommands(); show('#genOv
 document.querySelectorAll('#genOverlay [data-copy]').forEach(b=>{
   b.onclick=()=>{ const el=$('#'+b.dataset.copy); if(el){ navigator.clipboard?.writeText(el.textContent); toast('Copied.'); } };
 });
-['optBoard','optRes','optFade','optStill','optMin','optPurpose','optTemplate','optPressure','optPreset','optSeason1','optSeasonName','optThread','optWeather','optRefrain','optMixed','optSeasonMode','optArc'].forEach(id=>{
+['optBoard','optRes','optFade','optStill','optMin','optPurpose','optTemplate','optPressure','optPreset','optBed','optSeason1','optSeasonName','optThread','optWeather','optRefrain','optMixed','optSeasonMode','optArc'].forEach(id=>{
   const el=$('#'+id); if(el){ el.addEventListener('input',buildCommands); el.addEventListener('change',buildCommands); }
 });
 document.querySelectorAll('#cmdOverlay [data-copy]').forEach(b=>{
