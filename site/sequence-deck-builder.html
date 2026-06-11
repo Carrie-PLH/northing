@@ -459,9 +459,16 @@
               <option value="moderate" selected>Moderate — as designed</option>
               <option value="heavy">Heavy — one extra artifact</option>
             </select></label>
+          <label>Cut speed <span class="cmt">— how long each shot holds</span>
+            <select id="optPace">
+              <option value="snappy">Snappy — ~1.5s a shot</option>
+              <option value="quick" selected>Quick — ~2.5s (recommended for Instagram)</option>
+              <option value="relaxed">Relaxed — ~4s</option>
+              <option value="full">Full — uncut clips</option>
+            </select></label>
         </div>
         <p class="hint" id="tplDesc" style="margin:2px 0 4px"></p>
-        <p class="hint" style="margin-top:0">Shorts render full-bleed vertical (1080×1920) for phones — no bars, nothing cropped. Each stays one real place and never captions or explains.</p>
+        <p class="hint" style="margin-top:0">Shorts render full-bleed vertical (1080×1920) for phones — no bars, nothing cropped. Each stays one real place and never captions or explains. <b>Cut speed</b> caps how long each shot holds: long takes shed viewers on a fast feed, so Instagram defaults to ~2.5s a shot. It's a creative dial worth testing — try Quick against Relaxed on the same mechanism.</p>
       </div>
 
       <!-- LONG-FORM -->
@@ -567,7 +574,7 @@
         <span class="cmt">reproduce the same set later with</span> <code>--seed N</code>, <span class="cmt">or a subset with</span> <code>--beds rain,water</code><span class="cmt">. No Terminal: double-click <b>Generate bed uploads</b> in your Northing folder.</span>
         <p><b>Build a short-form piece</b> <span class="cmt">(Instagram / YouTube Short — a curiosity mechanism, not an hour)</span></p>
         <span class="cmd">python3 scripts/shuffle-board.py --purpose short --template evidence-place</span>
-        <p style="margin:4px 0">Short-form builds a three-to-seven-card fixed sequence where the order carries the meaning. Pick a <code>--template</code>: <code>evidence-place</code>, <code>place-evidence</code>, <code>recurring-object</code>, <code>unanswered-question</code>, <code>seasonal-echo</code>, <code>administrative-record</code>. Use <code>--purpose ig</code> for Instagram (caps at one artifact) or <code>--purpose short</code> for a Short. <code>--pressure none|light|moderate|heavy</code> sets how often evidence intrudes (default moderate). All of it is in the deck builder's <b>Generate</b> panel (the toolbar button), with <b>Generate to project</b> for a no-Terminal build-and-render.</p>
+        <p style="margin:4px 0">Short-form builds a three-to-seven-card fixed sequence where the order carries the meaning. Pick a <code>--template</code>: <code>evidence-place</code>, <code>place-evidence</code>, <code>recurring-object</code>, <code>unanswered-question</code>, <code>seasonal-echo</code>, <code>administrative-record</code>. Use <code>--purpose ig</code> for Instagram (caps at one artifact) or <code>--purpose short</code> for a Short. <code>--pressure none|light|moderate|heavy</code> sets how often evidence intrudes (default moderate). <code>--pace snappy|quick|relaxed|full</code> sets cut speed — how long each shot holds (Instagram defaults to quick, ~2.5s a shot); the pace travels in the board so the render honours it. All of it is in the deck builder's <b>Generate</b> panel (the toolbar button), with <b>Generate to project</b> for a no-Terminal build-and-render.</p>
 
         <p><b>Build a composed piece by hand</b> <span class="cmt">(this tool)</span></p>
         <p style="margin:4px 0">Arrange the board, <b>Export Sequence → JSON</b>, save it (e.g. to the Desktop), then render it:</p>
@@ -2178,6 +2185,8 @@ function genArgsFromUI(){
     a.push('--template',(($('#optTemplate')||{}).value)||'evidence-place');
     const pr=(($('#optPressure')||{}).value)||'moderate';
     if(pr!=='moderate') a.push('--pressure',pr);
+    const pace=(($('#optPace')||{}).value)||'';
+    if(pace) a.push('--pace',pace);
     return a;
   }
   const preset = (($('#optPreset')||{}).value)||'field';
@@ -2258,7 +2267,7 @@ $('#btnGenerate').onclick=()=>{ renderMechCards(); buildCommands(); show('#genOv
 document.querySelectorAll('#genOverlay [data-copy]').forEach(b=>{
   b.onclick=()=>{ const el=$('#'+b.dataset.copy); if(el){ navigator.clipboard?.writeText(el.textContent); toast('Copied.'); } };
 });
-['optBoard','optRes','optFade','optStill','optMin','optPurpose','optTemplate','optPressure','optPreset','optBed','optSeason1','optSeasonName','optThread','optWeather','optRefrain','optMixed','optSeasonMode','optArc'].forEach(id=>{
+['optBoard','optRes','optFade','optStill','optMin','optPurpose','optTemplate','optPressure','optPace','optPreset','optBed','optSeason1','optSeasonName','optThread','optWeather','optRefrain','optMixed','optSeasonMode','optArc'].forEach(id=>{
   const el=$('#'+id); if(el){ el.addEventListener('input',buildCommands); el.addEventListener('change',buildCommands); }
 });
 document.querySelectorAll('#cmdOverlay [data-copy]').forEach(b=>{
