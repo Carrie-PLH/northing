@@ -8,6 +8,11 @@
 !/site
 !/site/**
 
+# The Leaving (second project) working material — intentionally kept out of git
+# (already covered by the catch-all above; listed explicitly to record intent)
+/the-leaving/
+/the-leaving/**
+
 # System files
 **/.DS_Store
 
