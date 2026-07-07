@@ -381,6 +381,27 @@ const SEED_ARTIFACTS = [
   { location_id: '001', title: 'Modern photograph: hay rake tines in meadow soil', type: 'found object photograph', period: 'contemporary', arena_url: null, description: 'Modern color photograph of three rusty iron hay rake tines found embedded in the meadow soil. Sticking up at slight angles, partially overgrown with tall green grass. Late summer light. Relics of when the wet meadow was cut for hay. Sharp photography with shallow depth of field.' },
   { location_id: '001', title: 'Family note: picnic at the confluence', type: 'family note', period: 'mid-20th century', arena_url: null, description: 'Short note on folded paper, handwritten in pen. "Lunch spot: where the two streams meet. Bring the wool blanket — the ground stays damp even in August. The children can wade if the water is low enough. Watch for the heron." Unsigned, undated. Relaxed, familiar handwriting. Small grease stain on one corner.' },
   { location_id: '001', title: 'B&W photograph: haying the lower meadow', type: 'photograph', period: '1950s', arena_url: null, description: 'Black-and-white photograph. Horse-drawn hay wagon in the wet meadow on a sunny day. Two figures loading loose hay. Meadow stretches wide behind them to the tree line. Tributary channel visible as a dark line through the grass. Crisp mid-century agricultural photography. Caption on back: "Haying — lower meadow, July."' },
+
+  // ── 1950s photograph ingest (2026-07) ─────────────────────
+  { location_id: '003', title: 'B+W scan: figure among tall timber', type: 'photograph', period: '1950s', arena_url: 'https://www.are.na/block/47668469', description: 'Figure stands among tall old-growth conifers, black and white. File: FC-photo-tall-timber-figure.jpg' },
+  { location_id: '003', title: 'B+W scan: fern understory, pine interior', type: 'photograph', period: '1959', arena_url: 'https://www.are.na/block/47668471', description: 'Forest interior with fern understory and pine canopy, November 1959. File: FC-photo-fern-understory-interior.jpg' },
+  { location_id: '007', title: 'B+W scan: high ground long view, tarn below', type: 'photograph', period: '1950s', arena_url: 'https://www.are.na/block/47667796', description: 'Alpine lake with conifer trees and snow-capped mountains beyond. File: RO-photo-high-ground-long-view.jpg' },
+  { location_id: '007', title: 'B+W scan: snow valley from elevation', type: 'photograph', period: '1950s', arena_url: 'https://www.are.na/block/47667807', description: 'Snow-covered valley with bare trees and fence line. File: RO-photo-winter-valley-view.jpg' },
+  { location_id: '007', title: 'B+W scan: ridge tarn with late snow', type: 'photograph', period: '1950s', arena_url: 'https://www.are.na/block/47667806', description: 'Ridge tarn with late snow patch on far shore. File: RO-photo-ridge-tarn-late-snow.jpg' },
+  { location_id: '007', title: 'B+W scan: forested ridge in haze', type: 'photograph', period: '1950s', arena_url: 'https://www.are.na/block/47667805', description: 'Forested ridge beneath hazy overcast sky, black and white. File: RO-photo-forested-ridge-haze.jpg' },
+  { location_id: '007', title: 'B+W scan: interior ridge through branches', type: 'photograph', period: '1950s', arena_url: 'https://www.are.na/block/47667792', description: 'Forested ridge viewed through overhanging tree branches. File: RO-photo-interior-ridge-through-branches.jpg' },
+  { location_id: '007', title: 'B+W scan: valley lake overlook', type: 'photograph', period: '1950s', arena_url: 'https://www.are.na/block/47667804', description: 'Overlook of mountain valley lake with snow and conifers. File: RO-photo-valley-water-overlook.jpg' },
+  { location_id: '007', title: 'B+W scan: ridge crag outcrop', type: 'photograph', period: '1950s', arena_url: 'https://www.are.na/block/47667793', description: 'Rocky ridge crag rising above forested hillside. File: RO-photo-ridge-crag-outcrop.jpg' },
+  { location_id: '007', title: 'B+W scan: valley river gleam through canopy', type: 'photograph', period: '1950s', arena_url: 'https://www.are.na/block/47667794', description: 'Valley river visible through dense tree canopy below. File: RO-photo-valley-river-gleam.jpg' },
+  { location_id: '004', title: 'B+W scan: standing dead snags', type: 'photograph', period: '1950s', arena_url: 'https://www.are.na/block/47668438', description: 'Multiple standing dead snags in snow-covered winter landscape. File: BM-photo-standing-dead-snags.jpg' },
+  { location_id: '004', title: 'B+W scan: fog over pond margin', type: 'photograph', period: '1950s', arena_url: 'https://www.are.na/block/47668437', description: 'Fog over pond margin with reeds and bare trees. File: BM-photo-pond-margin-fog.jpg' },
+  { location_id: '005', title: 'B+W scan: cleared winter path to structure', type: 'photograph', period: '1950s', arena_url: 'https://www.are.na/block/47668141', description: 'Cleared winter road through snowy valley with hillside beyond. File: SF-photo-winter-clearing-path.jpg' },
+  { location_id: '005', title: 'B+W scan: field-edge tree, succession margin', type: 'photograph', period: '1950s', arena_url: 'https://www.are.na/block/47668142', description: 'Large tree at field edge with shrubby foreground vegetation. File: SF-photo-succession-edge-tree.jpg' },
+  { location_id: '005', title: 'B+W scan: stone walls across pasture', type: 'photograph', period: '1950s', arena_url: 'https://www.are.na/block/47668140', description: 'Stone wall crossing open pasture with trees beyond. File: SF-photo-stone-wall-pasture.jpg' },
+  { location_id: '002', title: 'B+W scan: dormant tree rows', type: 'photograph', period: '1950s', arena_url: 'https://www.are.na/block/47668641', description: 'Rows of dormant bare trees across open grassy field. File: AO-photo-dormant-tree-rows.jpg' },
+  { location_id: '001', title: 'B+W scan: high water below ledge', type: 'photograph', period: '1950s', arena_url: 'https://www.are.na/block/47668763', description: 'High rushing water along rocky ledge and cliff face. File: TC-photo-high-water-ledge.jpg' },
+  { location_id: '001', title: 'B+W scan: summer gravel bar', type: 'photograph', period: '1950s', arena_url: 'https://www.are.na/block/47668762', description: 'River channel with gravel bar and dense summer canopy. File: TC-photo-summer-gravel-bar.jpg' },
+  { location_id: '001', title: 'B+W scan: fog over stream, bare trees', type: 'photograph', period: '1950s', arena_url: 'https://www.are.na/block/47668771', description: 'Fog rising over stream with bare winter trees. File: TC-photo-stream-fog-bare-trees.jpg' },
 ];
 
 // ─── are.na utilities ─────────────────────────────────────────────────────────
@@ -415,7 +436,7 @@ async function fetchArenaBlock(blockId) {
 
 // ─── Database initialization ──────────────────────────────────────────────────
 
-const SEED_VERSION = '5';
+const SEED_VERSION = '6';
 
 async function initDB() {
   await pool.query(`
